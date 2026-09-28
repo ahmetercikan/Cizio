@@ -284,7 +284,7 @@ function Player({ lesson }: { lesson: Lesson }) {
   const showPlayer = phase === 'watch' || phase === 'turn' || phase === 'feedback';
 
   return (
-    <div className={`player desk ${settings.leftHanded ? 'player--left' : ''} ${phase === 'intro' ? 'player--intro' : ''}`} onPointerDown={() => phase === 'watch' && bumpControls()}>
+    <div className={`player desk ${settings.leftHanded ? 'player--left' : ''} ${phase === 'intro' ? 'player--intro' : ''} ${mode === 'screen' && (phase === 'turn' || phase === 'color') ? 'player--tools' : ''} ${phase === 'color' ? 'player--palette' : ''}`} onPointerDown={() => phase === 'watch' && bumpControls()}>
       {/* üst çubuk */}
       <header className="player__top">
         <button className="round-btn round-btn--light" aria-label="Dersten çık" onClick={() => (phase === 'intro' || phase === 'done' ? exit() : setLeave(true))}>
@@ -324,7 +324,7 @@ function Player({ lesson }: { lesson: Lesson }) {
                     <GuideLayer lesson={lesson} step={cur} view={scaffold} missed={phase === 'feedback' ? result?.missed : undefined} />
                   )}
                   {mode === 'screen' && phase !== 'intro' && phase !== 'done' && (
-                    <DrawingCanvas doc={doc} tool={ts.tool} color={ts.color} size={ts.size} step={cur} disabled={!drawingEnabled}
+                    <DrawingCanvas doc={doc} tool={ts.tool} color={ts.color} size={ts.size} pattern={ts.pattern} stamp={ts.stamp} step={cur} disabled={!drawingEnabled}
                       palmRejection={settings.palmRejection} />
                   )}
                   {mode === 'screen' && phase === 'watch' && <PencilOverlay tl={tl} t={t} />}
@@ -376,7 +376,7 @@ function Player({ lesson }: { lesson: Lesson }) {
       {/* çizim araçları */}
       {drawingEnabled && (
         <div className="tools-float">
-          <ToolCapsule doc={doc} ts={ts} tools={phase === 'color' ? ['fill', 'brush', 'marker', 'pencil', 'eraser'] : ['pencil', 'eraser']} clear={phase === 'color'} />
+          <ToolCapsule doc={doc} ts={ts} tools={phase === 'color' ? ['fill', 'pencil', 'crayon', 'marker', 'brush', 'watercolor', 'rainbow', 'glitter', 'stamp', 'eraser'] : ['pencil', 'eraser']} clear={phase === 'color'} />
         </div>
       )}
       {phase === 'color' && (

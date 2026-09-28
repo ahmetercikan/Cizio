@@ -4,12 +4,11 @@
  *   - çizgi katmanı (lineLayer): kalem/fırça darbeleri, üstte
  * Tüm eylemler 400x400 ders koordinatlarında saklanır; katmanlar RES x RES çözünürlüktedir.
  */
-import { getStroke } from 'perfect-freehand';
+import { paintStamp, paintStroke, patternHit, RES, UNIT } from './brushes';
 import { fillRegion, hexToRgb } from './floodFill';
-import type { DrawAction, FillAction, StrokeAction } from './types';
+import type { DrawAction, FillAction, StampAction, StrokeAction } from './types';
 
-export const RES = 1536;
-export const UNIT = RES / 400;
+export { hasRealPressure, paintStamp, paintStroke, RES, strokePath, UNIT } from './brushes';
 
 type Canvas2D = HTMLCanvasElement;
 
@@ -19,50 +18,6 @@ function makeLayer(): { canvas: Canvas2D; ctx: CanvasRenderingContext2D } {
   canvas.height = RES;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   return { canvas, ctx };
-}
-
-const TOOL_OPTS = {
-  pencil: { thinning: 0.55, smoothing: 0.5, streamline: 0.45 },
-  marker: { thinning: 0, smoothing: 0.6, streamline: 0.5 },
-  brush: { thinning: 0.75, smoothing: 0.7, streamline: 0.5, start: { taper: 12 }, end: { taper: 18 } },
-  eraser: { thinning: 0, smoothing: 0.5, streamline: 0.4 },
-} as const;
-
-/** perfect-freehand dış hattını bir Path2D'ye çevirir. */
-export function strokePath(s: StrokeAction, hasPressure: boolean): Path2D {
-  const outline = getStroke(s.points, {
-    size: s.size,
-    simulatePressure: !hasPressure,
-    last: true,
-    ...TOOL_OPTS[s.tool],
-  } as Parameters<typeof getStroke>[1]).map(([x, y]) => [x * UNIT, y * UNIT]);
-  const p = new Path2D();
-  if (outline.length === 0) return p;
-  if (s.points.length === 1 || outline.length < 4) {
-    const [x, y] = s.points[0];
-    p.arc(x * UNIT, y * UNIT, (s.size * UNIT) / 2, 0, Math.PI * 2);
-    return p;
-  }
-  p.moveTo(outline[0][0], outline[0][1]);
-  for (let i = 1; i < outline.length - 1; i++) {
-    const [x0, y0] = outline[i];
-    const [x1, y1] = outline[i + 1];
-    p.quadraticCurveTo(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2);
-  }
-  p.closePath();
-  return p;
-}
-
-/** Noktalardan gerçek basınç bilgisi var mı (kalem)? Fare/parmakta p sabit 0.5 gelir. */
-export const hasRealPressure = (s: StrokeAction) => s.points.some((p) => p[2] !== 0.5);
-
-export function paintStroke(ctx: CanvasRenderingContext2D, s: StrokeAction) {
-  ctx.save();
-  if (s.tool === 'eraser') ctx.globalCompositeOperation = 'destination-out';
-  if (s.tool === 'marker') ctx.globalAlpha = 0.85;
-  ctx.fillStyle = s.color;
-  ctx.fill(strokePath(s, hasRealPressure(s)));
-  ctx.restore();
 }
 
 export class DrawingDoc {
@@ -92,6 +47,7 @@ export class DrawingDoc {
   commit(a: DrawAction) {
     if (a.kind === 'fill' && !this.applyFill(a)) return;
     if (a.kind === 'stroke') this.applyStroke(a);
+    if (a.kind === 'stamp') this.applyStamp(a);
     this.actions.push(a);
     this.redoStack = [];
     this.emit();
@@ -108,8 +64,7 @@ export class DrawingDoc {
     const a = this.redoStack.pop();
     if (!a) return;
     this.actions.push(a);
-    if (a.kind === 'fill') this.applyFill(a);
-    else this.applyStroke(a);
+    this.apply(a);
     this.emit();
   }
 
@@ -139,11 +94,18 @@ export class DrawingDoc {
   private rebuild() {
     this.line.ctx.clearRect(0, 0, RES, RES);
     this.fill.ctx.clearRect(0, 0, RES, RES);
-    for (const a of this.actions) {
-      if (a.kind === 'fill') this.applyFill(a);
-      else this.applyStroke(a);
-    }
+    for (const a of this.actions) this.apply(a);
     this.emit();
+  }
+
+  private apply(a: DrawAction) {
+    if (a.kind === 'fill') this.applyFill(a);
+    else if (a.kind === 'stamp') this.applyStamp(a);
+    else this.applyStroke(a);
+  }
+
+  private applyStamp(a: StampAction) {
+    paintStamp(this.line.ctx, a);
   }
 
   private applyStroke(s: StrokeAction) {
@@ -156,14 +118,18 @@ export class DrawingDoc {
     const region = fillRegion(img.data, RES, RES, a.at[0] * UNIT, a.at[1] * UNIT);
     if (!region) return false;
     const [r, g, b] = hexToRgb(a.color);
+    // Desenli boyada zemin, rengin açık tonudur.
+    const [lr, lg, lb] = [r, g, b].map((c) => Math.round(c + (255 - c) * 0.72));
+    const pattern = a.pattern ?? 'solid';
     const out = this.fill.ctx.getImageData(0, 0, RES, RES);
     const d = out.data;
     for (let i = 0; i < region.length; i++) {
       if (!region[i]) continue;
       const k = i * 4;
-      d[k] = r;
-      d[k + 1] = g;
-      d[k + 2] = b;
+      const motif = pattern === 'solid' || patternHit(pattern, i % RES, (i / RES) | 0);
+      d[k] = motif ? r : lr;
+      d[k + 1] = motif ? g : lg;
+      d[k + 2] = motif ? b : lb;
       d[k + 3] = 255;
     }
     this.fill.ctx.putImageData(out, 0, 0);
@@ -177,7 +143,7 @@ export class DrawingDoc {
   }
 
   isEmpty() {
-    return !this.actions.some((a) => a.kind === 'fill' || a.tool !== 'eraser');
+    return !this.actions.some((a) => a.kind !== 'stroke' || a.tool !== 'eraser');
   }
 
   /** Beyaz zeminli PNG olarak dışa aktarır. `under` verilirse (ör. rehber çizgiler) altına çizilir. */

@@ -7,6 +7,8 @@ import { persist } from 'zustand/middleware';
 import type { PathId } from '../lessons/types';
 import { dayKey, streakOf, uid } from '../lib/util';
 import { milestoneStickers } from '../stickers';
+import { lessons as allLessons } from '../lessons';
+import { questDone, todayQuest, type ChallengeKind } from '../lib/daily';
 import { STATE_KEY } from '../lib/legacy';
 
 export type DrawMode = 'screen' | 'paper';
@@ -45,6 +47,10 @@ export interface ProfileData {
   days: Record<string, DayActivity>;
   paperCount: number;
   freeCount: number;
+  /** Güne göre tamamlanan meydan okumalar: "tür:dersId". */
+  challenges?: Record<string, string[]>;
+  /** Günün görevinin tamamlandığı günler. */
+  quests?: string[];
 }
 
 export interface Settings {
@@ -82,6 +88,7 @@ interface AppState {
   setActive(id?: string): void;
   completeLesson(c: CompleteInput): string[];
   recordDrawing(kind: 'paper' | 'free'): string[];
+  recordChallenge(kind: ChallengeKind, lessonId: string): string[];
   consumeNewStickers(): void;
   toggleFavorite(lessonId: string): void;
   updateSettings(patch: Partial<Settings>): void;
@@ -102,6 +109,14 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const today = (d: ProfileData): DayActivity => d.days[dayKey()] ?? { lessons: 0, minutes: 0, drawings: 0 };
+
+/** Günün görevi bu güncellemeyle tamamlandıysa kaydeder. */
+function withQuest(profile: Profile | undefined, d: ProfileData): ProfileData {
+  if (!profile) return d;
+  const k = dayKey();
+  if (d.quests?.includes(k)) return d;
+  return questDone(todayQuest(profile, d, allLessons), d) ? { ...d, quests: [...(d.quests ?? []), k] } : d;
+}
 
 function withStickers(d: ProfileData, extra: string[]): { data: ProfileData; earned: string[] } {
   const candidates = [...extra, ...milestoneStickers(d, streakOf(d.days))];
@@ -164,7 +179,8 @@ export const useApp = create<AppState>()(
           paperCount: d.paperCount + (scaffold === 'paper' ? 1 : 0),
           days: { ...d.days, [dayKey()]: { ...t, lessons: t.lessons + 1, minutes: t.minutes + minutes, drawings: t.drawings + 1 } },
         };
-        const { data: withS, earned } = withStickers(next, [`lesson:${lessonId}`]);
+        const profile = get().profiles.find((p) => p.id === activeId);
+        const { data: withS, earned } = withStickers(withQuest(profile, next), [`lesson:${lessonId}`]);
         set({ data: { ...data, [activeId]: withS } });
         return earned;
       },
@@ -181,6 +197,23 @@ export const useApp = create<AppState>()(
           days: { ...d.days, [dayKey()]: { ...t, drawings: t.drawings + 1 } },
         };
         const { data: withS, earned } = withStickers(next, []);
+        set({ data: { ...data, [activeId]: withS } });
+        return earned;
+      },
+
+      recordChallenge(kind, lessonId) {
+        const { activeId, data } = get();
+        if (!activeId) return [];
+        const d = { ...emptyData(), ...data[activeId] };
+        const k = dayKey();
+        const t = today(d);
+        const next: ProfileData = {
+          ...d,
+          challenges: { ...(d.challenges ?? {}), [k]: [...(d.challenges?.[k] ?? []), `${kind}:${lessonId}`] },
+          days: { ...d.days, [k]: { ...t, drawings: t.drawings + 1 } },
+        };
+        const profile = get().profiles.find((p) => p.id === activeId);
+        const { data: withS, earned } = withStickers(withQuest(profile, next), []);
         set({ data: { ...data, [activeId]: withS } });
         return earned;
       },

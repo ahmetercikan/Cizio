@@ -4,7 +4,7 @@
  * Tüm çizimler 400x400'lük bir koordinat alanında (viewBox="0 0 400 400") SVG path verisi olarak tanımlanır.
  * Her adım, çizime eklenen yeni şekilleri ve Kalemo'nun sesli söyleyeceği yönergeyi içerir.
  */
-export type PathId = 'temeller' | 'hayvanlar' | 'nesneler' | 'doga' | 'karakterler';
+export type PathId = 'temeller' | 'hayvanlar' | 'nesneler' | 'doga' | 'karakterler' | 'deniz' | 'dinozor' | 'tasitlar' | 'ozel';
 
 export interface Shape {
   /** SVG path verisi, 400x400 alanda. */

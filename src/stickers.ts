@@ -21,6 +21,10 @@ const MILESTONES: Sticker[] = [
   { id: 'free-first', emoji: '🖌️', title: 'Hayal Gücü', hint: 'Serbest çizimde bir resim kaydet' },
   { id: 'free-5', emoji: '🦄', title: 'Hayalperest', hint: 'Serbest çizimde 5 resim kaydet' },
   { id: 'temeller-all', emoji: '✏️', title: 'Kalem Ustası', hint: 'Temeller yolundaki tüm dersleri bitir' },
+  { id: 'challenge-first', emoji: '⚡', title: 'Cesur Kalem', hint: 'İlk meydan okumanı tamamla' },
+  { id: 'challenge-10', emoji: '🥇', title: 'Şampiyon', hint: '10 meydan okuma tamamla' },
+  { id: 'quest-3', emoji: '🎯', title: 'Görev Avcısı', hint: '3 günün görevini tamamla' },
+  { id: 'quest-10', emoji: '👑', title: 'Görev Kraliçesi', hint: '10 günün görevini tamamla' },
 ];
 
 export function allStickers(): Sticker[] {
@@ -46,6 +50,11 @@ export function milestoneStickers(d: ProfileData, streak: number): string[] {
   if (d.paperCount >= 1) out.push('paper-first');
   if (d.freeCount >= 1) out.push('free-first');
   if (d.freeCount >= 5) out.push('free-5');
+  const challenges = Object.values(d.challenges ?? {}).reduce((a, l) => a + l.length, 0);
+  if (challenges >= 1) out.push('challenge-first');
+  if (challenges >= 10) out.push('challenge-10');
+  if ((d.quests?.length ?? 0) >= 3) out.push('quest-3');
+  if ((d.quests?.length ?? 0) >= 10) out.push('quest-10');
   const tem = lessonsByPath('temeller');
   if (tem.length && tem.every((l) => d.lessons[l.id])) out.push('temeller-all');
   return out;

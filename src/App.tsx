@@ -1,7 +1,9 @@
 import { useEffect, type ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { setSfxEnabled } from './lib/sfx';
 import { setNaturalVoice, unlockAudio } from './lib/speech';
+import Challenge from './pages/Challenge';
 import FreeDraw from './pages/FreeDraw';
 import Journal from './pages/Journal';
 import Learn, { CoursePage } from './pages/Learn';
@@ -34,6 +36,7 @@ export default function App() {
 
   return (
     <HashRouter>
+      <ErrorBoundary>
       <Routes>
         <Route path="/hosgeldin" element={<Onboarding />} />
         <Route path="/profiller" element={<Profiles />} />
@@ -43,9 +46,12 @@ export default function App() {
         <Route path="/dergi" element={<NeedsProfile><Journal /></NeedsProfile>} />
         <Route path="/ders/:id" element={<NeedsProfile><LessonPage /></NeedsProfile>} />
         <Route path="/ciz" element={<NeedsProfile><FreeDraw /></NeedsProfile>} />
+        <Route path="/meydan/:kind" element={<NeedsProfile><Challenge /></NeedsProfile>} />
+        <Route path="/meydan/:kind/:lessonId" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/ebeveyn" element={<Parent />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ErrorBoundary>
     </HashRouter>
   );
 }

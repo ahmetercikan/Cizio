@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cizio</string>
+    <string name="title_activity_main">Cizio</string>
+    <string name="package_name">com.ahmetercikan.cizio</string>
+    <string name="custom_url_scheme">com.ahmetercikan.cizio</string>
+</resources>

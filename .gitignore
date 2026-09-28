@@ -7,3 +7,11 @@ dist
 # Yerel gizli anahtarlar (ör. GEMINI_API_KEY)
 .env.local
 .env*.local
+
+# Android imza anahtarı bilgileri (asla depoya girmez)
+android/keystore.properties
+*.jks
+*.keystore
+
+# Mağaza paketleri (büyük ikili dosyalar)
+store/release/

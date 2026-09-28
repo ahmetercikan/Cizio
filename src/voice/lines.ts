@@ -8,6 +8,7 @@
  * Not: Kişiye özel (ör. çocuğun adını içeren) cümleler önceden üretilemez; onlar her zaman Web Speech ile okunur.
  */
 import type { Lesson } from '../lessons/types';
+import { CHALLENGE_LINES, CHALLENGES } from '../lib/daily';
 
 export const STATIC_LINES: string[] = [
   // Karşılama / ebeveyn ekranı ses testi
@@ -41,6 +42,9 @@ export const STATIC_LINES: string[] = [
   'Şimdi gölgelendirme zamanı! Kalemi hafifçe tutarak büyük parçaları tara. Kenarlarda biraz daha bastır.',
   'Şimdi koyu yerleri kalemle sık sık tara. Parlak beyaz noktaları boş bırak!',
   'Şimdi parmağınla ya da bir kâğıt mendille gölgeleri hafifçe dağıt. Yumuşacık olsun!',
+  // Mini meydan okumalar ve günün görevi (src/lib/daily.ts)
+  ...CHALLENGES.map((c) => c.intro),
+  ...Object.values(CHALLENGE_LINES),
 ];
 
 /** Her ders için üretilecek kalıp cümleler. */

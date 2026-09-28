@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { DrawingDoc, paintStroke, RES } from '../engine/drawingDoc';
-import type { StrokeAction, Tool } from '../engine/types';
+import type { FillPattern, StrokeAction, StrokeTool, Tool } from '../engine/types';
 import { sfx } from '../lib/sfx';
 
 export interface CanvasProps {
@@ -17,17 +17,21 @@ export interface CanvasProps {
   step?: number;
   disabled?: boolean;
   palmRejection?: boolean;
+  /** Boya kovası deseni. */
+  pattern?: FillPattern;
+  /** Damga aracında basılacak emoji. */
+  stamp?: string;
   onStroke?: (a: StrokeAction) => void;
 }
 
-export function DrawingCanvas({ doc, tool, color, size, step, disabled, palmRejection = true, onStroke }: CanvasProps) {
+export function DrawingCanvas({ doc, tool, color, size, step, disabled, palmRejection = true, pattern = 'solid', stamp = '⭐', onStroke }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const live = useRef<StrokeAction | null>(null);
   const activePointer = useRef<number | null>(null);
   const penSeen = useRef(false);
   const frame = useRef(0);
-  const props = useRef({ tool, color, size, step, disabled, palmRejection, onStroke });
-  props.current = { tool, color, size, step, disabled, palmRejection, onStroke };
+  const props = useRef({ tool, color, size, step, disabled, palmRejection, pattern, stamp, onStroke });
+  props.current = { tool, color, size, step, disabled, palmRejection, pattern, stamp, onStroke };
 
   const redraw = () => {
     frame.current = 0;
@@ -92,13 +96,18 @@ export function DrawingCanvas({ doc, tool, color, size, step, disabled, palmReje
     const pt = toLocal(e);
     if (p.tool === 'fill') {
       const before = doc.actions.length;
-      doc.commit({ kind: 'fill', color: p.color, at: [pt[0], pt[1]] });
+      doc.commit({ kind: 'fill', color: p.color, at: [pt[0], pt[1]], pattern: p.pattern });
       if (doc.actions.length > before) sfx.pop();
+      return;
+    }
+    if (p.tool === 'stamp') {
+      doc.commit({ kind: 'stamp', stamp: p.stamp, at: [pt[0], pt[1]], size: p.size, rot: Math.round((Math.random() - 0.5) * 30) });
+      sfx.pop();
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
     activePointer.current = e.pointerId;
-    live.current = { kind: 'stroke', tool: p.tool, color: p.color, size: p.size, points: [pt], step: p.step };
+    live.current = { kind: 'stroke', tool: p.tool as StrokeTool, color: p.color, size: p.size, points: [pt], step: p.step };
     schedule();
   };
 

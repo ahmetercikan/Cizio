@@ -72,20 +72,20 @@ export default function FreeDraw() {
   };
 
   return (
-    <div className={`player desk ${settings.leftHanded ? 'player--left' : ''}`}>
+    <div className={`player desk player--tools player--palette ${settings.leftHanded ? 'player--left' : ''}`}>
       <header className="player__top">
         <button className="round-btn round-btn--light" aria-label="Geri" onClick={() => nav('/')}>
           <ArrowLeft size={26} strokeWidth={2.6} />
         </button>
         <div className="player__title"><b>Serbest çizim</b></div>
-        <button className="pill pill--light pill--sm" onClick={() => setBook(true)}><BookOpen size={20} /> Boyama kitabı</button>
+        <button className="pill pill--light pill--sm" aria-label="Boyama kitabı" onClick={() => setBook(true)}><BookOpen size={20} /> <span className="hide-sm">Boyama kitabı</span></button>
       </header>
 
       <div className="player__wrap" ref={wrapRef}>
         {S > 0 && (
           <div className="sheet" style={{ width: S, height: S }}>
             <div className="stage" style={{ width: S * 0.96, height: S * 0.96 }}>
-              <DrawingCanvas doc={doc} tool={ts.tool} color={ts.color} size={ts.size} palmRejection={settings.palmRejection} onStroke={() => setSaved(false)} />
+              <DrawingCanvas doc={doc} tool={ts.tool} color={ts.color} size={ts.size} pattern={ts.pattern} stamp={ts.stamp} palmRejection={settings.palmRejection} onStroke={() => setSaved(false)} />
             </div>
           </div>
         )}

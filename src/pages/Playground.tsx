@@ -1,4 +1,8 @@
-import { Flame, Heart, Sparkles, Star } from 'lucide-react';
+import { Check, Flame, Heart, Play, Sparkles, Star, Target } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { SketchImg } from '../components/Sketch';
+import { CHALLENGES, questDone, specialDay, todayQuest } from '../lib/daily';
+import { questLink } from './Challenge';
 import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../components/AppShell';
 import { CardRow, LessonCard } from '../components/LessonCard';
@@ -53,6 +57,8 @@ export default function Playground() {
         </div>
       </header>
 
+      <DailyRow />
+
       <section className="hero rise" style={{ animationDelay: '0.05s' }}>
         <LessonCard lesson={today} size="xl" isNew={untouched.has(today.id)} />
         <div className="hero__side">
@@ -62,6 +68,19 @@ export default function Playground() {
               <LessonCard key={l.id} lesson={l} size="lg" isNew={untouched.has(l.id)} />
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="row-section">
+        <h2 className="row-section__title"><Sparkles size={20} /> Mini meydan okumalar</h2>
+        <div className="challenge-row">
+          {CHALLENGES.map((c) => (
+            <Link key={c.id} to={`/meydan/${c.id}`} className="challenge-card rise">
+              <span className="challenge-card__emoji">{c.emoji}</span>
+              <b>{c.title}</b>
+              <span>{c.desc}</span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -105,5 +124,41 @@ function NewStickers({ ids, onOpen }: { ids: string[]; onOpen: () => void }) {
         <button className="btn-dark" onClick={() => setOpen(false)}>Süper!</button>
       </div>
     </Modal>
+  );
+}
+
+/** Özel gün kartı ve günün görevi. */
+function DailyRow() {
+  const profile = useProfile()!;
+  const data = useProfileData();
+  const sp = specialDay();
+  const spLesson = sp ? getLesson(sp.lessonId) : undefined;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const quest = useMemo(() => todayQuest(profile, data, lessons), [profile.id]);
+  const done = questDone(quest, data);
+  const qLesson = getLesson(quest.lessonId);
+  return (
+    <div className="daily-row rise">
+      {sp && spLesson && (
+        <Link to={`/ders/${spLesson.id}`} className="special-card">
+          <span className="special-card__emoji">{sp.emoji}</span>
+          <div className="special-card__text">
+            <b>{sp.title}</b>
+            <span>{sp.message}</span>
+          </div>
+          <SketchImg lesson={spLesson} mode="color" paper pad={16} className="special-card__img" />
+        </Link>
+      )}
+      <Link to={questLink(quest)} className={`quest-card ${done ? 'done' : ''}`}>
+        <span className="quest-card__icon">{done ? <Check size={26} strokeWidth={3} /> : <Target size={26} />}</span>
+        <div className="quest-card__text">
+          <span className="quest-card__label">Günün görevi</span>
+          <b>{quest.text}</b>
+          <span className="quest-card__state">{done ? 'Tamamlandı! Yarın yeni görev seni bekliyor.' : 'Tamamlayınca seri devam eder'}</span>
+        </div>
+        {qLesson && <SketchImg lesson={qLesson} paper pad={16} className="quest-card__img" />}
+        {!done && <span className="quest-card__go"><Play size={20} fill="currentColor" /></span>}
+      </Link>
+    </div>
   );
 }

@@ -94,34 +94,23 @@ BASE_URL=http://localhost:5287/ npx tsx scripts/e2e.ts   # karşılama, kâğıt
 
 Uygulama göreli yollarla (`base: './'`) ve hash yönlendirmeyle (`#/ders/kedi`) derlendiği için depo adı ne olursa olsun ayar gerekmez.
 
-## Mobil uygulamaya geçiş (Capacitor)
+## Android uygulaması (Google Play)
 
-Kod bu geçişe hazır:
-
-- Sunucu yok.
-- Göreli yollar ve `HashRouter` kullanılıyor.
-- Çizim, puanlama ve fotoğraf hizalama DOM'dan bağımsız saf TypeScript.
+Android projesi `android/` klasöründe (Capacitor 8). Paket kimliği: `com.ahmetercikan.cizio`.
 
 ```bash
-npm i @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android
-npx cap init Cizio com.<sirket>.cizio --web-dir dist
-npm run build && npx cap add ios && npx cap add android
-npx cap sync && npx cap open ios
+npm run android:sync   # web'i derler ve android/ içine kopyalar
+npm run android:aab    # imzalı Play paketi: android/app/build/outputs/bundle/release/app-release.aab
+npm run android:apk    # cihaza doğrudan kurulabilen imzalı APK
+npx cap open android   # Android Studio'da aç
 ```
 
-Mağaza sürümü için önerilen eklentiler:
-
-| İhtiyaç | Eklenti | Değişecek yer |
-|---|---|---|
-| Kamera | `@capacitor/camera` | `usePhoto` içinde `<input type=file>` yerine |
-| Daha doğal Türkçe ses | `@capacitor-community/text-to-speech` | yalnızca `src/lib/speech.ts` |
-| Galeriye kaydetme | `@capacitor/filesystem` | galeri |
-
-Çocuk uygulaması olarak mağazaya çıkarken şunlar da gerekecek:
-
-- App Store "Kids" ve Google Play "Families" kuralları.
-- Satın alma için ebeveyn kapısı.
-- Gizlilik politikası.
+- **JDK 21 gerekir.** Bu makinede `%USERPROFILE%.jdksjdk-21.0.12.1+1` kurulu; `JAVA_HOME` bunu göstermeli.
+- **Yükleme anahtarı:** `%USERPROFILE%.cizio-keyscizio-upload.jks`. Şifre ve yol `android/keystore.properties` dosyasında; ikisi de depoya girmez. **Bu anahtarı kaybetmeyin:** güvenli bir yere (ör. şifre yöneticisi ve harici disk) yedekleyin. Play App Signing açık olduğunda kaybolursa Play Console'dan sıfırlatılabilir, ama zahmetlidir.
+- **Her yeni sürümde** `android/app/build.gradle` içindeki `versionCode` bir artırılmalı ve `versionName` güncellenmeli.
+- **Mağaza materyalleri** `store/` klasöründe: metinler (`listing-tr.md`), öne çıkan görsel, ikon ve telefon/tablet ekran görüntüleri (`npx tsx scripts/store-assets.ts` ile yeniden üretilir).
+- **Gizlilik politikası:** https://ahmetercikan.github.io/ciziktir/gizlilik.html (`public/gizlilik.html`).
+- **Uygulama ikonu ve açılış ekranı:** `npm run icons`, ardından `npx @capacitor/assets generate --android`.
 
 ## Mimari
 

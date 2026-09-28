@@ -8,6 +8,7 @@ import { Confirm, Modal, TopBar, useToast } from '../components/ui';
 import { lessons, lessonsByPath, paths } from '../lessons';
 import { blobToDataUrl, dataUrlToBlob, deleteArtworksOf, listArtworks, saveArtwork, type Artwork } from '../lib/gallery';
 import { setNaturalVoice, speak, speechSupported, turkishVoices } from '../lib/speech';
+import { saveFile } from '../lib/files';
 import { addDays, dayKey, TR_DAYS } from '../lib/util';
 import { useApp } from '../store/useApp';
 import { AvatarArt, AVATARS } from '../components/Avatars';
@@ -80,12 +81,7 @@ export default function Parent() {
       state: { profiles: s.profiles, data: s.data, settings: s.settings, activeId: s.activeId },
       artworks: await Promise.all(arts.map(async ({ blob, ...rest }) => ({ ...rest, data: await blobToDataUrl(blob) }))),
     };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(backup)], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cizio-yedek-${dayKey()}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    await saveFile(new Blob([JSON.stringify(backup)], { type: 'application/json' }), `cizio-yedek-${dayKey()}.json`, 'Cizio yedeği');
   };
 
   const importAll = async (file?: File) => {
