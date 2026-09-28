@@ -1,3 +1,5 @@
+// Eski sürüm kayıtlarını, durum deposu oluşturulmadan önce yeni ada taşı.
+import './lib/legacy';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';

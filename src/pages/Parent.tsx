@@ -47,7 +47,7 @@ function Gate({ onPass, onCancel }: { onPass: () => void; onCancel: () => void }
 }
 
 interface Backup {
-  app: 'ciziktir';
+  app: 'cizio' | 'ciziktir';
   version: 1;
   exportedAt: string;
   state: unknown;
@@ -74,7 +74,7 @@ export default function Parent() {
   const exportAll = async () => {
     const arts = await listArtworks();
     const backup: Backup = {
-      app: 'ciziktir',
+      app: 'cizio',
       version: 1,
       exportedAt: new Date().toISOString(),
       state: { profiles: s.profiles, data: s.data, settings: s.settings, activeId: s.activeId },
@@ -83,7 +83,7 @@ export default function Parent() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(backup)], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ciziktir-yedek-${dayKey()}.json`;
+    a.download = `cizio-yedek-${dayKey()}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
@@ -92,12 +92,13 @@ export default function Parent() {
     if (!file) return;
     try {
       const b = JSON.parse(await file.text()) as Backup;
-      if (b.app !== 'ciziktir') throw new Error('format');
+      // Eski adla (önceki sürüm) alınmış yedekler de kabul edilir.
+      if (b.app !== 'cizio' && b.app !== 'ciziktir') throw new Error('format');
       s.replaceAll(b.state as Parameters<typeof s.replaceAll>[0]);
       for (const { data: d, ...rest } of b.artworks) await saveArtwork({ ...rest, blob: await dataUrlToBlob(d) });
       showToast('Yedek geri yüklendi.');
     } catch {
-      showToast('Bu dosya bir Çiziktir yedeği değil.');
+      showToast('Bu dosya bir Cizio yedeği değil.');
     }
   };
 
@@ -230,7 +231,7 @@ export default function Parent() {
         </div>
       </section>
 
-      <p className="sub" style={{ textAlign: 'center', marginTop: 20 }}>Çiziktir v{__APP_VERSION__}</p>
+      <p className="sub" style={{ textAlign: 'center', marginTop: 20 }}>Cizio v{__APP_VERSION__}</p>
       </div>
 
       {delProfile && (

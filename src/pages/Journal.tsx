@@ -105,7 +105,7 @@ export default function Journal() {
             <img src={urls.get(open.id)} alt="Çizim" className="art-view__img" />
             {open.stars ? <Stars value={open.stars} size={30} dim="rgba(29,23,64,0.12)" /> : null}
             <div className="modal-actions">
-              <a className="btn-outline" href={urls.get(open.id)} download={`ciziktir-${open.id}.${open.kind === 'paper' ? 'jpg' : 'png'}`}><Download size={20} /> İndir</a>
+              <a className="btn-outline" href={urls.get(open.id)} download={`cizio-${open.id}.${open.kind === 'paper' ? 'jpg' : 'png'}`}><Download size={20} /> İndir</a>
               <button className="btn-outline" style={{ color: 'var(--red)' }} onClick={() => setDel(open)}><Trash2 size={20} /> Sil</button>
             </div>
           </div>

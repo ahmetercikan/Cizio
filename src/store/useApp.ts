@@ -7,6 +7,7 @@ import { persist } from 'zustand/middleware';
 import type { PathId } from '../lessons/types';
 import { dayKey, streakOf, uid } from '../lib/util';
 import { milestoneStickers } from '../stickers';
+import { STATE_KEY } from '../lib/legacy';
 
 export type DrawMode = 'screen' | 'paper';
 /** Ekranda çizimde yardım seviyesi: iz sür → noktalar → kendin çiz (azalan iskele). */
@@ -207,7 +208,7 @@ export const useApp = create<AppState>()(
       },
     }),
     {
-      name: 'ciziktir-v1',
+      name: STATE_KEY,
       version: 2,
       // v1 → v2: favoriler ve yeni ayarlar eklendi.
       migrate: (persisted, version) => {

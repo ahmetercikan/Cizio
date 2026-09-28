@@ -1,4 +1,4 @@
-# Çiziktir: Çizim Öğren
+# Cizio: Çizim Öğren
 
 7-9 yaş çocuklar için Türkçe, sesli anlatımlı, adım adım çizim öğreten bir web uygulaması. Simply Draw'dan esinlenildi, ondan fazlasını yapıyor. Şimdilik PWA olarak tarayıcıda çalışıyor. Aynı kod ileride Capacitor ile iOS ve Android uygulamasına dönüştürülecek.
 
@@ -81,16 +81,16 @@ BASE_URL=http://localhost:5287/ npx tsx scripts/e2e.ts   # karşılama, kâğıt
 
 ## GitHub Pages'e yayınlama
 
-1. GitHub'da yeni bir depo açın (ör. `ciziktir`) ve bu klasörü gönderin:
+1. GitHub'da yeni bir depo açın (ör. `cizio`) ve bu klasörü gönderin:
    ```bash
    git add -A
-   git commit -m "Çiziktir ilk sürüm"
+   git commit -m "Cizio ilk sürüm"
    git branch -M main
-   git remote add origin https://github.com/<kullanici>/ciziktir.git
+   git remote add origin https://github.com/<kullanici>/cizio.git
    git push -u origin main
    ```
 2. Depoda **Settings → Pages → Build and deployment → Source: GitHub Actions** seçin.
-3. `main` dalına yapılan her gönderimde `.github/workflows/deploy.yml` testleri çalıştırır, derler ve yayınlar. Adres `https://<kullanici>.github.io/ciziktir/` olur.
+3. `main` dalına yapılan her gönderimde `.github/workflows/deploy.yml` testleri çalıştırır, derler ve yayınlar. Adres `https://<kullanici>.github.io/cizio/` olur.
 
 Uygulama göreli yollarla (`base: './'`) ve hash yönlendirmeyle (`#/ders/kedi`) derlendiği için depo adı ne olursa olsun ayar gerekmez.
 
@@ -104,7 +104,7 @@ Kod bu geçişe hazır:
 
 ```bash
 npm i @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android
-npx cap init Ciziktir com.<sirket>.ciziktir --web-dir dist
+npx cap init Cizio com.<sirket>.cizio --web-dir dist
 npm run build && npx cap add ios && npx cap add android
 npx cap sync && npx cap open ios
 ```

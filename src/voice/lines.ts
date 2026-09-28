@@ -21,7 +21,7 @@ export const STATIC_LINES: string[] = [
   'Başlamak için yanında bir yetişkin olması daha iyi.',
   'Avatarını seç!',
   'Adın ne?',
-  'Çiziktir ile en sevdiğin şeyleri çizebileceksin!',
+  'Cizio ile en sevdiğin şeyleri çizebileceksin!',
   'Hadi başlayalım!',
 
   // Ders akışı

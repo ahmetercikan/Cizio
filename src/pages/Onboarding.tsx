@@ -32,7 +32,7 @@ const LINES: Partial<Record<Step, string>> = {
   avatar: 'Avatarını seç!',
   name: 'Adın ne?',
   pref: PREF_ROUNDS[0].text,
-  showcase: 'Çiziktir ile en sevdiğin şeyleri çizebileceksin!',
+  showcase: 'Cizio ile en sevdiğin şeyleri çizebileceksin!',
   start: 'Hadi başlayalım!',
 };
 
@@ -110,7 +110,7 @@ export default function Onboarding() {
       {step === 'splash' && (
         <div className="onb__center rise">
           <SplashArt />
-          <h1 className="title-xl">Çiziktir</h1>
+          <h1 className="title-xl">Cizio</h1>
           <p className="sub onb__lead">Adım adım çizmeyi öğren. Kâğıtta ya da ekranda!</p>
           <button
             className="pill"
@@ -155,7 +155,7 @@ export default function Onboarding() {
                 <>
                   <h2 className="title-lg">Yetişkin izniniz var mı?</h2>
                   <p className="permission__text">
-                    Çiziktir'i kullanmak için bir yetişkinin izni gerekir. Çizimler ve fotoğraflar yalnızca bu cihazda saklanır.
+                    Cizio'yu kullanmak için bir yetişkinin izni gerekir. Çizimler ve fotoğraflar yalnızca bu cihazda saklanır.
                   </p>
                   <button className="btn-dark" onClick={() => go('avatar')}>
                     <Check size={22} /> Evet
@@ -225,7 +225,7 @@ export default function Onboarding() {
 
       {step === 'showcase' && (
         <Screen
-          title={<>Çiziktir ile <span className="hl">en sevdiğin şeyleri</span> çizebileceksin!</>}
+          title={<>Cizio ile <span className="hl">en sevdiğin şeyleri</span> çizebileceksin!</>}
           action={<button className="pill" onClick={() => go('start')}>Devam</button>}
         >
           <div className="marquee">

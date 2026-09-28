@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
-        name: 'Çiziktir — Çizim Öğren',
-        short_name: 'Çiziktir',
+        name: 'Cizio — Çizim Öğren',
+        short_name: 'Cizio',
         description: 'Adım adım, sesli anlatımlı çizim dersleri',
         lang: 'tr',
         theme_color: '#7c5cff',
