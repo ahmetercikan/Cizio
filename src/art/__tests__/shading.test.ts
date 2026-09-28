@@ -3,12 +3,13 @@ import { lessons } from '../../lessons';
 import { STATIC_LINES } from '../../voice/lines';
 import { flattenPath } from '../../engine/pathSampler';
 import { hatchPath, pointInPolys } from '../hatch';
-import { DARK_SAY, SOFT_SAY, withShading } from '../shading';
+import { BLEND_SAY, DARK_SAY, SOFT_SAY, withShading } from '../shading';
 
 describe('gölgelendirme adımları', () => {
   it('anlatım cümlelerinin ses kaydı kataloğda var', () => {
     expect(STATIC_LINES).toContain(SOFT_SAY);
     expect(STATIC_LINES).toContain(DARK_SAY);
+    expect(STATIC_LINES).toContain(BLEND_SAY);
   });
 
   it('her derse en az bir gölgelendirme adımı eklenir, çizgi adımları değişmez', () => {
@@ -19,8 +20,8 @@ describe('gölgelendirme adımları', () => {
       expect(extra.length, l.id).toBeGreaterThan(0);
       for (const st of extra) {
         expect(st.shapes).toHaveLength(0);
-        expect(st.hatch!.length).toBeGreaterThan(0);
-        for (const h of st.hatch!) expect(h.d.length).toBeGreaterThan(10);
+        expect((st.hatch?.length ?? 0) + (st.blend?.length ?? 0)).toBeGreaterThan(0);
+        for (const h of st.hatch ?? []) expect(h.d.length).toBeGreaterThan(10);
       }
     }
   });

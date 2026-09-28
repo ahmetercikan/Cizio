@@ -24,6 +24,17 @@ export interface Step {
   shapes: Shape[];
   /** Gölgelendirme adımlarında kalemin yapacağı taramalar (otomatik üretilir, ders dosyasına yazılmaz). */
   hatch?: HatchPass[];
+  /** Dağıtma (yumuşatma) adımı: taramalar kâğıt kalemle yumuşak tona dönüştürülür. */
+  blend?: BlendPass[];
+}
+
+/** Işık yönü: ışıklı taraftan (x1,y1) gölgeli tarafa (x2,y2) doğru; 400'lük alanda. */
+export type LightAxis = [number, number, number, number];
+
+export interface BlendPass {
+  target: Shape;
+  opacity: number;
+  axis: LightAxis;
 }
 
 /** Bir tarama geçişi: hedef şeklin içinde zikzak kalem hareketi. */
@@ -33,6 +44,10 @@ export interface HatchPass {
   d: string;
   width: number;
   opacity: number;
+  /** Ton geçişi: ışıklı uçta görünürlük `from`, gölgeli uçta `to` (0..1). */
+  axis?: LightAxis;
+  from?: number;
+  to?: number;
 }
 
 export interface Lesson {

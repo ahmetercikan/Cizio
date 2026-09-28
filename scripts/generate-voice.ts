@@ -3,18 +3,16 @@
  *
  * Sağlayıcılar:
  *   --provider gemini  Google Gemini TTS (varsayılan ses: Sulafat). .env.local içinde GEMINI_API_KEY gerekir.
+ *                      Kota tasarrufu için cümleler toplu üretilir (tek istekte --batch kadar cümle, aralarındaki
+ *                      sessizlikten bölünür). Tonlu cümleler (TONED_LINES) tek tek, kendi tarifleriyle üretilir.
+ *                      Bir modelin günlük kotası biterse sıradaki TTS modeline geçilir.
  *   --provider edge    Microsoft Edge nöral sesi (varsayılan: tr-TR-EmelNeural). python -m pip install edge-tts
  *
- * Kullanım: npm run voice -- --provider gemini [--voice Sulafat] [--model <tts modeli>] [--concurrency 2] [--prune] [--force]
+ * Kullanım: npm run voice -- --provider gemini [--voice Sulafat] [--model <model>] [--batch 25] [--concurrency 2] [--prune] [--force]
  * Sağlayıcı/ses verilmezse mevcut manifest'teki ayarlar kullanılır.
  *
- * Her cümlenin hangi ayarla üretildiği public/voice/state.json'da tutulur: yarıda kesilen üretim
- * kaldığı yerden devam eder, ayar değişince yalnızca eski ayarla üretilmiş dosyalar yenilenir.
- *
- * Toplanan cümleler: tüm ders adımlarının `say` metni + STATIC_LINES + LESSON_LINES (her ders için)
- * + allFeedbackTexts(tüm parça adları). Çıktı: public/voice/<anahtar>.mp3 ve public/voice/manifest.json.
- * Var olan dosyalar atlanır; ses ayarları değişirse ya da --force verilirse hepsi yeniden üretilir.
- * --prune: manifest'te olmayan mp3 dosyalarını siler.
+ * Her cümlenin hangi ayarla üretildiği public/voice/state.json'da tutulur: yarıda kalan üretim kaldığı yerden
+ * devam eder. Üretim yarıda kalırsa manifest değiştirilmez (uygulama eski, tutarlı sesle çalışmaya devam eder).
  */
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -23,8 +21,8 @@ import { pathToFileURL } from 'node:url';
 import { allFeedbackTexts } from '../src/engine/scoring';
 import type { Lesson } from '../src/lessons/types';
 import { lineKey, normalizeLine } from '../src/voice/hash';
-import { LESSON_LINES, STATIC_LINES } from '../src/voice/lines';
-import { apiKey, DailyQuotaError, geminiTts, RateLimitError, STYLE, ttsModels } from './tts-gemini';
+import { LESSON_LINES, STATIC_LINES, TONED_LINES } from '../src/voice/lines';
+import { apiKey, DailyQuotaError, geminiTts, geminiTtsBatch, RateLimitError, STYLE, ttsModels } from './tts-gemini';
 
 const RATE = '-6%';
 const PITCH = '+3Hz';
@@ -41,21 +39,32 @@ const opt = (name: string) => {
   if (i < 0) return undefined;
   return args[i].includes('=') ? args[i].slice(args[i].indexOf('=') + 1) : args[i + 1];
 };
-const oldManifest = existsSync(MANIFEST) ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as { provider?: string; voice?: string; model?: string }) : {};
+interface Manifest {
+  provider?: string;
+  voice?: string;
+  models?: string[];
+}
+const oldManifest: Manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
 const provider = (opt('--provider') ?? oldManifest.provider ?? 'edge') as 'edge' | 'gemini';
-const voice = opt('--voice') ?? (provider === oldManifest.provider ? oldManifest.voice : undefined) ?? (provider === 'gemini' ? 'Sulafat' : 'tr-TR-EmelNeural');
+const voice =
+  opt('--voice') ?? (provider === oldManifest.provider ? oldManifest.voice : undefined) ?? (provider === 'gemini' ? 'Sulafat' : 'tr-TR-EmelNeural');
 const prune = flag('--prune');
 const force = flag('--force');
+const BATCH = Number(opt('--batch') ?? 25);
+const CONCURRENCY = Number(opt('--concurrency') ?? (provider === 'gemini' ? 2 : 4));
+
 let key = '';
-let model = '';
+let models: string[] = [];
 if (provider === 'gemini') {
   key = apiKey();
-  model = opt('--model') ?? (provider === oldManifest.provider ? oldManifest.model : undefined) ?? (await ttsModels(key))[0] ?? '';
-  if (!model) throw new Error('Hesapta TTS modeli bulunamadı.');
+  const available = await ttsModels(key);
+  // Tercih sırası: en yeni "flash" TTS, sonra diğerleri (pro modeller en sonda).
+  const pref = (m: string) => (/3\.8-flash-tts$/.test(m) ? 0 : /flash-tts/.test(m) ? 1 : /flash-lite-tts/.test(m) ? 2 : /flash/.test(m) ? 3 : 4);
+  models = opt('--model') ? [opt('--model')!] : [...available].sort((a, b) => pref(a) - pref(b));
+  if (!models.length) throw new Error('Hesapta TTS modeli bulunamadı.');
 }
-const CONCURRENCY = Number(opt('--concurrency') ?? (provider === 'gemini' ? 2 : 4));
-/** Bu ayarla üretilmiş dosyayı tanıyan etiket. */
-const TAG = provider === 'gemini' ? lineKey(`gemini|${model}|${voice}|${STYLE}`) : lineKey(`edge|${voice}|${RATE}|${PITCH}`);
+/** Bu ayarla üretilmiş dosyayı tanıyan etiket (model yedeğe geçse de aynı ses sayılır). */
+const BASE_TAG = provider === 'gemini' ? lineKey(`gemini|${voice}|${STYLE}`) : lineKey(`edge|${voice}|${RATE}|${PITCH}`);
 
 // --- Cümleleri topla ---------------------------------------------------------------------------
 // (src/lessons/index.ts import.meta.glob kullanır, tsx altında çalışmaz; veri dosyaları doğrudan yüklenir.)
@@ -64,46 +73,50 @@ for (const f of readdirSync('src/lessons/data').filter((f) => f.endsWith('.ts'))
   lessons.push((await import(pathToFileURL(join('src', 'lessons', 'data', f)).href)).default);
 }
 
-const raw: string[] = [];
-for (const l of lessons) for (const s of l.steps) raw.push(s.say);
-raw.push(...STATIC_LINES);
-for (const l of lessons) for (const t of LESSON_LINES) raw.push(t(l));
+const raw: { text: string; tone?: string }[] = [];
+for (const l of lessons) for (const s of l.steps) raw.push({ text: s.say });
+for (const t of STATIC_LINES) raw.push({ text: t });
+for (const l of lessons) for (const t of LESSON_LINES) raw.push({ text: t(l) });
 const parts = [...new Set(lessons.flatMap((l) => l.steps.flatMap((s) => s.shapes.map((sh) => sh.part ?? ''))))].filter(Boolean);
-raw.push(...allFeedbackTexts(parts));
+for (const t of allFeedbackTexts(parts)) raw.push({ text: t });
+for (const t of TONED_LINES) raw.push(t);
 
-const lines = new Map<string, string>();
+const lines = new Map<string, { text: string; tone?: string }>();
 for (const r of raw) {
-  const text = normalizeLine(r ?? '');
+  const text = normalizeLine(r.text ?? '');
   if (!text) continue;
-  const key = lineKey(text);
-  const prev = lines.get(key);
-  if (prev !== undefined && prev !== text) throw new Error(`Anahtar çakışması (${key}): "${prev}" / "${text}"`);
-  lines.set(key, text);
+  const k = lineKey(text);
+  const prev = lines.get(k);
+  if (prev !== undefined && prev.text !== text) throw new Error(`Anahtar çakışması (${k}): "${prev.text}" / "${text}"`);
+  lines.set(k, { text, tone: r.tone ?? prev?.tone });
 }
-console.log(`${lessons.length} ders, ${parts.length} parça adı -> ${lines.size} benzersiz cümle. Ses: ${provider} / ${voice}${model ? ` (${model})` : ''}`);
+const tagOf = (k: string) => {
+  const tone = lines.get(k)?.tone;
+  return tone && provider === 'gemini' ? lineKey(`${BASE_TAG}|${tone}`) : BASE_TAG;
+};
+console.log(`${lessons.length} ders, ${parts.length} parça adı -> ${lines.size} benzersiz cümle. Ses: ${provider} / ${voice}${models.length ? ` (${models[0]})` : ''}`);
 
 // --- Üretim durumu ----------------------------------------------------------------------------
 mkdirSync(OUT, { recursive: true });
 const state: Record<string, string> = existsSync(STATE) ? JSON.parse(readFileSync(STATE, 'utf8')) : {};
-// Eski sürümden kalan (state'i olmayan) Edge dosyaları eski ayarla üretilmiş sayılır.
-if (!existsSync(STATE) && oldManifest.voice) {
-  const oldTag = lineKey(`edge|${oldManifest.voice}|${RATE}|${PITCH}`);
-  for (const [k] of lines) if (existsSync(join(OUT, `${k}.mp3`))) state[k] = oldTag;
-}
 const saveState = () => writeFileSync(STATE, JSON.stringify(state) + '\n', 'utf8');
-
-// --- Üretim ------------------------------------------------------------------------------------
-const mp3 = (key: string) => join(OUT, `${key}.mp3`);
+const mp3 = (k: string) => join(OUT, `${k}.mp3`);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function tts(text: string, file: string): Promise<void> {
-  if (provider === 'gemini') return geminiTts(text, file, { key, model, voice });
+const todo = [...lines.keys()].filter((k) => force || !existsSync(mp3(k)) || state[k] !== tagOf(k));
+const skipped = lines.size - todo.length;
+const failed: [string, string, string][] = [];
+let generated = 0;
+let stopped = false;
+const usedModels = new Set<string>();
+
+// --- Edge --------------------------------------------------------------------------------------
+function edgeTts(text: string, file: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const p = spawn(
-      'python',
-      ['-m', 'edge_tts', '--voice', voice, `--rate=${RATE}`, `--pitch=${PITCH}`, `--text=${text}`, '--write-media', file],
-      { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true },
-    );
+    const p = spawn('python', ['-m', 'edge_tts', '--voice', voice, `--rate=${RATE}`, `--pitch=${PITCH}`, `--text=${text}`, '--write-media', file], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+      windowsHide: true,
+    });
     let err = '';
     p.stderr.on('data', (d) => (err += d));
     const timer = setTimeout(() => p.kill(), TIMEOUT_MS);
@@ -119,96 +132,153 @@ function tts(text: string, file: string): Promise<void> {
   });
 }
 
-async function generate(key: string, text: string): Promise<void> {
-  const tmp = join(OUT, `${key}.part.mp3`);
-  for (let attempt = 1, waits = 0; ; attempt++) {
+// --- Gemini: model yedeği ve kota yönetimi -------------------------------------------------------
+let modelIdx = 0;
+/** İsteği mevcut modelle dener; dakikalık kotada bekler, günlük kota biterse sonraki modele geçer. */
+async function withModel<T>(fn: (model: string) => Promise<T>): Promise<T> {
+  for (let waits = 0; ; ) {
+    if (modelIdx >= models.length) throw new DailyQuotaError('Tüm TTS modellerinin günlük kotası doldu.');
+    const m = models[modelIdx];
     try {
-      await tts(text, tmp);
-      renameSync(tmp, mp3(key));
-      state[key] = TAG;
-      saveState();
+      const r = await fn(m);
+      usedModels.add(m);
+      return r;
+    } catch (e) {
+      if (e instanceof DailyQuotaError) {
+        if (models[modelIdx] === m) {
+          console.log(`  ${m}: günlük kota doldu, sıradaki modele geçiliyor...`);
+          modelIdx++;
+        }
+        continue;
+      }
+      if (e instanceof RateLimitError && waits++ < 30) {
+        console.log(`  kota, ${Math.round(e.retryAfterMs / 1000)} sn bekleniyor...`);
+        await sleep(e.retryAfterMs);
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+
+function done(k: string) {
+  state[k] = tagOf(k);
+  saveState();
+  generated++;
+  if (generated % 25 === 0) console.log(`  ${generated} üretildi...`);
+}
+
+async function single(k: string) {
+  const { text, tone } = lines.get(k)!;
+  const tmp = join(OUT, `${k}.part.mp3`);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      if (provider === 'gemini') await withModel((model) => geminiTts(text, tmp, { key, model, voice, tone }));
+      else await edgeTts(text, tmp);
+      renameSync(tmp, mp3(k));
+      done(k);
       return;
     } catch (e) {
       if (existsSync(tmp)) unlinkSync(tmp);
-      if (e instanceof DailyQuotaError) throw e;
-      if (e instanceof RateLimitError && waits++ < 30) {
-        // Kota: söylenen süre kadar bekle, deneme hakkından düşme.
-        console.log(`  kota doldu, ${Math.round(e.retryAfterMs / 1000)} sn bekleniyor...`);
-        await sleep(e.retryAfterMs);
-        attempt--;
-        continue;
-      }
-      if (attempt >= RETRIES) throw e;
+      if (e instanceof DailyQuotaError || attempt >= RETRIES) throw e;
       await sleep(1000 * 2 ** (attempt - 1));
     }
   }
 }
 
-const todo = [...lines].filter(([k]) => force || !existsSync(mp3(k)) || state[k] !== TAG);
-const skipped = lines.size - todo.length;
-const failed: [string, string, string][] = [];
-let generated = 0;
-let stopped = false;
-let done = 0;
+/** Toplu üretim; bölme tutmazsa grubu ikiye ayırıp yeniden dener. */
+async function batch(keys: string[]): Promise<void> {
+  if (keys.length <= 2) {
+    for (const k of keys) await single(k);
+    return;
+  }
+  const items = keys.map((k) => ({ text: lines.get(k)!.text, file: join(OUT, `${k}.part.mp3`) }));
+  let ok = false;
+  try {
+    ok = await withModel((model) => geminiTtsBatch(items, { key, model, voice }));
+  } catch (e) {
+    if (e instanceof DailyQuotaError) throw e;
+    console.log(`  toplu istek hatası (${(e as Error).message.slice(0, 80)}), bölünüyor...`);
+  }
+  if (ok) {
+    keys.forEach((k, i) => {
+      renameSync(items[i].file, mp3(k));
+      done(k);
+    });
+    return;
+  }
+  for (const it of items) if (existsSync(it.file)) unlinkSync(it.file);
+  const mid = Math.ceil(keys.length / 2);
+  await batch(keys.slice(0, mid));
+  await batch(keys.slice(mid));
+}
+
+// --- Çalıştır ----------------------------------------------------------------------------------
+if (todo.length) console.log(`${todo.length} cümle üretilecek (${skipped} zaten güncel)...`);
+const jobs: (() => Promise<void>)[] = [];
+if (provider === 'gemini') {
+  const toned = todo.filter((k) => lines.get(k)!.tone);
+  const plain = todo.filter((k) => !lines.get(k)!.tone);
+  for (const k of toned) jobs.push(() => single(k));
+  for (let i = 0; i < plain.length; i += BATCH) {
+    const group = plain.slice(i, i + BATCH);
+    jobs.push(() => batch(group));
+  }
+} else {
+  for (const k of todo) jobs.push(() => single(k));
+}
 
 async function worker() {
   for (;;) {
-    const item = todo.shift();
-    if (!item) return;
-    const [key, text] = item;
+    const job = jobs.shift();
+    if (!job || stopped) return;
     try {
-      await generate(key, text);
-      generated++;
+      await job();
     } catch (e) {
       if (e instanceof DailyQuotaError) {
-        if (!stopped) console.log(`
-${e.message}`);
+        if (!stopped) console.log(`\n${e.message} Faturalandırmayı açın ya da yarın yeniden çalıştırın; üretim kaldığı yerden devam eder.`);
         stopped = true;
-        todo.length = 0;
         return;
       }
-      failed.push([key, text, (e as Error).message]);
+      failed.push(['?', '', (e as Error).message]);
     }
-    done++;
-    if (done % 25 === 0) console.log(`  ${done} işlendi...`);
   }
 }
-if (todo.length) console.log(`${todo.length} dosya üretilecek (${skipped} zaten var)...`);
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 saveState();
-if (stopped) {
-  // Yarım üretimde manifest'i değiştirme: uygulama eski (tutarlı) sesle çalışmaya devam eder.
-  const left = [...lines].filter(([k]) => state[k] !== TAG).length;
-  console.log(`Bu çalıştırmada üretilen: ${generated}. Kalan: ${left}. Manifest değiştirilmedi.`);
+for (const f of readdirSync(OUT)) if (f.endsWith('.part.mp3')) unlinkSync(join(OUT, f));
+
+const left = [...lines.keys()].filter((k) => !existsSync(mp3(k)) || state[k] !== tagOf(k));
+if (stopped || left.length) {
+  console.log(`Bu çalıştırmada üretilen: ${generated}. Kalan: ${left.length}. Manifest değiştirilmedi (eski ses kullanılmaya devam ediyor).`);
+  for (const [, , msg] of failed.slice(0, 5)) console.log(`  x ${msg}`);
   process.exit(2);
 }
 
 // --- Manifest ----------------------------------------------------------------------------------
-const entries = [...lines].filter(([key]) => existsSync(mp3(key))).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+const entries = [...lines].filter(([k]) => existsSync(mp3(k))).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 const manifest = {
   provider,
   voice,
-  ...(provider === 'gemini' ? { model } : { rate: RATE, pitch: PITCH }),
-  // Ses ayarları değişince dosya URL'leri de değişsin (tarayıcı / service worker önbelleği için).
-  version: TAG,
-  lines: Object.fromEntries(entries) as Record<string, string>,
+  ...(provider === 'gemini' ? { models: [...new Set([...(oldManifest.models ?? []), ...usedModels])] } : { rate: RATE, pitch: PITCH }),
+  // Ses değişince dosya URL'leri de değişsin (tarayıcı / service worker önbelleği için).
+  version: lineKey(`${BASE_TAG}|${entries.map(([k]) => state[k]).join('')}`),
+  lines: Object.fromEntries(entries.map(([k, v]) => [k, v.text])) as Record<string, string>,
 };
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
-// --- Budama ------------------------------------------------------------------------------------
+// --- Budama ve özet ----------------------------------------------------------------------------
 let pruned = 0;
-for (const f of readdirSync(OUT)) {
-  if (f.endsWith('.part.mp3')) {
-    unlinkSync(join(OUT, f));
-    continue;
+if (prune) {
+  for (const f of readdirSync(OUT)) {
+    if (f.endsWith('.mp3') && !(f.slice(0, -4) in manifest.lines)) {
+      unlinkSync(join(OUT, f));
+      delete state[f.slice(0, -4)];
+      pruned++;
+    }
   }
-  if (prune && f.endsWith('.mp3') && !(f.slice(0, -4) in manifest.lines)) {
-    unlinkSync(join(OUT, f));
-    pruned++;
-  }
+  saveState();
 }
-
-// --- Özet --------------------------------------------------------------------------------------
 let bytes = 0;
 let files = 0;
 for (const f of readdirSync(OUT))
@@ -219,7 +289,6 @@ for (const f of readdirSync(OUT))
 console.log(
   `\nÜretilen: ${generated}  Atlanan: ${skipped}  Başarısız: ${failed.length}` +
     (prune ? `  Silinen: ${pruned}` : '') +
-    `\nManifest: ${entries.length}/${lines.size} cümle  Klasör: ${files} mp3, ${(bytes / 1024 / 1024).toFixed(2)} MB`,
+    `\nManifest: ${entries.length}/${lines.size} cümle  Klasör: ${files} mp3, ${(bytes / 1024 / 1024).toFixed(2)} MB` +
+    (usedModels.size ? `\nKullanılan modeller: ${[...usedModels].join(', ')}` : ''),
 );
-for (const [key, text, msg] of failed) console.log(`  x ${key} "${text}" - ${msg}`);
-if (failed.length) process.exitCode = 1;

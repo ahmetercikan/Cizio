@@ -21,7 +21,6 @@ export const STATIC_LINES: string[] = [
   'Başlamak için yanında bir yetişkin olması daha iyi.',
   'Avatarını seç!',
   'Adın ne?',
-  'Bunlardan hangisini daha çok seviyorsun?',
   'Çiziktir ile en sevdiğin şeyleri çizebileceksin!',
   'Hadi başlayalım!',
 
@@ -41,6 +40,7 @@ export const STATIC_LINES: string[] = [
   // Kâğıt modunda otomatik eklenen gölgelendirme adımları (src/art/shading.ts ile aynı olmalı)
   'Şimdi gölgelendirme zamanı! Kalemi hafifçe tutarak büyük parçaları tara. Kenarlarda biraz daha bastır.',
   'Şimdi koyu yerleri kalemle sık sık tara. Parlak beyaz noktaları boş bırak!',
+  'Şimdi parmağınla ya da bir kâğıt mendille gölgeleri hafifçe dağıt. Yumuşacık olsun!',
 ];
 
 /** Her ders için üretilecek kalıp cümleler. */
@@ -50,3 +50,32 @@ export const LESSON_LINES: ((l: Lesson) => string)[] = [
   // Ders sonunda gösterilen beceri cümlesi (sesli okunursa diye)
   (l) => l.skill,
 ];
+
+/**
+ * Karşılamadaki "hangisini daha çok seviyorsun?" turları: her tur farklı cümle, ekranda farklı başlık
+ * ve farklı okuma tonu (Kalemo aynı soruyu aynı sesle tekrar etmesin diye).
+ */
+export const PREF_ROUNDS: { text: string; title: string; tone: string }[] = [
+  {
+    text: 'Bunlardan hangisini daha çok seviyorsun?',
+    title: 'Bunlardan hangisini daha çok seviyorsun?',
+    tone: 'Ask with bright, curious enthusiasm, like starting a fun little game.',
+  },
+  {
+    text: 'Hımm... Güzel seçim! Peki bunlardan hangisini daha çok seviyorsun?',
+    title: 'Hımm… peki bunlardan hangisi?',
+    tone:
+      "Begin with a long, thoughtful, playful 'Hımm...' as if really pondering, then a warm smiling 'Güzel seçim!', " +
+      'then ask the question softly and a little slower, full of curiosity.',
+  },
+  {
+    text: 'Ooo, harika! Son soru geliyor... Sence hangisi daha tatlı?',
+    title: 'Son soru! Sence hangisi daha tatlı?',
+    tone:
+      "Sound genuinely delighted on 'Ooo, harika!', build playful suspense on 'Son soru geliyor...' with a short pause, " +
+      'then ask excitedly with a big grin.',
+  },
+];
+
+/** Kendine özel tonla (tek tek) üretilen cümleler. */
+export const TONED_LINES: { text: string; tone: string }[] = PREF_ROUNDS.map(({ text, tone }) => ({ text, tone }));

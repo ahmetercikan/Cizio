@@ -44,3 +44,25 @@ export function PencilDefs() {
     </filter>
   );
 }
+
+/** Kâğıt kalem (blending stump): gölgeyi dağıtmak için kullanılan sıkı sarılmış kâğıt çubuk. */
+export function StumpSprite({ x, y, angle = 58, lifted = false, scale = 1 }: {
+  x: number; y: number; angle?: number; lifted?: boolean; scale?: number;
+}) {
+  const sh = lifted ? { dx: 14, dy: 18, o: 0.12 } : { dx: 5, dy: 8, o: 0.2 };
+  return (
+    <g transform={`translate(${x} ${y}) scale(${scale})`} style={{ pointerEvents: 'none' }}>
+      <g transform={`translate(${sh.dx} ${sh.dy}) rotate(${angle})`} opacity={sh.o} filter="url(#pencil-shadow)">
+        <path d="M0,0 L30,-10 L170,-10 Q176,-10 176,-4 L176,4 Q176,10 170,10 L30,10 Z" fill="#000" />
+      </g>
+      <g transform={`rotate(${angle})${lifted ? ' translate(-4 -6)' : ''}`}>
+        <path d="M0,0 L30,-10 L30,10 Z" fill="#b9b3a8" />
+        <path d="M0,0 L14,-4.6 L14,4.6 Z" fill="#6f6b66" />
+        <path d="M30,-10 H170 Q176,-10 176,-4 V4 Q176,10 170,10 H30 Z" fill="#efe9dd" />
+        <path d="M30,-10 H170 Q176,-10 176,-6 H30 Z" fill="#faf7f0" />
+        <path d="M30,4 H176 V4 Q176,10 170,10 H30 Z" fill="#ddd5c6" />
+        <path d="M60,-10 L50,10 M95,-10 L85,10 M130,-10 L120,10" stroke="#d3cbbb" strokeWidth="1.2" />
+      </g>
+    </g>
+  );
+}

@@ -15,6 +15,7 @@ import type { Lesson, PathId } from '../lessons/types';
 import { sfx } from '../lib/sfx';
 import { speak, unlockAudio } from '../lib/speech';
 import { useApp } from '../store/useApp';
+import { PREF_ROUNDS } from '../voice/lines';
 
 type Step = 'splash' | 'adult' | 'adultTip' | 'permission' | 'avatar' | 'name' | 'pref' | 'showcase' | 'start';
 
@@ -30,7 +31,7 @@ const LINES: Partial<Record<Step, string>> = {
   adultTip: 'Başlamak için yanında bir yetişkin olması daha iyi.',
   avatar: 'Avatarını seç!',
   name: 'Adın ne?',
-  pref: 'Bunlardan hangisini daha çok seviyorsun?',
+  pref: PREF_ROUNDS[0].text,
   showcase: 'Çiziktir ile en sevdiğin şeyleri çizebileceksin!',
   start: 'Hadi başlayalım!',
 };
@@ -87,7 +88,8 @@ export default function Onboarding() {
       setPicked(null);
       if (round < ROUNDS.length - 1) {
         setRound(round + 1);
-        say(LINES.pref);
+        // Her tur farklı bir cümle ve tonla sorulur (aynı soruyu aynı sesle tekrar etmesin).
+        say(PREF_ROUNDS[Math.min(round + 1, PREF_ROUNDS.length - 1)].text);
       } else setStep('showcase');
     }, 450);
   };
@@ -207,7 +209,7 @@ export default function Onboarding() {
       )}
 
       {step === 'pref' && (
-        <Screen title="Bunlardan hangisini daha çok seviyorsun?" top={<Progress n={ROUNDS.length} i={round} />}>
+        <Screen title={PREF_ROUNDS[Math.min(round, PREF_ROUNDS.length - 1)].title} top={<Progress n={ROUNDS.length} i={round} />}>
           <div className="choice-pair" key={round}>
             {ROUNDS[round].map((id) => {
               const l = getLesson(id) as Lesson;

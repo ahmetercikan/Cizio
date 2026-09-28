@@ -4,13 +4,15 @@
  * hız ayarı ve adım duraklamaları kusursuz çalışır ve dosya boyutu sıfıra yakındır.
  */
 import { samplePath, type Pt } from '../engine/pathSampler';
-import type { HatchPass, Lesson, Shape } from '../lessons/types';
+import type { BlendPass, HatchPass, Lesson, Shape } from '../lessons/types';
 
 export interface ShapeSeg {
   step: number;
   shape: Shape;
   /** Gölgelendirme taraması ise tarama bilgisi (shape.d = zikzak path). */
   hatch?: HatchPass;
+  /** Dağıtma (yumuşatma) ise bilgi; kâğıt kalem points boyunca küçük daireler çizer. */
+  blend?: BlendPass;
   start: number;
   end: number;
   points: Pt[];
@@ -45,6 +47,20 @@ export function hatchDuration(h: HatchPass): number {
   return Math.min(4.5, Math.max(1, len / 1500));
 }
 
+/** Dağıtma hareketi: gölge tarafında (ışık ekseninin %45-%90'ı) küçük daireler. */
+function blendMotion(b: BlendPass): string {
+  const [x0, y0, x1, y1] = b.axis;
+  const w = x1 - x0, h = y1 - y0;
+  const r = Math.max(6, Math.min(w, h) * 0.12);
+  let d = '';
+  for (let k = 0; k <= 6; k++) {
+    const t = 0.45 + (k / 6) * 0.45;
+    const cx = x0 + w * t, cy = y0 + h * (0.3 + (k % 2) * 0.35 + t * 0.2);
+    d += `${k ? 'L' : 'M'}${(cx - r).toFixed(1)},${cy.toFixed(1)} A${r},${r * 0.8} 0 1,1 ${(cx + r).toFixed(1)},${cy.toFixed(1)} A${r},${r * 0.8} 0 1,1 ${(cx - r).toFixed(1)},${cy.toFixed(1)} `;
+  }
+  return d;
+}
+
 export function buildTimeline(lesson: Lesson): Timeline {
   const shapes: ShapeSeg[] = [];
   const steps: StepSeg[] = [];
@@ -61,6 +77,13 @@ export function buildTimeline(lesson: Lesson): Timeline {
       const dur = hatchDuration(h);
       shapes.push({ step: i, shape: { d: h.d }, hatch: h, start: t, end: t + dur, points: samplePath(h.d, 2).points });
       t += dur + (k < (st.hatch?.length ?? 0) - 1 ? GAP * 0.6 : 0);
+    });
+    (st.blend ?? []).forEach((b, k) => {
+      const [x0, y0, x1, y1] = b.axis;
+      const dur = Math.min(2.2, Math.max(1, Math.hypot(x1 - x0, y1 - y0) / 180));
+      const motion = blendMotion(b);
+      shapes.push({ step: i, shape: { d: motion }, blend: b, start: t, end: t + dur, points: samplePath(motion, 2).points });
+      t += dur + (k < (st.blend?.length ?? 0) - 1 ? GAP * 0.4 : 0);
     });
     t += TAIL;
     steps.push({ step: i, start, end: t });
@@ -88,17 +111,19 @@ export interface PencilState {
   y: number;
   lifted: boolean;
   visible: boolean;
+  /** Dağıtma adımında kalem yerine kâğıt kalem (blending stump) görünür. */
+  tool: 'pencil' | 'stump';
 }
 
 /** Zamanın t anında her şeklin ilerlemesi (0..1) ve kalemin konumu. */
 export function frameAt(tl: Timeline, t: number): { progress: number[]; pencil: PencilState } {
   const progress = tl.shapes.map((s) => (t <= s.start ? 0 : t >= s.end ? 1 : (t - s.start) / (s.end - s.start)));
-  let pencil: PencilState = { x: 300, y: 330, lifted: true, visible: false };
+  let pencil: PencilState = { x: 300, y: 330, lifted: true, visible: false, tool: 'pencil' };
   const active = tl.shapes.findIndex((s) => t > s.start && t < s.end);
   if (active >= 0) {
     const s = tl.shapes[active];
     const [x, y] = pointAt(s.points, progress[active]);
-    pencil = { x, y, lifted: false, visible: true };
+    pencil = { x, y, lifted: false, visible: true, tool: s.blend ? 'stump' : 'pencil' };
   } else {
     // şekiller arasında: bir öncekinin sonundan sonrakinin başına havada git
     const next = tl.shapes.findIndex((s) => s.start >= t);
@@ -109,13 +134,13 @@ export function frameAt(tl: Timeline, t: number): { progress: number[]; pencil: 
       const a = tl.shapes[prev].points.at(-1)!, b = tl.shapes[next].points[0];
       const k = (t - tl.shapes[prev].end) / Math.max(0.01, tl.shapes[next].start - tl.shapes[prev].end);
       const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
-      pencil = { x: a[0] + (b[0] - a[0]) * e, y: a[1] + (b[1] - a[1]) * e, lifted: true, visible: true };
+      pencil = { x: a[0] + (b[0] - a[0]) * e, y: a[1] + (b[1] - a[1]) * e, lifted: true, visible: true, tool: tl.shapes[next].blend ? 'stump' : 'pencil' };
     } else if (inStep(next)) {
       const b = tl.shapes[next].points[0];
-      pencil = { x: b[0], y: b[1], lifted: true, visible: true };
+      pencil = { x: b[0], y: b[1], lifted: true, visible: true, tool: tl.shapes[next].blend ? 'stump' : 'pencil' };
     } else if (inStep(prev)) {
       const a = tl.shapes[prev].points.at(-1)!;
-      pencil = { x: a[0] + 10, y: a[1] + 14, lifted: true, visible: true };
+      pencil = { x: a[0] + 10, y: a[1] + 14, lifted: true, visible: true, tool: tl.shapes[prev].blend ? 'stump' : 'pencil' };
     }
   }
   return { progress, pencil };
