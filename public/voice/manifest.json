@@ -1,8 +1,9 @@
 {
+  "provider": "edge",
   "voice": "tr-TR-EmelNeural",
   "rate": "-6%",
   "pitch": "+3Hz",
-  "version": "2c2a56d3",
+  "version": "e1f935b0",
   "lines": {
     "26560695": "Güzel deneme! Kafa kısmına bir daha bak.",
     "36750647": "Çok iyi! Birinci kuş biraz eksik kaldı.",

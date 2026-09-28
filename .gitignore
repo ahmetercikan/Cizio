@@ -3,3 +3,7 @@ dist
 .render
 *.log
 .DS_Store
+
+# Yerel gizli anahtarlar (ör. GEMINI_API_KEY)
+.env.local
+.env*.local

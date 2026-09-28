@@ -1,9 +1,15 @@
 /**
- * Kalemo'nun doğal sesini önceden üretir: her sabit anlatım cümlesi için Microsoft Edge nöral sesiyle bir MP3.
+ * Kalemo'nun doğal sesini önceden üretir: her sabit anlatım cümlesi için bir MP3.
  *
- * Kullanım: npx tsx scripts/generate-voice.ts [--prune] [--voice tr-TR-EmelNeural] [--force]
- *   (ya da: npm run voice -- --prune)
- * Gereksinim: python -m pip install edge-tts
+ * Sağlayıcılar:
+ *   --provider gemini  Google Gemini TTS (varsayılan ses: Sulafat). .env.local içinde GEMINI_API_KEY gerekir.
+ *   --provider edge    Microsoft Edge nöral sesi (varsayılan: tr-TR-EmelNeural). python -m pip install edge-tts
+ *
+ * Kullanım: npm run voice -- --provider gemini [--voice Sulafat] [--model <tts modeli>] [--concurrency 2] [--prune] [--force]
+ * Sağlayıcı/ses verilmezse mevcut manifest'teki ayarlar kullanılır.
+ *
+ * Her cümlenin hangi ayarla üretildiği public/voice/state.json'da tutulur: yarıda kesilen üretim
+ * kaldığı yerden devam eder, ayar değişince yalnızca eski ayarla üretilmiş dosyalar yenilenir.
  *
  * Toplanan cümleler: tüm ders adımlarının `say` metni + STATIC_LINES + LESSON_LINES (her ders için)
  * + allFeedbackTexts(tüm parça adları). Çıktı: public/voice/<anahtar>.mp3 ve public/voice/manifest.json.
@@ -18,14 +24,15 @@ import { allFeedbackTexts } from '../src/engine/scoring';
 import type { Lesson } from '../src/lessons/types';
 import { lineKey, normalizeLine } from '../src/voice/hash';
 import { LESSON_LINES, STATIC_LINES } from '../src/voice/lines';
+import { apiKey, geminiTts, RateLimitError, STYLE, ttsModels } from './tts-gemini';
 
 const RATE = '-6%';
 const PITCH = '+3Hz';
-const CONCURRENCY = 4;
 const RETRIES = 3;
 const TIMEOUT_MS = 60_000;
 const OUT = join('public', 'voice');
 const MANIFEST = join(OUT, 'manifest.json');
+const STATE = join(OUT, 'state.json');
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -34,9 +41,21 @@ const opt = (name: string) => {
   if (i < 0) return undefined;
   return args[i].includes('=') ? args[i].slice(args[i].indexOf('=') + 1) : args[i + 1];
 };
-const voice = opt('--voice') ?? 'tr-TR-EmelNeural';
+const oldManifest = existsSync(MANIFEST) ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as { provider?: string; voice?: string; model?: string }) : {};
+const provider = (opt('--provider') ?? oldManifest.provider ?? 'edge') as 'edge' | 'gemini';
+const voice = opt('--voice') ?? (provider === oldManifest.provider ? oldManifest.voice : undefined) ?? (provider === 'gemini' ? 'Sulafat' : 'tr-TR-EmelNeural');
 const prune = flag('--prune');
-let force = flag('--force');
+const force = flag('--force');
+let key = '';
+let model = '';
+if (provider === 'gemini') {
+  key = apiKey();
+  model = opt('--model') ?? (provider === oldManifest.provider ? oldManifest.model : undefined) ?? (await ttsModels(key))[0] ?? '';
+  if (!model) throw new Error('Hesapta TTS modeli bulunamadı.');
+}
+const CONCURRENCY = Number(opt('--concurrency') ?? (provider === 'gemini' ? 2 : 4));
+/** Bu ayarla üretilmiş dosyayı tanıyan etiket. */
+const TAG = provider === 'gemini' ? lineKey(`gemini|${model}|${voice}|${STYLE}`) : lineKey(`edge|${voice}|${RATE}|${PITCH}`);
 
 // --- Cümleleri topla ---------------------------------------------------------------------------
 // (src/lessons/index.ts import.meta.glob kullanır, tsx altında çalışmaz; veri dosyaları doğrudan yüklenir.)
@@ -61,27 +80,24 @@ for (const r of raw) {
   if (prev !== undefined && prev !== text) throw new Error(`Anahtar çakışması (${key}): "${prev}" / "${text}"`);
   lines.set(key, text);
 }
-console.log(`${lessons.length} ders, ${parts.length} parça adı -> ${lines.size} benzersiz cümle. Ses: ${voice}`);
+console.log(`${lessons.length} ders, ${parts.length} parça adı -> ${lines.size} benzersiz cümle. Ses: ${provider} / ${voice}${model ? ` (${model})` : ''}`);
 
-// --- Önceki manifest ---------------------------------------------------------------------------
+// --- Üretim durumu ----------------------------------------------------------------------------
 mkdirSync(OUT, { recursive: true });
-if (existsSync(MANIFEST)) {
-  try {
-    const old = JSON.parse(readFileSync(MANIFEST, 'utf8')) as { voice?: string; rate?: string; pitch?: string };
-    if (old.voice !== voice || (old.rate ?? RATE) !== RATE || (old.pitch ?? PITCH) !== PITCH) {
-      console.log(`Ses ayarları değişti (${old.voice} -> ${voice}); tüm dosyalar yeniden üretilecek.`);
-      force = true;
-    }
-  } catch {
-    /* bozuk manifest: yok say */
-  }
+const state: Record<string, string> = existsSync(STATE) ? JSON.parse(readFileSync(STATE, 'utf8')) : {};
+// Eski sürümden kalan (state'i olmayan) Edge dosyaları eski ayarla üretilmiş sayılır.
+if (!existsSync(STATE) && oldManifest.voice) {
+  const oldTag = lineKey(`edge|${oldManifest.voice}|${RATE}|${PITCH}`);
+  for (const [k] of lines) if (existsSync(join(OUT, `${k}.mp3`))) state[k] = oldTag;
 }
+const saveState = () => writeFileSync(STATE, JSON.stringify(state) + '\n', 'utf8');
 
 // --- Üretim ------------------------------------------------------------------------------------
 const mp3 = (key: string) => join(OUT, `${key}.mp3`);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function tts(text: string, file: string): Promise<void> {
+  if (provider === 'gemini') return geminiTts(text, file, { key, model, voice });
   return new Promise((resolve, reject) => {
     const p = spawn(
       'python',
@@ -105,20 +121,29 @@ function tts(text: string, file: string): Promise<void> {
 
 async function generate(key: string, text: string): Promise<void> {
   const tmp = join(OUT, `${key}.part.mp3`);
-  for (let attempt = 1; ; attempt++) {
+  for (let attempt = 1, waits = 0; ; attempt++) {
     try {
       await tts(text, tmp);
       renameSync(tmp, mp3(key));
+      state[key] = TAG;
+      saveState();
       return;
     } catch (e) {
       if (existsSync(tmp)) unlinkSync(tmp);
+      if (e instanceof RateLimitError && waits++ < 30) {
+        // Kota: söylenen süre kadar bekle, deneme hakkından düşme.
+        console.log(`  kota doldu, ${Math.round(e.retryAfterMs / 1000)} sn bekleniyor...`);
+        await sleep(e.retryAfterMs);
+        attempt--;
+        continue;
+      }
       if (attempt >= RETRIES) throw e;
       await sleep(1000 * 2 ** (attempt - 1));
     }
   }
 }
 
-const todo = [...lines].filter(([key]) => force || !existsSync(mp3(key)));
+const todo = [...lines].filter(([k]) => force || !existsSync(mp3(k)) || state[k] !== TAG);
 const skipped = lines.size - todo.length;
 const failed: [string, string, string][] = [];
 let generated = 0;
@@ -141,15 +166,16 @@ async function worker() {
 }
 if (todo.length) console.log(`${todo.length} dosya üretilecek (${skipped} zaten var)...`);
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+saveState();
 
 // --- Manifest ----------------------------------------------------------------------------------
 const entries = [...lines].filter(([key]) => existsSync(mp3(key))).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 const manifest = {
+  provider,
   voice,
-  rate: RATE,
-  pitch: PITCH,
+  ...(provider === 'gemini' ? { model } : { rate: RATE, pitch: PITCH }),
   // Ses ayarları değişince dosya URL'leri de değişsin (tarayıcı / service worker önbelleği için).
-  version: lineKey(`${voice}|${RATE}|${PITCH}`),
+  version: TAG,
   lines: Object.fromEntries(entries) as Record<string, string>,
 };
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
