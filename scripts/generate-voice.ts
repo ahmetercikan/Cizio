@@ -24,7 +24,7 @@ import { allFeedbackTexts } from '../src/engine/scoring';
 import type { Lesson } from '../src/lessons/types';
 import { lineKey, normalizeLine } from '../src/voice/hash';
 import { LESSON_LINES, STATIC_LINES } from '../src/voice/lines';
-import { apiKey, geminiTts, RateLimitError, STYLE, ttsModels } from './tts-gemini';
+import { apiKey, DailyQuotaError, geminiTts, RateLimitError, STYLE, ttsModels } from './tts-gemini';
 
 const RATE = '-6%';
 const PITCH = '+3Hz';
@@ -130,6 +130,7 @@ async function generate(key: string, text: string): Promise<void> {
       return;
     } catch (e) {
       if (existsSync(tmp)) unlinkSync(tmp);
+      if (e instanceof DailyQuotaError) throw e;
       if (e instanceof RateLimitError && waits++ < 30) {
         // Kota: söylenen süre kadar bekle, deneme hakkından düşme.
         console.log(`  kota doldu, ${Math.round(e.retryAfterMs / 1000)} sn bekleniyor...`);
@@ -147,6 +148,7 @@ const todo = [...lines].filter(([k]) => force || !existsSync(mp3(k)) || state[k]
 const skipped = lines.size - todo.length;
 const failed: [string, string, string][] = [];
 let generated = 0;
+let stopped = false;
 let done = 0;
 
 async function worker() {
@@ -158,6 +160,13 @@ async function worker() {
       await generate(key, text);
       generated++;
     } catch (e) {
+      if (e instanceof DailyQuotaError) {
+        if (!stopped) console.log(`
+${e.message}`);
+        stopped = true;
+        todo.length = 0;
+        return;
+      }
       failed.push([key, text, (e as Error).message]);
     }
     done++;
@@ -167,6 +176,12 @@ async function worker() {
 if (todo.length) console.log(`${todo.length} dosya üretilecek (${skipped} zaten var)...`);
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 saveState();
+if (stopped) {
+  // Yarım üretimde manifest'i değiştirme: uygulama eski (tutarlı) sesle çalışmaya devam eder.
+  const left = [...lines].filter(([k]) => state[k] !== TAG).length;
+  console.log(`Bu çalıştırmada üretilen: ${generated}. Kalan: ${left}. Manifest değiştirilmedi.`);
+  process.exit(2);
+}
 
 // --- Manifest ----------------------------------------------------------------------------------
 const entries = [...lines].filter(([key]) => existsSync(mp3(key))).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));

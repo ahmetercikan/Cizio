@@ -39,6 +39,9 @@ export async function ttsModels(key: string): Promise<string[]> {
   return names.sort((a, b) => score(a) - score(b) || b.localeCompare(a));
 }
 
+/** Günlük kota bitti: beklemek anlamsız (ücretsiz katmanda model başına günde ~10 istek). */
+export class DailyQuotaError extends Error {}
+
 export class RateLimitError extends Error {
   constructor(public retryAfterMs: number, msg: string) {
     super(msg);
@@ -87,6 +90,11 @@ export async function geminiTts(text: string, file: string, opts: { key: string;
   });
   if (r.status === 429) {
     const t = await r.text();
+    if (/PerDay/i.test(t))
+      throw new DailyQuotaError(
+        'Gemini günlük kotası doldu (ücretsiz katman model başına günde ~10 istek). ' +
+          'aistudio.google.com üzerinden faturalandırmayı açın ya da yarın yeniden çalıştırın; üretim kaldığı yerden devam eder.',
+      );
     const m = t.match(/"retryDelay":\s*"(\d+(?:\.\d+)?)s"/);
     throw new RateLimitError(m ? Number(m[1]) * 1000 + 500 : 30_000, `429 kota: ${t.slice(0, 300)}`);
   }
