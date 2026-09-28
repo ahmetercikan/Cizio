@@ -22,6 +22,17 @@ export interface Step {
   say: string;
   /** Bu adımda eklenen şekiller. */
   shapes: Shape[];
+  /** Gölgelendirme adımlarında kalemin yapacağı taramalar (otomatik üretilir, ders dosyasına yazılmaz). */
+  hatch?: HatchPass[];
+}
+
+/** Bir tarama geçişi: hedef şeklin içinde zikzak kalem hareketi. */
+export interface HatchPass {
+  target: Shape;
+  /** Zikzak tarama path'i. */
+  d: string;
+  width: number;
+  opacity: number;
 }
 
 export interface Lesson {

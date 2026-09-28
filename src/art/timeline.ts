@@ -4,11 +4,13 @@
  * hız ayarı ve adım duraklamaları kusursuz çalışır ve dosya boyutu sıfıra yakındır.
  */
 import { samplePath, type Pt } from '../engine/pathSampler';
-import type { Lesson, Shape } from '../lessons/types';
+import type { HatchPass, Lesson, Shape } from '../lessons/types';
 
 export interface ShapeSeg {
   step: number;
   shape: Shape;
+  /** Gölgelendirme taraması ise tarama bilgisi (shape.d = zikzak path). */
+  hatch?: HatchPass;
   start: number;
   end: number;
   points: Pt[];
@@ -37,6 +39,12 @@ export function shapeDuration(s: Shape): number {
   return Math.min(2.6, Math.max(0.55, len / 190));
 }
 
+/** Tarama hızlı, ileri-geri bir harekettir: uzun path'ler de birkaç saniyede biter. */
+export function hatchDuration(h: HatchPass): number {
+  const len = samplePath(h.d, 4).length;
+  return Math.min(4.5, Math.max(1, len / 1500));
+}
+
 export function buildTimeline(lesson: Lesson): Timeline {
   const shapes: ShapeSeg[] = [];
   const steps: StepSeg[] = [];
@@ -48,6 +56,11 @@ export function buildTimeline(lesson: Lesson): Timeline {
       const dur = shapeDuration(sh);
       shapes.push({ step: i, shape: sh, start: t, end: t + dur, points: samplePath(sh.d, 2).points });
       t += dur + (k < st.shapes.length - 1 ? GAP : 0);
+    });
+    (st.hatch ?? []).forEach((h, k) => {
+      const dur = hatchDuration(h);
+      shapes.push({ step: i, shape: { d: h.d }, hatch: h, start: t, end: t + dur, points: samplePath(h.d, 2).points });
+      t += dur + (k < (st.hatch?.length ?? 0) - 1 ? GAP * 0.6 : 0);
     });
     t += TAIL;
     steps.push({ step: i, start, end: t });

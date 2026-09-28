@@ -38,6 +38,9 @@ export const STATIC_LINES: string[] = [
   'Harika bir çizim oldu!',
   'Tebrikler! Dersi bitirdin!',
   'Yeni bir çıkartma kazandın!',
+  // Kâğıt modunda otomatik eklenen gölgelendirme adımları (src/art/shading.ts ile aynı olmalı)
+  'Şimdi gölgelendirme zamanı! Kalemi hafifçe tutarak büyük parçaları tara. Kenarlarda biraz daha bastır.',
+  'Şimdi koyu yerleri kalemle sık sık tara. Parlak beyaz noktaları boş bırak!',
 ];
 
 /** Her ders için üretilecek kalıp cümleler. */

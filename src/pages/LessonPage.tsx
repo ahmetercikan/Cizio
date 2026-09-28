@@ -10,6 +10,7 @@ import confetti from 'canvas-confetti';
 import { ArrowLeft, ArrowRight, Check, Hand, Heart, Monitor, NotebookPen, Pause, Play, RotateCcw, RotateCw, Settings2, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { withShading } from '../art/shading';
 import { buildTimeline, fmtTime, frameAt, type Timeline } from '../art/timeline';
 import { CameraCapture } from '../components/CameraCapture';
 import { DrawingCanvas } from '../components/DrawingCanvas';
@@ -79,10 +80,11 @@ function Player({ lesson }: { lesson: Lesson }) {
   const profile = useProfile();
   const pdata = useProfileData();
   const progress = pdata.lessons[lesson.id];
-  const tl = useMemo(() => buildTimeline(lesson), [lesson]);
-  const last = lesson.steps.length - 1;
-
   const [mode, setMode] = useState<DrawMode>(settings.defaultMode);
+  // Kâğıt modunda çizgilerden sonra kalemle gölgelendirme adımları eklenir; ekranda boyama yapılır.
+  const play = useMemo(() => (mode === 'paper' ? withShading(lesson) : lesson), [lesson, mode]);
+  const tl = useMemo(() => buildTimeline(play), [play]);
+  const last = play.steps.length - 1;
   const [scaffold, setScaffold] = useState<Scaffold>(() => suggestScaffold(progress));
   const [phase, setPhase] = useState<Phase>('intro');
   const [cur, setCur] = useState(0);
@@ -114,9 +116,9 @@ function Player({ lesson }: { lesson: Lesson }) {
   );
 
   useEffect(() => {
-    preloadLines(lesson.steps.map((s) => s.say));
+    preloadLines(play.steps.map((s) => s.say));
     return () => stopSpeaking();
-  }, [lesson]);
+  }, [play]);
 
   // ---------- oynatma döngüsü ----------
   useEffect(() => {
@@ -158,7 +160,7 @@ function Player({ lesson }: { lesson: Lesson }) {
     setPhase('watch');
     setPlaying(true);
     bumpControls();
-    if (speakIt) say(lesson.steps[i].say);
+    if (speakIt) say(play.steps[i].say);
   };
 
   const bumpControls = () => {
@@ -291,8 +293,8 @@ function Player({ lesson }: { lesson: Lesson }) {
         <div className="player__title">
           <b>{lesson.title}</b>
           {phase !== 'intro' && phase !== 'done' && (
-            <span className="player__steps" aria-label={`Adım ${cur + 1} / ${lesson.steps.length}`}>
-              {lesson.steps.map((_, i) => (
+            <span className="player__steps" aria-label={`Adım ${cur + 1} / ${play.steps.length}`}>
+              {play.steps.map((_, i) => (
                 <span key={i} className={i < cur || phase === 'color' || phase === 'camera' || phase === 'review' ? 'done' : i === cur ? 'now' : ''} />
               ))}
             </span>
@@ -314,9 +316,9 @@ function Player({ lesson }: { lesson: Lesson }) {
               ) : (
                 <>
                   {phase === 'intro' && <SketchImg lesson={lesson} pad={0} className="stage__img" />}
-                  {showPlayer && mode === 'paper' && <LiveSketch lesson={lesson} tl={tl} t={t} />}
+                  {showPlayer && mode === 'paper' && <LiveSketch lesson={play} tl={tl} t={t} />}
                   {showPlayer && mode === 'screen' && !(phase !== 'watch' && scaffold === 'free') && (
-                    <LiveSketch lesson={lesson} tl={tl} t={t} faintBefore={phase === 'watch' ? cur : cur + 1} showPencil={false} />
+                    <LiveSketch lesson={play} tl={tl} t={t} faintBefore={phase === 'watch' ? cur : cur + 1} showPencil={false} />
                   )}
                   {mode === 'screen' && (phase === 'turn' || phase === 'feedback') && scaffold !== 'free' && (
                     <GuideLayer lesson={lesson} step={cur} view={scaffold} missed={phase === 'feedback' ? result?.missed : undefined} />
@@ -356,7 +358,7 @@ function Player({ lesson }: { lesson: Lesson }) {
       {/* sıra sende */}
       {phase === 'turn' && (
         <div className="turn-banner rise">
-          <Hand size={22} /> {mode === 'paper' ? 'Sıra sende! Kâğıdına çiz.' : scaffold === 'free' ? 'Sıra sende! Örneğe bakarak çiz.' : 'Sıra sende! Turuncu çizgiyi takip et.'}
+          <Hand size={22} /> {mode === 'paper' ? (play.steps[cur]?.hatch ? 'Sıra sende! Kalemle gölgelendir.' : 'Sıra sende! Kâğıdına çiz.') : scaffold === 'free' ? 'Sıra sende! Örneğe bakarak çiz.' : 'Sıra sende! Turuncu çizgiyi takip et.'}
         </div>
       )}
 
@@ -480,7 +482,7 @@ function Player({ lesson }: { lesson: Lesson }) {
             </button>
           </div>
           <p className="intro__meta">
-            {lesson.steps.length} adım · {fmtTime(tl.total)} · {['', 'Kolay', 'Orta', 'Zor'][lesson.level]}
+            {play.steps.length} adım · {fmtTime(tl.total)} · {['', 'Kolay', 'Orta', 'Zor'][lesson.level]}
             {progress && <Stars value={progress.bestStars} size={18} dim="rgba(29,23,64,0.12)" />}
           </p>
           <p className="intro__q">Nerede çizeceksin?</p>

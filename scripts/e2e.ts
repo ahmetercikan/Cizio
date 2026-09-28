@@ -106,15 +106,14 @@ async function run(viewport: { width: number; height: number }, tag: string, ful
     await shot(page, `${tag}-paper-watch`);
     await page.locator('.turn-banner').waitFor({ timeout: 15000 });
     await shot(page, `${tag}-paper-turn`);
-    for (let i = 0; i < kedi.steps.length; i++) {
-      await page.locator('.turn-banner').waitFor({ timeout: 15000 }).catch(async () => {
-        await click('Adımı atla');
-        await page.locator('.turn-banner').waitFor();
-      });
+    // Çizgi adımları + otomatik gölgelendirme adımları: kamera açılana kadar ilerle.
+    for (let i = 0; i < 20 && !(await page.locator('.camera').count()); i++) {
+      await click('Adımı atla').catch(() => {});
+      await page.locator('.turn-banner').waitFor({ timeout: 15000 });
       if (i === 3) await shot(page, `${tag}-paper-step4`);
+      if (i === kedi.steps.length) await shot(page, `${tag}-paper-shading`);
       await click(/Çizdim|Bitirdim/);
-      await sleep(300);
-      if (i < kedi.steps.length - 1) await click('Adımı atla').catch(() => {});
+      await sleep(400);
     }
     await sleep(1200);
     await shot(page, `${tag}-camera`);
