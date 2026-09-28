@@ -1,0 +1,51 @@
+import { useEffect, type ReactNode } from 'react';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { setSfxEnabled } from './lib/sfx';
+import { setNaturalVoice, unlockAudio } from './lib/speech';
+import FreeDraw from './pages/FreeDraw';
+import Journal from './pages/Journal';
+import Learn, { CoursePage } from './pages/Learn';
+import LessonPage from './pages/LessonPage';
+import Onboarding from './pages/Onboarding';
+import Parent from './pages/Parent';
+import Playground from './pages/Playground';
+import Profiles from './pages/Profiles';
+import { useApp } from './store/useApp';
+
+/** Profil yoksa karşılama akışına yönlendirir. */
+function NeedsProfile({ children }: { children: ReactNode }) {
+  const has = useApp((s) => !!s.activeId && s.profiles.some((p) => p.id === s.activeId));
+  const any = useApp((s) => s.profiles.length > 0);
+  if (!has) return <Navigate to={any ? '/profiller' : '/hosgeldin'} replace />;
+  return <>{children}</>;
+}
+
+export default function App() {
+  const sfxOn = useApp((s) => s.settings.sfx);
+  const natural = useApp((s) => s.settings.naturalVoice);
+  useEffect(() => setSfxEnabled(sfxOn), [sfxOn]);
+  useEffect(() => setNaturalVoice(natural !== false), [natural]);
+  // iOS: ses ancak bir dokunuştan sonra çalabilir; ilk dokunuşta ses öğesinin kilidini aç.
+  useEffect(() => {
+    const once = () => unlockAudio();
+    window.addEventListener('pointerdown', once, { once: true });
+    return () => window.removeEventListener('pointerdown', once);
+  }, []);
+
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/hosgeldin" element={<Onboarding />} />
+        <Route path="/profiller" element={<Profiles />} />
+        <Route path="/" element={<NeedsProfile><Playground /></NeedsProfile>} />
+        <Route path="/ogren" element={<NeedsProfile><Learn /></NeedsProfile>} />
+        <Route path="/yol/:id" element={<NeedsProfile><CoursePage /></NeedsProfile>} />
+        <Route path="/dergi" element={<NeedsProfile><Journal /></NeedsProfile>} />
+        <Route path="/ders/:id" element={<NeedsProfile><LessonPage /></NeedsProfile>} />
+        <Route path="/ciz" element={<NeedsProfile><FreeDraw /></NeedsProfile>} />
+        <Route path="/ebeveyn" element={<Parent />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </HashRouter>
+  );
+}
