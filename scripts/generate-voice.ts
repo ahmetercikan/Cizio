@@ -56,7 +56,9 @@ const voice =
   opt('--voice') ?? (provider === oldManifest.provider ? oldManifest.voice : undefined) ?? (provider === 'gemini' ? 'Sulafat' : 'tr-TR-EmelNeural');
 const prune = flag('--prune');
 const force = flag('--force');
-const BATCH = Number(opt('--batch') ?? 25);
+const BATCH = Number(opt('--batch') ?? 15);
+/** --verify: Whisper'ın duyduğu metin beklenene bu oranın altında benziyorsa dosya yanlış sayılır. */
+const VERIFY_MIN = 0.8;
 const CONCURRENCY = Number(opt('--concurrency') ?? (provider === 'gemini' ? 2 : 4));
 
 let key = '';
@@ -120,6 +122,8 @@ for (const k of redo) {
 if (redo.size) saveState();
 
 const todo = [...lines.keys()].filter((k) => force || !existsSync(mp3(k)) || state[k] !== tagOf(k));
+// Dosyası hiç olmayanlar önce (kota biterse en azından her cümlenin bir sesi olsun).
+todo.sort((a, b) => Number(existsSync(mp3(a))) - Number(existsSync(mp3(b))));
 const skipped = lines.size - todo.length;
 const failed: [string, string, string][] = [];
 const generatedKeys: string[] = [];
@@ -242,8 +246,19 @@ if (provider === 'gemini') {
   const toned = todo.filter((k) => lines.get(k)!.tone);
   const plain = todo.filter((k) => !lines.get(k)!.tone);
   for (const k of toned) jobs.push(() => single(k));
-  for (let i = 0; i < plain.length; i += BATCH) {
-    const group = plain.slice(i, i + BATCH);
+  // Komşu cümleler farklı uzunlukta olsun: bölme bir cümle kayarsa süre kontrolü yakalasın.
+  const interleave = (keys: string[]) => {
+    const sorted = [...keys].sort((a, b) => lines.get(a)!.text.length - lines.get(b)!.text.length);
+    const out: string[] = [];
+    for (let lo = 0, hi = sorted.length - 1; lo <= hi; lo++, hi--) {
+      out.push(sorted[hi]);
+      if (lo < hi) out.push(sorted[lo]);
+    }
+    return out;
+  };
+  const ordered = [...interleave(plain.filter((k) => !existsSync(mp3(k)))), ...interleave(plain.filter((k) => existsSync(mp3(k))))];
+  for (let i = 0; i < ordered.length; i += BATCH) {
+    const group = ordered.slice(i, i + BATCH);
     jobs.push(() => batch(group));
   }
 } else {
@@ -273,7 +288,7 @@ for (const f of readdirSync(OUT)) if (f.endsWith('.part.mp3')) unlinkSync(join(O
 // --- Doğrulama (--verify): yeni dosyalar Whisper ile yazıya dökülür, uyuşmayanlar tek tek yeniden üretilir ------
 /** scripts/voice-verify.py'yi çalıştırır; beklenen cümleyle uyuşmayan anahtarları döner. */
 function verify(keys: string[]): string[] {
-  const r = spawnSync('python', ['scripts/voice-verify.py', '--only', keys.join(','), '--min', '0.7'], {
+  const r = spawnSync('python', ['scripts/voice-verify.py', '--only', keys.join(','), '--min', String(VERIFY_MIN)], {
     encoding: 'utf8',
     env: { ...process.env, OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1', PYTHONIOENCODING: 'utf-8' },
     windowsHide: true,
@@ -283,41 +298,43 @@ function verify(keys: string[]): string[] {
     return [];
   }
   const res: Record<string, { sim: number; heard: string }> = JSON.parse(readFileSync(join('.render', 'voice-stt.json'), 'utf8'));
-  const bad = keys.filter((k) => res[k] && res[k].sim < 0.7);
+  const bad = keys.filter((k) => res[k] && res[k].sim < VERIFY_MIN);
   for (const k of bad) console.log(`  x "${lines.get(k)!.text.slice(0, 50)}" yerine duyulan: "${res[k].heard.slice(0, 60)}"`);
   return bad;
 }
 if (flag('--verify') && generatedKeys.length) {
   console.log(`\nDoğrulama: ${generatedKeys.length} yeni dosya Whisper ile dinleniyor...`);
-  const bad = verify(generatedKeys);
+  let bad = verify(generatedKeys);
   if (!bad.length) console.log('  hepsi beklenen cümleyi söylüyor.');
-  else {
-    console.log(`  ${bad.length} dosya uyuşmuyor; siliniyor ve tek tek yeniden üretiliyor...`);
+  // 1. tur: küçük gruplar hâlinde yeniden; 2. tur: tek tek. Hâlâ yanlışsa dosya silinir (tarayıcı sesi okur).
+  for (const [round, size] of [[1, 8], [2, 1]] as const) {
+    if (!bad.length || stopped) break;
+    console.log(`  ${bad.length} dosya uyuşmuyor; siliniyor ve ${size > 1 ? `${size}'li gruplarla` : 'tek tek'} yeniden üretiliyor (${round}. tur)...`);
     for (const k of bad) {
       unlinkSync(mp3(k));
       delete state[k];
     }
     saveState();
-    const again: string[] = [];
-    for (const k of bad) {
-      if (stopped) break;
+    const before = generatedKeys.length;
+    for (let i = 0; i < bad.length && !stopped; i += size) {
       try {
-        await single(k);
-        again.push(k);
+        await (size > 1 ? batch(bad.slice(i, i + size)) : single(bad[i]));
       } catch (e) {
         if (e instanceof DailyQuotaError) {
           console.log(`  ${e.message}`);
           stopped = true;
-        } else failed.push([k, '', (e as Error).message]);
+        } else failed.push([bad[i], '', (e as Error).message]);
       }
     }
-    for (const k of again.length ? verify(again) : []) {
-      unlinkSync(mp3(k));
-      delete state[k];
-      console.log(`  x hâlâ uyuşmuyor, dosya silindi (tarayıcı sesi kullanılacak): ${lines.get(k)!.text.slice(0, 60)}`);
-    }
-    saveState();
+    const again = generatedKeys.slice(before);
+    bad = again.length ? verify(again) : [];
   }
+  for (const k of bad) {
+    unlinkSync(mp3(k));
+    delete state[k];
+    console.log(`  x hâlâ uyuşmuyor, dosya silindi (tarayıcı sesi kullanılacak): ${lines.get(k)!.text.slice(0, 60)}`);
+  }
+  saveState();
 }
 
 const left = [...lines.keys()].filter((k) => !existsSync(mp3(k)) || state[k] !== tagOf(k));
