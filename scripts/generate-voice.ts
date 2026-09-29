@@ -9,6 +9,8 @@
  *   --provider edge    Microsoft Edge nöral sesi (varsayılan: tr-TR-EmelNeural). python -m pip install edge-tts
  *
  * Kullanım: npm run voice -- --provider gemini [--voice Sulafat] [--model <model>] [--batch 25] [--concurrency 2] [--prune] [--force]
+ *   --manifest-only   hiçbir şey üretme, yalnızca manifest'i yaz
+ *   --allow-partial   bazı cümleler henüz yeni sesle üretilmemiş olsa da manifest'i yaz (eski kayıtları kullanır)
  * Sağlayıcı/ses verilmezse mevcut manifest'teki ayarlar kullanılır.
  *
  * Her cümlenin hangi ayarla üretildiği public/voice/state.json'da tutulur: yarıda kalan üretim kaldığı yerden
@@ -22,7 +24,7 @@ import { allFeedbackTexts } from '../src/engine/scoring';
 import type { Lesson } from '../src/lessons/types';
 import { lineKey, normalizeLine } from '../src/voice/hash';
 import { LESSON_LINES, STATIC_LINES, TONED_LINES } from '../src/voice/lines';
-import { apiKey, DailyQuotaError, geminiTts, geminiTtsBatch, RateLimitError, STYLE_ID, ttsModels } from './tts-gemini';
+import { apiKey, DailyQuotaError, FreeTierError, geminiTts, geminiTtsBatch, RateLimitError, STYLE_ID, ttsModels } from './tts-gemini';
 
 const RATE = '-6%';
 const PITCH = '+3Hz';
@@ -144,6 +146,8 @@ async function withModel<T>(fn: (model: string) => Promise<T>): Promise<T> {
       usedModels.add(m);
       return r;
     } catch (e) {
+      // --paid: hesabın ücretli olması bekleniyor; ücretsiz katman hatası gelirse hemen dur (model değiştirme).
+      if (e instanceof FreeTierError && flag('--paid')) throw e;
       if (e instanceof DailyQuotaError) {
         if (models[modelIdx] === m) {
           console.log(`  ${m}: günlük kota doldu, sıradaki modele geçiliyor...`);
@@ -214,6 +218,8 @@ async function batch(keys: string[]): Promise<void> {
 }
 
 // --- Çalıştır ----------------------------------------------------------------------------------
+const manifestOnly = flag('--manifest-only');
+if (manifestOnly) todo.length = 0;
 if (todo.length) console.log(`${todo.length} cümle üretilecek (${skipped} zaten güncel)...`);
 const jobs: (() => Promise<void>)[] = [];
 if (provider === 'gemini') {
@@ -249,11 +255,13 @@ saveState();
 for (const f of readdirSync(OUT)) if (f.endsWith('.part.mp3')) unlinkSync(join(OUT, f));
 
 const left = [...lines.keys()].filter((k) => !existsSync(mp3(k)) || state[k] !== tagOf(k));
-if (stopped || left.length) {
+const missingFile = [...lines.keys()].filter((k) => !existsSync(mp3(k)));
+if ((stopped || left.length) && !(flag('--allow-partial') && missingFile.length === 0)) {
   console.log(`Bu çalıştırmada üretilen: ${generated}. Kalan: ${left.length}. Manifest değiştirilmedi (eski ses kullanılmaya devam ediyor).`);
   for (const [, , msg] of failed.slice(0, 5)) console.log(`  x ${msg}`);
   process.exit(2);
 }
+if (left.length) console.log(`Uyarı: ${left.length} cümle henüz ${voice} ile üretilmedi; manifest'te eski kayıtları kullanılıyor.`);
 
 // --- Manifest ----------------------------------------------------------------------------------
 const entries = [...lines].filter(([k]) => existsSync(mp3(k))).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));

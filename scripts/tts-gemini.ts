@@ -47,6 +47,8 @@ export async function ttsModels(key: string): Promise<string[]> {
 
 /** Günlük kota bitti: beklemek anlamsız (ücretsiz katmanda model başına günde ~10 istek). */
 export class DailyQuotaError extends Error {}
+/** Hesap ücretsiz katmanda: kota kimliği "FreeTier" içeriyor. */
+export class FreeTierError extends DailyQuotaError {}
 
 export class RateLimitError extends Error {
   constructor(public retryAfterMs: number, msg: string) {
@@ -97,6 +99,7 @@ async function requestPcm(prompt: string, opts: { key: string; model: string; vo
   });
   if (r.status === 429) {
     const t = await r.text();
+    if (/FreeTier/i.test(t)) throw new FreeTierError(`${opts.model}: ücretsiz katman günlük kotası doldu (hesapta faturalandırma yok)`);
     if (/PerDay/i.test(t)) throw new DailyQuotaError(`${opts.model}: günlük kota doldu`);
     const m = t.match(/"retryDelay":s*"(d+(?:.d+)?)s"/);
     throw new RateLimitError(m ? Number(m[1]) * 1000 + 500 : 30_000, `429 kota: ${t.slice(0, 200)}`);

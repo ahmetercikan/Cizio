@@ -46,19 +46,19 @@ Simply Draw'un akışı ve görsel dili örnek alındı:
 
 ## Doğal ses
 
-Anlatımdaki tüm sabit cümleler (ders adımları, geri bildirimler, arayüz cümleleri; şu an 608 cümle), Microsoft nöral Türkçe sesiyle (`tr-TR-EmelNeural`) önceden MP3'e çevrilip `public/voice/` klasörüne konur.
+Anlatımdaki tüm sabit cümleler (ders adımları, gölgelendirme yönergeleri, geri bildirimler, arayüz cümleleri; şu an 974 cümle) önceden MP3'e çevrilip `public/voice/` klasörüne konur. Ses: Google Gemini TTS, "Sulafat" sesi, sıcak bir öğretmen tonuyla. Dosyası olmayan cümleler (örneğin çocuğun adını içerenler) cihazın konuşma sentezine düşer; ebeveyn bölümünden doğal ses kapatılabilir.
 
-- Dosyası olmayan cümleler, örneğin çocuğun adını içerenler, tarayıcının konuşma sentezine düşer.
-- Ebeveyn bölümünden doğal ses kapatılabilir.
-
-Yeni bir cümle eklediğinizde onu `src/voice/lines.ts` dosyasına da yazın, sonra şunları çalıştırın:
+Yeni bir cümle eklediğinizde onu `src/voice/lines.ts` dosyasına da yazın, sonra:
 
 ```bash
-pip install edge-tts       # bir kez
-npm run voice              # eksik MP3'leri üretir (--prune: artık kullanılmayanları siler)
+# .env.local içinde GEMINI_API_KEY=... (git'e girmez)
+npm run voice -- --provider gemini --voice Sulafat --paid     # eksik cümleleri üretir, kaldığı yerden devam eder
+npm run voice -- --provider gemini --manifest-only --allow-partial --prune   # manifest'i yaz, eski dosyaları sil
 ```
 
-> **Not:** `edge-tts`, Edge tarayıcısının "Sesli oku" hizmetini kullanır; bu, resmî bir API değildir. Kişisel kullanım için sorun olmaz. Mağaza sürümünde aynı sesi Azure Speech (resmî ve lisanslı) üzerinden üretin; `scripts/generate-voice.ts` içinde yalnızca üretim komutu değişir.
+- Üretim toplu istekle çalışır (tek istekte 25 cümle, aralarındaki sessizlikten bölünür); hangi cümlenin hangi ayarla üretildiği `public/voice/state.json` içinde tutulur.
+- `--paid`: hesabın ücretli olması beklenir; ücretsiz katman kota hatası gelirse üretim hemen durur. Ücretsiz katmanda model başına günde yaklaşık 10 istek vardır.
+- Yedek sağlayıcı: `--provider edge` (Microsoft Edge nöral sesi, `pip install edge-tts`).
 
 ## Geliştirme
 
