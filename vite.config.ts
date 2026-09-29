@@ -18,7 +18,7 @@ export default defineConfig({
         description: 'Adım adım, sesli anlatımlı çizim dersleri',
         lang: 'tr',
         theme_color: '#ff6b4a',
-        background_color: '#fff7ea',
+        background_color: '#cfeee6',
         display: 'standalone',
         orientation: 'any',
         start_url: './',

@@ -37,7 +37,7 @@ const browser = await chromium.launch({ executablePath: EXE });
     @font-face{font-family:H;src:url(${hand})}
     @font-face{font-family:H;src:url(${handExt});unicode-range:U+0100-024F}
     body{margin:0;width:1024px;height:500px;overflow:hidden;font-family:M;color:#3a2b27;
-      background:radial-gradient(420px 300px at 8% 0%,rgba(255,200,61,.35),transparent 70%),radial-gradient(500px 360px at 100% 100%,rgba(20,168,154,.22),transparent 70%),#fff7ea;position:relative}
+      background:radial-gradient(420px 300px at 8% 0%,rgba(255,200,61,.35),transparent 70%),radial-gradient(500px 360px at 100% 100%,rgba(20,168,154,.22),transparent 70%),#cfeee6;position:relative}
     svg.flow{position:absolute;inset:0}
     .icon{position:absolute;left:64px;top:92px;width:130px;height:130px;border-radius:30px;box-shadow:0 14px 30px rgba(222,77,45,.35)}
     h1{position:absolute;left:64px;top:232px;margin:0;font-size:88px;font-weight:800;color:#ff6b4a;text-shadow:0 5px 0 #ffe1d8}

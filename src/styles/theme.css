@@ -19,14 +19,14 @@
  * hafif yükseltilmiş (3B) kartlar ve butonlar; yuvarlak Fredoka başlıklar, Nunito metin.
  */
 :root {
-  --cream: #fff7ea;
-  --cream-2: #ffeed6;
-  --paper: #fffdf8;
+  --cream: #cfeee6; /* nane: ders masasıyla aynı ton */
+  --cream-2: #bfe4d9;
+  --paper: #ffffff;
   --ink: #3a2b27;
   --ink-2: #5b463f;
   --muted: #8c766e;
-  --line: #f1dcc4;
-  --line-2: #e6c9a8;
+  --line: #cfe6df;
+  --line-2: #b3d8cc;
 
   --coral: #ff6b4a;
   --coral-dark: #de4d2d;
@@ -41,9 +41,9 @@
   --green: #2bb673;
   --red: #ef4b4b;
 
-  --blob-sun: rgba(255, 200, 61, 0.28);
-  --blob-coral: rgba(255, 107, 74, 0.16);
-  --blob-teal: rgba(20, 168, 154, 0.16);
+  --blob-sun: rgba(255, 200, 61, 0.3);
+  --blob-coral: rgba(255, 107, 74, 0.18);
+  --blob-teal: rgba(20, 168, 154, 0.14);
 
   --radius: 22px;
   --radius-lg: 30px;
@@ -97,8 +97,8 @@ img, svg { max-width: 100%; }
   position: relative;
   min-height: 100dvh;
   background:
-    radial-gradient(900px 500px at 100% 0%, rgba(255, 200, 61, 0.18), transparent 60%),
-    radial-gradient(800px 500px at 0% 100%, rgba(20, 168, 154, 0.1), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(255, 200, 61, 0.22), transparent 60%),
+    radial-gradient(800px 500px at 0% 100%, rgba(20, 168, 154, 0.12), transparent 60%),
     var(--cream);
   overflow: hidden;
   isolation: isolate;

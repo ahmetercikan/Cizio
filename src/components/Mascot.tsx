@@ -10,8 +10,8 @@ export function Mascot({ size = 120, mood = 'happy', className }: { size?: numbe
       <g stroke="#2b2250" strokeWidth="5" strokeLinecap="round" fill="none">
         {armsUp ? (
           <>
-            <path d="M44,86 Q28,74 22,56" />
-            <path d="M96,86 Q112,74 118,56" />
+            <path className="mascot__arm mascot__arm--l" d="M44,86 Q28,74 22,56" />
+            <path className="mascot__arm mascot__arm--r" d="M96,86 Q112,74 118,56" />
           </>
         ) : mood === 'think' ? (
           <>
@@ -44,8 +44,10 @@ export function Mascot({ size = 120, mood = 'happy', className }: { size?: numbe
         </>
       ) : mood === 'cheer' ? (
         <>
-          <path d="M54,82 Q60,74 66,82" stroke="#2b2250" strokeWidth="4" fill="none" strokeLinecap="round" />
-          <path d="M74,82 Q80,74 86,82" stroke="#2b2250" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <g className="mascot__eyes">
+            <path d="M54,82 Q60,74 66,82" stroke="#2b2250" strokeWidth="4" fill="none" strokeLinecap="round" />
+            <path d="M74,82 Q80,74 86,82" stroke="#2b2250" strokeWidth="4" fill="none" strokeLinecap="round" />
+          </g>
           <path d="M60,92 Q70,104 80,92 Z" fill="#2b2250" />
         </>
       ) : (

@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appId: 'com.ahmetercikan.cizio',
   appName: 'Çizio',
   webDir: 'dist',
-  backgroundColor: '#fff7ea',
+  backgroundColor: '#cfeee6',
   android: {
     // Çocuk uygulaması: http içerik, hata ayıklama ve üçüncü taraf gezinme yok.
     allowMixedContent: false,

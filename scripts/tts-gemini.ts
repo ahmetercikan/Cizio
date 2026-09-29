@@ -113,8 +113,16 @@ async function requestPcm(prompt: string, opts: { key: string; model: string; vo
 }
 
 /**
- * Sesi en uzun n-1 sessizlikten keserek n parçaya böler (toplu üretim için).
- * Parça süreleri metin uzunluklarıyla orantılı değilse null döner.
+ * Toplu üretilen sesi n cümleye böler.
+ *
+ * Eski yöntem "en uzun n-1 sessizlikten kes" idi; "Muhteşem! ..." gibi ünlemden sonraki duraklama cümleler
+ * arası boşluk kadar uzun olunca kesim cümle içine düşüyor ve dosyalar bir cümle kayıyordu. Şimdi:
+ *  1) >= 0.3 sn'lik bütün sessizlikler aday kesim,
+ *  2) dinamik programlama ile parça süreleri metin uzunluklarına en iyi uyan n-1 kesim seçilir,
+ *  3) her parça beklenen sürenin 0.62–1.6 katı olmalı, seçilen kesimler >= 0.45 sn olmalı, parça içinde
+ *     kalan (seçilmemiş) sessizlik >= 0.9 sn ise ya da seçilen en kısa kesimden uzunsa reddedilir.
+ * Uymazsa null döner (çağıran grubu bölüp yeniden dener). Aynı uzunluktaki cümlelerin yer değiştirmesini
+ * süre yakalayamaz; onun için üretimden sonra `--verify` (Whisper ile yazıya dökme) kullanılır.
  */
 export function splitBySilence(pcm: Buffer, rate: number, texts: string[]): Buffer[] | null {
   const s = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
@@ -125,35 +133,80 @@ export function splitBySilence(pcm: Buffer, rate: number, texts: string[]): Buff
     for (let k = i; k < Math.min(s.length, i + frame); k++) peak = Math.max(peak, Math.abs(s[k]));
     quiet.push(peak < 700);
   }
-  // Konuşmanın başı ve sonu
-  let first = quiet.findIndex((q) => !q), last = quiet.length - 1 - [...quiet].reverse().findIndex((q) => !q);
+  // Konuşmanın başı ve sonu (kare cinsinden)
+  const first = quiet.findIndex((q) => !q);
+  const last = quiet.length - 1 - [...quiet].reverse().findIndex((q) => !q);
   if (first < 0) return null;
-  const runs: { a: number; b: number }[] = [];
+  const n = texts.length;
+  const slice = (a: number, b: number) => Buffer.from(s.slice(a * frame, b * frame).buffer);
+  if (n === 1) return [slice(first, last + 1)];
+
+  // Sessizlik koşuları
+  const runs: { a: number; b: number; len: number }[] = [];
   for (let i = first; i <= last; i++) {
     if (!quiet[i]) continue;
     let j = i;
     while (j + 1 <= last && quiet[j + 1]) j++;
-    runs.push({ a: i, b: j });
+    runs.push({ a: i, b: j, len: j - i + 1 });
     i = j;
   }
-  const n = texts.length;
-  const cuts = runs.sort((x, y) => y.b - y.a - (x.b - x.a)).slice(0, n - 1);
-  if (cuts.length < n - 1) return null;
-  // En kısa kesim, cümle içi duraklamalardan belirgin uzun olmalı (>= 0.7 sn)
-  if (n > 1 && Math.min(...cuts.map((c) => c.b - c.a + 1)) * 0.02 < 0.7) return null;
-  const bounds = cuts.map((c) => Math.round(((c.a + c.b) / 2) * frame)).sort((a, b) => a - b);
-  const pieces: Buffer[] = [];
-  let prev = first * frame;
-  for (const bnd of [...bounds, (last + 1) * frame]) {
-    pieces.push(Buffer.from(s.slice(prev, bnd).buffer));
-    prev = bnd;
+  const secs = (frames: number) => frames * 0.02;
+  const cands = runs.filter((r) => secs(r.len) >= 0.3);
+  if (cands.length < n - 1) return null;
+  const mids = cands.map((c) => Math.round((c.a + c.b) / 2));
+  // Sessiz kare önek toplamı: speech(a, b) = [a, b) aralığındaki konuşma kareleri (sessizlikler hariç)
+  const qs = new Int32Array(quiet.length + 1);
+  for (let i = 0; i < quiet.length; i++) qs[i + 1] = qs[i] + (quiet[i] ? 1 : 0);
+  const speech = (a: number, b: number) => b - a - (qs[b] - qs[a]);
+
+  // Beklenen konuşma süreleri: karakter sayısıyla orantılı
+  const weights = texts.map((t) => Math.max(4, t.length));
+  const wsum = weights.reduce((a, b) => a + b, 0);
+  const total = speech(first, last + 1);
+  const expected = weights.map((w) => (total * w) / wsum);
+  const INF = 1e9;
+  const cost = (i: number, a: number, b: number) => (speech(a, b) <= 0 ? INF : Math.abs(Math.log(speech(a, b) / expected[i])));
+
+  // dp[i][j]: ilk i+1 parça, i. parça j. adayda bitiyor
+  const m = cands.length;
+  const dp = Array.from({ length: n - 1 }, () => new Float64Array(m).fill(INF));
+  const back = Array.from({ length: n - 1 }, () => new Int32Array(m).fill(-1));
+  for (let j = 0; j < m; j++) dp[0][j] = cost(0, first, mids[j]);
+  for (let i = 1; i < n - 1; i++) {
+    for (let j = i; j < m; j++) {
+      let best = INF, bk = -1;
+      for (let k = i - 1; k < j; k++) {
+        const c = dp[i - 1][k] + cost(i, mids[k], mids[j]);
+        if (c < best) { best = c; bk = k; }
+      }
+      dp[i][j] = best;
+      back[i][j] = bk;
+    }
   }
-  // Süre / karakter oranı kontrolü
-  const dur = pieces.map((p) => p.length / 2 / rate);
-  const perChar = dur.map((d, i) => d / Math.max(4, texts[i].length));
-  const avg = perChar.reduce((a, b) => a + b, 0) / perChar.length;
-  if (perChar.some((x) => x < avg * 0.4 || x > avg * 2.4)) return null;
-  return pieces;
+  let bestJ = -1, best = INF;
+  for (let j = n - 2; j < m; j++) {
+    const c = dp[n - 2][j] + cost(n - 1, mids[j], last + 1);
+    if (c < best) { best = c; bestJ = j; }
+  }
+  if (bestJ < 0) return null;
+  const chosen: number[] = [];
+  for (let i = n - 2, j = bestJ; i >= 0; i--) { chosen.unshift(j); j = back[i][j]; }
+
+  // Kontroller
+  const chosenSet = new Set(chosen);
+  const minCut = Math.min(...chosen.map((j) => cands[j].len));
+  if (secs(minCut) < 0.45) return null;
+  const bounds = [first, ...chosen.map((j) => mids[j]), last + 1];
+  for (let i = 0; i < n; i++) {
+    const ratio = speech(bounds[i], bounds[i + 1]) / expected[i];
+    if (ratio < 0.62 || ratio > 1.6) return null;
+    // Parça içinde kalan sessizlikler kesimlerden kısa olmalı
+    for (let j = 0; j < m; j++) {
+      if (chosenSet.has(j) || mids[j] <= bounds[i] || mids[j] >= bounds[i + 1]) continue;
+      if (secs(cands[j].len) >= 0.9 || cands[j].len >= minCut) return null;
+    }
+  }
+  return bounds.slice(0, -1).map((a, i) => slice(a, bounds[i + 1]));
 }
 
 export const BATCH_RULES =

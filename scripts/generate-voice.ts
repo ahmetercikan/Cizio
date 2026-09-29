@@ -10,13 +10,17 @@
  *
  * Kullanım: npm run voice -- --provider gemini [--voice Sulafat] [--model <model>] [--batch 25] [--concurrency 2] [--prune] [--force]
  *   --manifest-only   hiçbir şey üretme, yalnızca manifest'i yaz
- *   --allow-partial   bazı cümleler henüz yeni sesle üretilmemiş olsa da manifest'i yaz (eski kayıtları kullanır)
+ *   --allow-partial   bazı cümleler henüz yeni sesle üretilmemiş olsa da manifest'i yaz (eski kayıtları kullanır;
+ *                     dosyası olmayan cümleleri uygulama tarayıcı sesiyle okur)
+ *   --verify          üretilen dosyaları Whisper ile yazıya dökerek doğrula (python scripts/voice-verify.py);
+ *                     yanlış cümle içerenleri tek tek yeniden üret. pip install faster-whisper gerekir.
+ *   --keys a,b,c      / --redo dosya.txt: verilen anahtarları silip yeniden üret (ör. doğrulamada yanlış çıkanlar)
  * Sağlayıcı/ses verilmezse mevcut manifest'teki ayarlar kullanılır.
  *
  * Her cümlenin hangi ayarla üretildiği public/voice/state.json'da tutulur: yarıda kalan üretim kaldığı yerden
  * devam eder. Üretim yarıda kalırsa manifest değiştirilmez (uygulama eski, tutarlı sesle çalışmaya devam eder).
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -105,9 +109,20 @@ const saveState = () => writeFileSync(STATE, JSON.stringify(state) + '\n', 'utf8
 const mp3 = (k: string) => join(OUT, `${k}.mp3`);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// --keys a,b,c / --redo dosya: bu anahtarlar (ör. doğrulamada yanlış çıkanlar) silinip yeniden üretilir.
+const redo = new Set(
+  [...(opt('--keys')?.split(',') ?? []), ...(opt('--redo') ? readFileSync(opt('--redo')!, 'utf8').split(/\s+/) : [])].filter((k) => lines.has(k)),
+);
+for (const k of redo) {
+  if (existsSync(mp3(k))) unlinkSync(mp3(k));
+  delete state[k];
+}
+if (redo.size) saveState();
+
 const todo = [...lines.keys()].filter((k) => force || !existsSync(mp3(k)) || state[k] !== tagOf(k));
 const skipped = lines.size - todo.length;
 const failed: [string, string, string][] = [];
+const generatedKeys: string[] = [];
 let generated = 0;
 let stopped = false;
 const usedModels = new Set<string>();
@@ -169,6 +184,7 @@ function done(k: string) {
   state[k] = tagOf(k);
   saveState();
   generated++;
+  generatedKeys.push(k);
   if (generated % 25 === 0) console.log(`  ${generated} üretildi...`);
 }
 
@@ -254,14 +270,68 @@ await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 saveState();
 for (const f of readdirSync(OUT)) if (f.endsWith('.part.mp3')) unlinkSync(join(OUT, f));
 
+// --- Doğrulama (--verify): yeni dosyalar Whisper ile yazıya dökülür, uyuşmayanlar tek tek yeniden üretilir ------
+/** scripts/voice-verify.py'yi çalıştırır; beklenen cümleyle uyuşmayan anahtarları döner. */
+function verify(keys: string[]): string[] {
+  const r = spawnSync('python', ['scripts/voice-verify.py', '--only', keys.join(','), '--min', '0.7'], {
+    encoding: 'utf8',
+    env: { ...process.env, OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1', PYTHONIOENCODING: 'utf-8' },
+    windowsHide: true,
+  });
+  if (r.status !== 0) {
+    console.log(`  doğrulama çalıştırılamadı: ${(r.stderr || r.stdout || '').trim().split('\n').slice(-1)[0] ?? ''}`);
+    return [];
+  }
+  const res: Record<string, { sim: number; heard: string }> = JSON.parse(readFileSync(join('.render', 'voice-stt.json'), 'utf8'));
+  const bad = keys.filter((k) => res[k] && res[k].sim < 0.7);
+  for (const k of bad) console.log(`  x "${lines.get(k)!.text.slice(0, 50)}" yerine duyulan: "${res[k].heard.slice(0, 60)}"`);
+  return bad;
+}
+if (flag('--verify') && generatedKeys.length) {
+  console.log(`\nDoğrulama: ${generatedKeys.length} yeni dosya Whisper ile dinleniyor...`);
+  const bad = verify(generatedKeys);
+  if (!bad.length) console.log('  hepsi beklenen cümleyi söylüyor.');
+  else {
+    console.log(`  ${bad.length} dosya uyuşmuyor; siliniyor ve tek tek yeniden üretiliyor...`);
+    for (const k of bad) {
+      unlinkSync(mp3(k));
+      delete state[k];
+    }
+    saveState();
+    const again: string[] = [];
+    for (const k of bad) {
+      if (stopped) break;
+      try {
+        await single(k);
+        again.push(k);
+      } catch (e) {
+        if (e instanceof DailyQuotaError) {
+          console.log(`  ${e.message}`);
+          stopped = true;
+        } else failed.push([k, '', (e as Error).message]);
+      }
+    }
+    for (const k of again.length ? verify(again) : []) {
+      unlinkSync(mp3(k));
+      delete state[k];
+      console.log(`  x hâlâ uyuşmuyor, dosya silindi (tarayıcı sesi kullanılacak): ${lines.get(k)!.text.slice(0, 60)}`);
+    }
+    saveState();
+  }
+}
+
 const left = [...lines.keys()].filter((k) => !existsSync(mp3(k)) || state[k] !== tagOf(k));
 const missingFile = [...lines.keys()].filter((k) => !existsSync(mp3(k)));
-if ((stopped || left.length) && !(flag('--allow-partial') && missingFile.length === 0)) {
+if ((stopped || left.length) && !flag('--allow-partial')) {
   console.log(`Bu çalıştırmada üretilen: ${generated}. Kalan: ${left.length}. Manifest değiştirilmedi (eski ses kullanılmaya devam ediyor).`);
   for (const [, , msg] of failed.slice(0, 5)) console.log(`  x ${msg}`);
   process.exit(2);
 }
-if (left.length) console.log(`Uyarı: ${left.length} cümle henüz ${voice} ile üretilmedi; manifest'te eski kayıtları kullanılıyor.`);
+if (left.length)
+  console.log(
+    `Uyarı: ${left.length} cümle henüz ${voice} ile üretilmedi` +
+      (missingFile.length ? `; ${missingFile.length} tanesinin dosyası yok (uygulama bunları tarayıcı sesiyle okur).` : '; manifest eski kayıtları kullanıyor.'),
+  );
 
 // --- Manifest ----------------------------------------------------------------------------------
 const entries = [...lines].filter(([k]) => existsSync(mp3(k))).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));

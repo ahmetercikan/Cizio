@@ -205,7 +205,7 @@ await sharp(Buffer.from(bgOnly)).png().toFile('assets/icon-background.png');
 // Açılış ekranı: indigo zemin ortasında ikon
 const SP = 2732;
 const splash = `<svg xmlns="http://www.w3.org/2000/svg" width="${SP}" height="${SP}">${defs().replace(/rx="[^"]+"/, 'rx="0"')}
-  <rect width="${SP}" height="${SP}" fill="#fff7ea"/>
+  <rect width="${SP}" height="${SP}" fill="#cfeee6"/>
   <g transform="translate(${(SP - 760) / 2} ${(SP - 760) / 2}) scale(${760 / S})"><g clip-path="url(#round)"><rect width="${S}" height="${S}" fill="url(#bg)"/><rect width="${S}" height="${S}" fill="url(#glow)"/><g transform="translate(${S * 0.03} ${S * 0.03}) scale(0.94) translate(48 -58)">${art()}</g></g></g></svg>`;
 await sharp(Buffer.from(splash)).png().toFile('assets/splash.png');
 await sharp(Buffer.from(splash)).png().toFile('assets/splash-dark.png');
