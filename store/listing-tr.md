@@ -1,22 +1,22 @@
 # Google Play mağaza metinleri (Türkçe)
 
 ## Uygulama adı (en fazla 30 karakter)
-Cizio: Adım Adım Çizim Öğren
+Çizio: Adım Adım Çizim Öğren
 
 ## Kısa açıklama (en fazla 80 karakter)
-Kalemo ile adım adım çizmeyi öğren: kâğıtta ya da ekranda, sesli anlatımla!
+Çizio ile adım adım çizmeyi öğren: kâğıtta ya da ekranda, sesli anlatımla!
 
 ## Tam açıklama (en fazla 4000 karakter)
-Cizio, 7-9 yaş çocuklara adım adım çizim öğreten, sesli anlatımlı ve reklamsız bir çizim atölyesi.
+Çizio, 7-9 yaş çocuklara adım adım çizim öğreten, sesli anlatımlı ve reklamsız bir çizim atölyesi.
 
 ✏️ ADIM ADIM, KALEMLE GÖSTEREREK
-Her derste gerçekçi bir kalem, masadaki kâğıda çizimi adım adım çizer. Çocuk izler, sonra aynısını kendi kâğıdına ya da ekrana çizer. Kalemo'nun sıcak sesi her adımı anlatır.
+Her derste gerçekçi bir kalem, masadaki kâğıda çizimi adım adım çizer. Çocuk izler, sonra aynısını kendi kâğıdına ya da ekrana çizer. Çizio'nun sıcak sesi her adımı anlatır.
 
 🎨 GERÇEK BİR RESSAM GİBİ GÖLGELENDİRME
 Önce çizgiler, sonra ışık ve gölge: tarama, çapraz tarama ve parmakla dağıtma. Çocuklar kurşun kalemle hacim vermeyi öğrenir.
 
 📄 KÂĞITTA YA DA EKRANDA
-• Kâğıt modu: Çizimini bitirince fotoğrafını çek; Cizio örnek çizimi fotoğrafın üstüne yerleştirir, çocuk karşılaştırır.
+• Kâğıt modu: Çizimini bitirince fotoğrafını çek; Çizio örnek çizimi fotoğrafın üstüne yerleştirir, çocuk karşılaştırır.
 • Ekran modu: Parmakla ya da kalemle çiz; her adımda yıldız ve "sağ kulak biraz eksik kaldı" gibi yol gösteren geri bildirim al.
 • Üç yardım seviyesi: İz sür → Noktalar → Kendin çiz.
 
@@ -41,7 +41,7 @@ Yıldızlar, çıkartma albümü, günlük seri ve çizimlerin sergilendiği Der
 • İlerleme grafiği ve yedekleme (ebeveyn bölümü korumalıdır)
 • İnternetsiz çalışır
 
-Cizio ile çocuğunuz her gün biraz daha iyi çizer!
+Çizio ile çocuğunuz her gün biraz daha iyi çizer!
 
 ## Kategori
 Eğitim (Education) — Hedef kitle: 6-8 ve 9-12 yaş

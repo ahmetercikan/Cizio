@@ -12,7 +12,7 @@ import { saveFile } from '../lib/files';
 import { addDays, dayKey, TR_DAYS } from '../lib/util';
 import { useApp } from '../store/useApp';
 import { AvatarArt, AVATARS } from '../components/Avatars';
-import { FlowLine } from '../components/FlowLine';
+import { Doodles } from '../components/Doodles';
 
 function Gate({ onPass, onCancel }: { onPass: () => void; onCancel: () => void }) {
   const [q] = useState(() => [3 + Math.floor(Math.random() * 7), 3 + Math.floor(Math.random() * 7)] as const);
@@ -66,7 +66,7 @@ export default function Parent() {
   const fileRef = useRef<HTMLInputElement>(null);
   const voices = useMemo(() => (ok ? turkishVoices() : []), [ok]);
 
-  if (!ok) return <div className="bg"><FlowLine variant={1} /><Gate onPass={() => setOk(true)} onCancel={() => nav(-1)} /></div>;
+  if (!ok) return <div className="bg"><Doodles variant={1} /><Gate onPass={() => setOk(true)} onCancel={() => nav(-1)} /></div>;
 
   const last14 = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i - 13));
   const maxL = Math.max(1, ...last14.map((d) => data?.days[dayKey(d)]?.lessons ?? 0));
@@ -81,7 +81,7 @@ export default function Parent() {
       state: { profiles: s.profiles, data: s.data, settings: s.settings, activeId: s.activeId },
       artworks: await Promise.all(arts.map(async ({ blob, ...rest }) => ({ ...rest, data: await blobToDataUrl(blob) }))),
     };
-    await saveFile(new Blob([JSON.stringify(backup)], { type: 'application/json' }), `cizio-yedek-${dayKey()}.json`, 'Cizio yedeği');
+    await saveFile(new Blob([JSON.stringify(backup)], { type: 'application/json' }), `cizio-yedek-${dayKey()}.json`, 'Çizio yedeği');
   };
 
   const importAll = async (file?: File) => {
@@ -94,13 +94,13 @@ export default function Parent() {
       for (const { data: d, ...rest } of b.artworks) await saveArtwork({ ...rest, blob: await dataUrlToBlob(d) });
       showToast('Yedek geri yüklendi.');
     } catch {
-      showToast('Bu dosya bir Cizio yedeği değil.');
+      showToast('Bu dosya bir Çizio yedeği değil.');
     }
   };
 
   return (
     <div className="bg settings-page">
-      <FlowLine variant={3} />
+      <Doodles variant={3} />
       <div className="settings-page__inner">
       <TopBar title="Ebeveyn bölümü" onBack={() => nav('/')} />
 
@@ -166,7 +166,7 @@ export default function Parent() {
       <section className="paper-card settings-card" style={{ marginTop: 16 }}>
         <h2 className="card-title">Ses</h2>
         <label className="toggle-row">
-          Sesli anlatım (Kalemo konuşsun)
+          Sesli anlatım (Çizio konuşsun)
           <input type="checkbox" className="switch" checked={s.settings.narration} onChange={(e) => s.updateSettings({ narration: e.target.checked })} />
         </label>
         <label className="toggle-row">
@@ -198,7 +198,7 @@ export default function Parent() {
           </p>
         )}
         <button className="btn-outline btn-outline--sm" style={{ marginTop: 10 }}
-          onClick={() => speak('Merhaba! Ben Kalemo. Birlikte çizim yapalım mı?', { rate: s.settings.rate, voiceURI: s.settings.voiceURI })}>
+          onClick={() => speak('Merhaba! Ben Çizio. Birlikte çizim yapalım mı?', { rate: s.settings.rate, voiceURI: s.settings.voiceURI })}>
           Sesi dene
         </button>
       </section>
@@ -227,7 +227,7 @@ export default function Parent() {
         </div>
       </section>
 
-      <p className="sub" style={{ textAlign: 'center', marginTop: 20 }}>Cizio v{__APP_VERSION__}</p>
+      <p className="sub" style={{ textAlign: 'center', marginTop: 20 }}>Çizio v{__APP_VERSION__}</p>
       </div>
 
       {delProfile && (

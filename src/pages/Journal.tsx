@@ -1,4 +1,4 @@
-/** Dergi: çocuğun çizimleri (panoya iğnelenmiş kâğıtlar gibi), çıkartma albümü ve istatistikler. */
+/** Galerim: çocuğun çizimleri (panoya iğnelenmiş kâğıtlar gibi), çıkartma albümü ve istatistikler. */
 import { Calendar, Download, Flame, Star, Trash2, Trophy, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -40,7 +40,7 @@ export default function Journal() {
       <header className="page-head rise">
         <div>
           <p className="sub">{profile.name} için</p>
-          <h1 className="title-xl">Dergi</h1>
+          <h1 className="title-xl">Galerim</h1>
         </div>
         <div className="seg-dark">
           <button className={tab === 'art' ? 'on' : ''} onClick={() => setTab('art')}>Çizimlerim</button>
@@ -61,7 +61,7 @@ export default function Journal() {
             <div className="empty rise">
               <Mascot size={90} mood="think" />
               <div>
-                <p className="title-md">Dergin henüz boş.</p>
+                <p className="title-md">Galerin henüz boş.</p>
                 <p className="sub">Bir ders bitirince çizimin burada sergilenecek.</p>
                 <Link to="/" className="pill pill--sm" style={{ marginTop: 12 }}>Çizmeye başla</Link>
               </div>

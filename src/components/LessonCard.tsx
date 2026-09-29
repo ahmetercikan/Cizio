@@ -22,7 +22,7 @@ export function LessonCard({ lesson, size = 'md', isNew = false }: { lesson: Les
           nav(`/ders/${lesson.id}`);
         }}
       >
-        <SketchImg lesson={lesson} paper pad={30} className="lesson-card__img" />
+        <SketchImg lesson={lesson} pad={30} className="lesson-card__img" />
         <span className="lesson-card__title">{lesson.title}</span>
         {size === 'xl' && (
           <span className="lesson-card__play">

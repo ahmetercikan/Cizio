@@ -3,9 +3,9 @@ import type { CapacitorConfig } from '@capacitor/cli';
 /** Android (ve ileride iOS) paketi: web uygulaması dist/ klasöründen yerel uygulamaya sarılır. */
 const config: CapacitorConfig = {
   appId: 'com.ahmetercikan.cizio',
-  appName: 'Cizio',
+  appName: 'Çizio',
   webDir: 'dist',
-  backgroundColor: '#4629d6',
+  backgroundColor: '#fff7ea',
   android: {
     // Çocuk uygulaması: http içerik, hata ayıklama ve üçüncü taraf gezinme yok.
     allowMixedContent: false,

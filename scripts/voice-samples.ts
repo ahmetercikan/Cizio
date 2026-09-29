@@ -5,7 +5,7 @@
 import { mkdirSync } from 'node:fs';
 import { apiKey, GEMINI_VOICES, geminiTts, RateLimitError, ttsModels } from './tts-gemini';
 
-const TEXT = 'Merhaba! Ben Kalemo. Bugün seninle sevimli bir kedi çizeceğiz. Önce büyük, yayvan bir oval çiz. Bu kedimizin kafası olacak. Harika, süpersin!';
+const TEXT = 'Merhaba! Ben Çizio. Bugün seninle sevimli bir kedi çizeceğiz. Önce büyük, yayvan bir oval çiz. Bu kedimizin kafası olacak. Harika, süpersin!';
 const voices = process.argv[2]?.split(',') ?? GEMINI_VOICES;
 const key = apiKey();
 const models = await ttsModels(key);

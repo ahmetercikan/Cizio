@@ -8,7 +8,7 @@ import { blobToDataUrl } from './gallery';
 
 export const isNative = () => Capacitor.isNativePlatform();
 
-export async function saveFile(blob: Blob, filename: string, title = 'Cizio'): Promise<void> {
+export async function saveFile(blob: Blob, filename: string, title = 'Çizio'): Promise<void> {
   if (!isNative()) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

@@ -15,7 +15,7 @@ import { buildTimeline, fmtTime, frameAt, type Timeline } from '../art/timeline'
 import { CameraCapture } from '../components/CameraCapture';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import { PencilPalette, ToolCapsule, useToolState } from '../components/DrawTools';
-import { FlowLine } from '../components/FlowLine';
+import { Doodles } from '../components/Doodles';
 import { GuideLayer } from '../components/GuideLayer';
 import { Mascot } from '../components/Mascot';
 import { PencilDefs, PencilSprite } from '../components/Pencil';
@@ -65,7 +65,7 @@ export default function LessonPage() {
     return (
       <div className="bg onb__center">
         <h1 className="title-lg">Bu ders bulunamadı</h1>
-        <Link to="/" className="pill">Oyun alanı</Link>
+        <Link to="/" className="pill">Ana sayfa</Link>
       </div>
     );
   return <Player key={lesson.id} lesson={lesson} />;
@@ -513,7 +513,7 @@ function Player({ lesson }: { lesson: Lesson }) {
       {/* kutlama */}
       {phase === 'done' && final && (
         <div className="bg celebrate">
-          <FlowLine variant={3} />
+          <Doodles variant={3} />
           <div className="celebrate__art rise">
             {final.prev && (
               <figure className="celebrate__card celebrate__card--prev">
@@ -544,7 +544,7 @@ function Player({ lesson }: { lesson: Lesson }) {
                 <button className="pill" onClick={() => nav(`/ders/${nextLesson(lesson)!.id}`, { replace: true })}>Sonraki ders <ArrowRight size={22} /></button>
               )}
               <button className="pill pill--ghost pill--sm" onClick={() => { setFinal(null); setPhase('intro'); seek(0); }}>Tekrar çiz</button>
-              <button className="pill pill--ghost pill--sm" onClick={exit}>Oyun alanı</button>
+              <button className="pill pill--ghost pill--sm" onClick={exit}>Ana sayfa</button>
             </div>
           </div>
         </div>

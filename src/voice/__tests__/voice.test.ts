@@ -10,9 +10,9 @@ describe('lineKey', () => {
     expect(lineKey('')).toBe('811c9dc5');
     expect(lineKey('a')).toBe('e40c292c');
     expect(lineKey('foobar')).toBe('bf9cf968');
-    const k = lineKey('Merhaba! Ben Kalemo. Birlikte çizim yapalım mı?');
+    const k = lineKey('Merhaba! Ben Çizio. Birlikte çizim yapalım mı?');
     expect(k).toMatch(/^[0-9a-f]{8}$/);
-    expect(lineKey('Merhaba! Ben Kalemo. Birlikte çizim yapalım mı?')).toBe(k);
+    expect(lineKey('Merhaba! Ben Çizio. Birlikte çizim yapalım mı?')).toBe(k);
   });
 
   it('boşlukları normalleştirir', () => {

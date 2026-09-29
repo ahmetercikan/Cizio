@@ -88,7 +88,7 @@ function art(): string {
     <g transform="translate(${tipX} ${tipY}) rotate(${ang})">
       <!-- gölge -->
       <g transform="translate(26 30)" opacity="0.35" filter="url(#blur18)">
-        <path d="M0,0 L${wood},${-hw} L${L - 20},${-hw} Q${L},${-hw} ${L},${-hw + 20} L${L},${hw - 20} Q${L},${hw} ${L - 20},${hw} L${wood},${hw} Z" fill="#12063f"/>
+        <path d="M0,0 L${wood},${-hw} L${L - 20},${-hw} Q${L},${-hw} ${L},${-hw + 20} L${L},${hw - 20} Q${L},${hw} ${L - 20},${hw} L${wood},${hw} Z" fill="#7a2c12"/>
       </g>
       <!-- ahşap koni -->
       <path d="M0,0 L${wood + 4},${-hw} L${wood + 4},${hw} Z" fill="url(#wood)"/>
@@ -113,12 +113,12 @@ function art(): string {
   const ribbon = ribbonPath(LINES[variant], 60);
   const end = samplePath(LINES[variant], 6).points.at(-1)!;
   return `
-    <path d="${ribbon}" fill="#1b0b6b" fill-opacity="0.35" transform="translate(10 18)" filter="url(#blur12)"/>
+    <path d="${ribbon}" fill="#8a2e10" fill-opacity="0.3" transform="translate(10 18)" filter="url(#blur12)"/>
     <path d="${ribbon}" fill="url(#chalk)"/>
     <circle cx="${end[0]}" cy="${end[1]}" r="30" fill="url(#chalk)"/>
     ${pencil}
     <!-- parıltılar -->
-    <path d="M770 610 q10 34 44 44 q-34 10 -44 44 q-10 -34 -44 -44 q34 -10 44 -44 Z" fill="#ffd43b"/>
+    <path d="M770 610 q10 34 44 44 q-34 10 -44 44 q-10 -34 -44 -44 q34 -10 44 -44 Z" fill="#fffbea"/>
     <path d="M225 330 q7 24 31 31 q-24 7 -31 31 q-7 -24 -31 -31 q24 -7 31 -31 Z" fill="#ffffff" opacity="0.9"/>
     <circle cx="690" cy="760" r="11" fill="#ffffff" opacity="0.75"/>`;
 }
@@ -127,9 +127,9 @@ function defs(): string {
   return `
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7a5cff"/>
-      <stop offset="0.55" stop-color="#5132ea"/>
-      <stop offset="1" stop-color="#3517b8"/>
+      <stop offset="0" stop-color="#ffb14a"/>
+      <stop offset="0.55" stop-color="#ff7a45"/>
+      <stop offset="1" stop-color="#f0503a"/>
     </linearGradient>
     <radialGradient id="glow" cx="0.28" cy="0.2" r="0.75">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
@@ -137,11 +137,11 @@ function defs(): string {
     </radialGradient>
     <radialGradient id="vignette" cx="0.5" cy="0.45" r="0.75">
       <stop offset="0.6" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#10053f" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#8a2e10" stop-opacity="0.25"/>
     </radialGradient>
     <linearGradient id="chalk" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#ece6ff"/>
+      <stop offset="1" stop-color="#fff3e6"/>
     </linearGradient>
     <linearGradient id="faceTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe083"/><stop offset="1" stop-color="#ffc93b"/></linearGradient>
     <linearGradient id="faceMid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffbd2a"/><stop offset="1" stop-color="#f6a311"/></linearGradient>
@@ -205,7 +205,7 @@ await sharp(Buffer.from(bgOnly)).png().toFile('assets/icon-background.png');
 // Açılış ekranı: indigo zemin ortasında ikon
 const SP = 2732;
 const splash = `<svg xmlns="http://www.w3.org/2000/svg" width="${SP}" height="${SP}">${defs().replace(/rx="[^"]+"/, 'rx="0"')}
-  <rect width="${SP}" height="${SP}" fill="#4629d6"/>
+  <rect width="${SP}" height="${SP}" fill="#fff7ea"/>
   <g transform="translate(${(SP - 760) / 2} ${(SP - 760) / 2}) scale(${760 / S})"><g clip-path="url(#round)"><rect width="${S}" height="${S}" fill="url(#bg)"/><rect width="${S}" height="${S}" fill="url(#glow)"/><g transform="translate(${S * 0.03} ${S * 0.03}) scale(0.94) translate(48 -58)">${art()}</g></g></g></svg>`;
 await sharp(Buffer.from(splash)).png().toFile('assets/splash.png');
 await sharp(Buffer.from(splash)).png().toFile('assets/splash-dark.png');

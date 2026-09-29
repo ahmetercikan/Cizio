@@ -10,10 +10,16 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 export const GEMINI_VOICES = ['Sulafat', 'Achernar', 'Leda', 'Laomedeia', 'Despina', 'Aoede', 'Autonoe', 'Kore'];
 
-/** Kalemo'nun konuşma tarzı: modelin sesi nasıl okuyacağını tarif eder (metnin kendisi okunmaz). */
+/**
+ * Kayıt etiketinde kullanılan üslup kimliği. Yalnızca okuma tarzı gerçekten değişince güncelleyin:
+ * değişirse tüm cümleler yeniden üretilir. (Maskotun adı değişti ama okuma tarzı aynı kaldı.)
+ */
+export const STYLE_ID = 'sicak-ogretmen-v1';
+
+/** Çizio'nun konuşma tarzı: modelin sesi nasıl okuyacağını tarif eder (metnin kendisi okunmaz). */
 export const STYLE =
   'Read the following Turkish sentence aloud in natural, fluent Turkish with perfect Turkish pronunciation. ' +
-  'You are Kalemo, a warm, cheerful and patient art teacher talking to a 7-year-old child: smiling, gentle, ' +
+  'You are Çizio, a warm, cheerful and patient art teacher talking to a 7-year-old child: smiling, gentle, ' +
   'lively and encouraging intonation, relaxed medium pace, clear articulation. Say only the sentence, nothing else.';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';

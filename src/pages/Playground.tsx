@@ -48,8 +48,8 @@ export default function Playground() {
     <AppShell flow={1}>
       <header className="page-head rise">
         <div>
-          <p className="sub">{greeting()}, {profile.name}!</p>
-          <h1 className="title-xl">Oyun alanı</h1>
+          <p className="sub">Bugün ne çizelim?</p>
+          <h1 className="title-xl">{greeting()}, {profile.name}!</h1>
         </div>
         <div className="chips">
           <span className="chip" title="Üst üste çizdiğin gün"><Flame size={20} color="#ffb13b" fill="#ff8a3d" /> {streakOf(data.days)}</span>
@@ -62,7 +62,7 @@ export default function Playground() {
       <section className="hero rise" style={{ animationDelay: '0.05s' }}>
         <LessonCard lesson={today} size="xl" isNew={untouched.has(today.id)} />
         <div className="hero__side">
-          <p className="row-section__title"><Sparkles size={20} /> Sizin için</p>
+          <p className="row-section__title"><Sparkles size={20} /> Senin için</p>
           <div className="hero__grid">
             {forYou.map((l) => (
               <LessonCard key={l.id} lesson={l} size="lg" isNew={untouched.has(l.id)} />

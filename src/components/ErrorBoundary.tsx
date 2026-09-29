@@ -10,7 +10,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
   }
 
   componentDidCatch(error: Error) {
-    console.error('Cizio hata:', error);
+    console.error('Çizio hata:', error);
   }
 
   render() {

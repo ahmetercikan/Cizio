@@ -1,10 +1,10 @@
-/** Kalemo — uygulamanın maskotu, sevimli bir kurşun kalem. */
+/** Çizio — uygulamanın maskotu, sevimli bir kurşun kalem. */
 export type Mood = 'happy' | 'cheer' | 'think' | 'wow';
 
 export function Mascot({ size = 120, mood = 'happy', className }: { size?: number; mood?: Mood; className?: string }) {
   const armsUp = mood === 'cheer' || mood === 'wow';
   return (
-    <svg className={className} width={size} height={(size * 170) / 140} viewBox="0 0 140 170" role="img" aria-label="Kalemo">
+    <svg className={className} width={size} height={(size * 170) / 140} viewBox="0 0 140 170" role="img" aria-label="Çizio">
       <ellipse cx="70" cy="164" rx="34" ry="5" fill="#2b2250" opacity="0.08" />
       {/* kollar */}
       <g stroke="#2b2250" strokeWidth="5" strokeLinecap="round" fill="none">

@@ -1,4 +1,4 @@
-/** Öğrenmek: çizim yolları (kurslar) ve her yolun ders haritası. */
+/** Dersler: çizim yolları (kurslar) ve her yolun ders haritası. */
 import { ArrowRight, Check, Lock } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
@@ -13,8 +13,8 @@ export default function Learn() {
     <AppShell flow={3}>
       <header className="page-head rise">
         <div>
-          <p className="sub">Adım adım ustalaş</p>
-          <h1 className="title-xl">Öğrenmek</h1>
+          <p className="sub">Bir yol seç, adım adım ustalaş</p>
+          <h1 className="title-xl">Dersler</h1>
         </div>
       </header>
       <div className="course-grid">
@@ -75,7 +75,7 @@ export function CoursePage() {
             <li key={l.id} className={`trail__item rise ${i % 2 ? 'down' : ''}`} style={{ animationDelay: `${i * 0.05}s` }}>
               <Link to={`/ders/${l.id}`} className={`trail__card ${p ? 'done' : ''} ${isNext ? 'next' : ''} ${locked ? 'later' : ''}`}>
                 <span className="trail__num">{p ? <Check size={18} strokeWidth={3} /> : locked ? <Lock size={14} /> : i + 1}</span>
-                <SketchImg lesson={l} paper pad={24} className="trail__img" />
+                <SketchImg lesson={l} pad={24} className="trail__img" />
                 <b>{l.title}</b>
                 {p ? <Stars value={p.bestStars} size={18} dim="rgba(29,23,64,0.12)" /> : <span className="trail__lvl">{['', 'Kolay', 'Orta', 'Zor'][l.level]}</span>}
                 {isNext && <span className="badge-new">SIRADAKİ</span>}

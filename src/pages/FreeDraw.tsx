@@ -1,4 +1,4 @@
-/** Serbest çizim ve boyama kitabı — masadaki kâğıda çiz. Çizim oturum boyunca korunur. */
+/** Atölye: serbest çizim ve boyama kitabı. Çizim oturum boyunca korunur. */
 import { ArrowLeft, BookOpen, FilePlus2, Save } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -56,7 +56,7 @@ export default function FreeDraw() {
     sfx.success();
     setSaved(true);
     const st = earned.map(getSticker).find(Boolean);
-    showToast(st ? `Dergine eklendi! Yeni çıkartma: ${st.emoji} ${st.title}` : 'Dergine eklendi!');
+    showToast(st ? `Galerine eklendi! Yeni çıkartma: ${st.emoji} ${st.title}` : 'Galerine eklendi!');
   };
 
   const guardNew = (then: () => void) => (doc.isEmpty() || saved ? then() : setConfirmNew(() => then));
@@ -77,7 +77,7 @@ export default function FreeDraw() {
         <button className="round-btn round-btn--light" aria-label="Geri" onClick={() => nav('/')}>
           <ArrowLeft size={26} strokeWidth={2.6} />
         </button>
-        <div className="player__title"><b>Serbest çizim</b></div>
+        <div className="player__title"><b>Atölye</b></div>
         <button className="pill pill--light pill--sm" aria-label="Boyama kitabı" onClick={() => setBook(true)}><BookOpen size={20} /> <span className="hide-sm">Boyama kitabı</span></button>
       </header>
 

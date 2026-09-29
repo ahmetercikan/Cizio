@@ -1,5 +1,5 @@
 /**
- * Kalemo'nun doğal sesini önceden üretir: her sabit anlatım cümlesi için bir MP3.
+ * Çizio'nun doğal sesini önceden üretir: her sabit anlatım cümlesi için bir MP3.
  *
  * Sağlayıcılar:
  *   --provider gemini  Google Gemini TTS (varsayılan ses: Sulafat). .env.local içinde GEMINI_API_KEY gerekir.
@@ -22,7 +22,7 @@ import { allFeedbackTexts } from '../src/engine/scoring';
 import type { Lesson } from '../src/lessons/types';
 import { lineKey, normalizeLine } from '../src/voice/hash';
 import { LESSON_LINES, STATIC_LINES, TONED_LINES } from '../src/voice/lines';
-import { apiKey, DailyQuotaError, geminiTts, geminiTtsBatch, RateLimitError, STYLE, ttsModels } from './tts-gemini';
+import { apiKey, DailyQuotaError, geminiTts, geminiTtsBatch, RateLimitError, STYLE_ID, ttsModels } from './tts-gemini';
 
 const RATE = '-6%';
 const PITCH = '+3Hz';
@@ -64,7 +64,7 @@ if (provider === 'gemini') {
   if (!models.length) throw new Error('Hesapta TTS modeli bulunamadı.');
 }
 /** Bu ayarla üretilmiş dosyayı tanıyan etiket (model yedeğe geçse de aynı ses sayılır). */
-const BASE_TAG = provider === 'gemini' ? lineKey(`gemini|${voice}|${STYLE}`) : lineKey(`edge|${voice}|${RATE}|${PITCH}`);
+const BASE_TAG = provider === 'gemini' ? lineKey(`gemini|${voice}|${STYLE_ID}`) : lineKey(`edge|${voice}|${RATE}|${PITCH}`);
 
 // --- Cümleleri topla ---------------------------------------------------------------------------
 // (src/lessons/index.ts import.meta.glob kullanır, tsx altında çalışmaz; veri dosyaları doğrudan yüklenir.)

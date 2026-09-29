@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import { PencilPalette, ToolCapsule, useToolState } from '../components/DrawTools';
-import { FlowLine } from '../components/FlowLine';
+import { Doodles } from '../components/Doodles';
 import { SketchImg } from '../components/Sketch';
 import { Stars, useSize, useToast } from '../components/ui';
 import { DrawingDoc } from '../engine/drawingDoc';
@@ -39,7 +39,7 @@ export default function Challenge() {
   const nav = useNavigate();
   const def = CHALLENGES.find((c) => c.id === kind);
   const lesson = useMemo(() => (lessonId && getLesson(lessonId)) || randomLesson(), [lessonId]);
-  if (!def) return <Link to="/">Oyun alanı</Link>;
+  if (!def) return <Link to="/">Ana sayfa</Link>;
   return <ChallengeRun key={`${def.id}-${lesson.id}`} kind={def.id} lesson={lesson} onAnother={() => nav(`/meydan/${def.id}/${randomLesson(lesson.id).id}`, { replace: true })} />;
 }
 
@@ -205,7 +205,7 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
 
       {phase === 'result' && result && (
         <div className="bg celebrate">
-          <FlowLine variant={2} />
+          <Doodles variant={2} />
           <div className="celebrate__art rise">
             <figure className="celebrate__card celebrate__card--prev">
               <SketchImg lesson={lesson} paper pad={20} />
@@ -233,7 +233,7 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
             <div className="celebrate__actions">
               <button className="pill" onClick={onAnother}>Yeni meydan okuma <Shuffle size={20} /></button>
               <button className="pill pill--ghost pill--sm" onClick={() => { setResult(null); setPhase('intro'); }}><RotateCcw size={18} /> Tekrar</button>
-              <button className="pill pill--ghost pill--sm" onClick={() => nav('/')}>Oyun alanı</button>
+              <button className="pill pill--ghost pill--sm" onClick={() => nav('/')}>Ana sayfa</button>
             </div>
           </div>
         </div>

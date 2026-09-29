@@ -1,4 +1,4 @@
-# Cizio: Çizim Öğren
+# Çizio: Çizim Öğren
 
 7-9 yaş çocuklar için Türkçe, sesli anlatımlı, adım adım çizim öğreten bir web uygulaması. Simply Draw'dan esinlenildi, ondan fazlasını yapıyor. Şimdilik PWA olarak tarayıcıda çalışıyor. Aynı kod ileride Capacitor ile iOS ve Android uygulamasına dönüştürülecek.
 
@@ -84,7 +84,7 @@ BASE_URL=http://localhost:5287/ npx tsx scripts/e2e.ts   # karşılama, kâğıt
 1. GitHub'da yeni bir depo açın (ör. `cizio`) ve bu klasörü gönderin:
    ```bash
    git add -A
-   git commit -m "Cizio ilk sürüm"
+   git commit -m "Çizio ilk sürüm"
    git branch -M main
    git remote add origin https://github.com/<kullanici>/cizio.git
    git push -u origin main

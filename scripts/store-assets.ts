@@ -24,33 +24,33 @@ const browser = await chromium.launch({ executablePath: EXE });
 
 // ---------------------------------------------------------------- öne çıkan görsel
 {
-  const font = (w: number, sub: string) => pathToFileURL(resolve(`node_modules/@fontsource/montserrat/files/montserrat-${sub}-${w}-normal.woff2`)).href;
+  const font = (w: number, sub: string) => pathToFileURL(resolve(`node_modules/@fontsource/fredoka/files/fredoka-${sub}-${w}-normal.woff2`)).href;
   const hand = pathToFileURL(resolve('node_modules/@fontsource/caveat/files/caveat-latin-700-normal.woff2')).href;
   const handExt = pathToFileURL(resolve('node_modules/@fontsource/caveat/files/caveat-latin-ext-700-normal.woff2')).href;
   const card = (id: string, r: number, x: number, y: number, s = 190) =>
     `<div class="card" style="left:${x}px;top:${y}px;width:${s}px;height:${s}px;transform:rotate(${r}deg)"><img src="${lessonSketchUrl(lessons[id], { mode: 'color', paper: true, pad: 24 })}"></div>`;
   const html = `<html><head><style>
-    @font-face{font-family:M;font-weight:800;src:url(${font(800, 'latin')})}
-    @font-face{font-family:M;font-weight:800;src:url(${font(800, 'latin-ext')});unicode-range:U+0100-024F}
+    @font-face{font-family:M;font-weight:800;src:url(${font(700, 'latin')})}
+    @font-face{font-family:M;font-weight:800;src:url(${font(700, 'latin-ext')});unicode-range:U+0100-024F}
     @font-face{font-family:M;font-weight:600;src:url(${font(600, 'latin')})}
     @font-face{font-family:M;font-weight:600;src:url(${font(600, 'latin-ext')});unicode-range:U+0100-024F}
     @font-face{font-family:H;src:url(${hand})}
     @font-face{font-family:H;src:url(${handExt});unicode-range:U+0100-024F}
-    body{margin:0;width:1024px;height:500px;overflow:hidden;font-family:M;color:#fff;
-      background:radial-gradient(700px 400px at 90% 110%,rgba(124,60,255,.55),transparent 60%),linear-gradient(160deg,#5436ea,#4629d6 50%,#3620b3);position:relative}
+    body{margin:0;width:1024px;height:500px;overflow:hidden;font-family:M;color:#3a2b27;
+      background:radial-gradient(420px 300px at 8% 0%,rgba(255,200,61,.35),transparent 70%),radial-gradient(500px 360px at 100% 100%,rgba(20,168,154,.22),transparent 70%),#fff7ea;position:relative}
     svg.flow{position:absolute;inset:0}
-    .icon{position:absolute;left:64px;top:92px;width:130px;height:130px;border-radius:30px;box-shadow:0 16px 40px rgba(10,4,40,.4)}
-    h1{position:absolute;left:64px;top:236px;margin:0;font-size:84px;font-weight:800;letter-spacing:-1px}
-    p{position:absolute;left:68px;top:340px;margin:0;font-size:26px;font-weight:600;opacity:.92;width:430px;line-height:1.3}
-    .note{position:absolute;left:70px;top:420px;font-family:H;font-size:34px;color:#ffd43b}
-    .card{position:absolute;background:#fff;border-radius:16px;padding:10px;box-shadow:0 18px 40px rgba(10,4,40,.45)}
+    .icon{position:absolute;left:64px;top:92px;width:130px;height:130px;border-radius:30px;box-shadow:0 14px 30px rgba(222,77,45,.35)}
+    h1{position:absolute;left:64px;top:232px;margin:0;font-size:88px;font-weight:800;color:#ff6b4a;text-shadow:0 5px 0 #ffe1d8}
+    p{position:absolute;left:68px;top:340px;margin:0;font-size:26px;font-weight:600;color:#5b463f;width:560px;line-height:1.3}
+    .note{position:absolute;left:70px;top:420px;font-family:H;font-size:34px;color:#0d8074}
+    .card{position:absolute;background:#fff;border-radius:16px;padding:10px;box-shadow:0 16px 34px rgba(122,72,40,.28)}
     .card img{width:100%;height:100%;border-radius:10px;display:block}
   </style></head><body>
-    <svg class="flow" viewBox="0 0 1024 500" preserveAspectRatio="none"><path d="M 560 -10 C 520 120 640 190 760 170 C 880 150 960 200 1034 260" fill="none" stroke="#fff" stroke-width="3" opacity=".9"/></svg>
+    <svg class="flow" viewBox="0 0 1024 500"><path d="M720,40 C780,20 850,60 860,120 C872,190 810,230 750,220 C680,208 640,160 650,100 C656,68 680,50 720,40 Z" fill="rgba(255,107,74,.16)"/></svg>
     <img class="icon" src="${pathToFileURL(resolve('public/icons/icon-512.png')).href}">
-    <h1>Cizio</h1>
-    <p>Adım adım çizmeyi öğren. Kâğıtta ya da ekranda!</p>
-    <div class="note">Kalemo ile her gün yeni bir çizim ✏️</div>
+    <h1>Çizio</h1>
+    <p>Adım adım çizmeyi öğren.<br>Kâğıtta ya da ekranda!</p>
+    <div class="note">Çizio ile her gün yeni bir çizim ✏️</div>
     ${card('kedi', -8, 560, 150)}${card('ejderha', 5, 740, 60, 210)}${card('yunus', -4, 790, 280, 180)}${card('roket', 9, 620, 330, 150)}
   </body></html>`;
   writeFileSync('.render/feature.html', html);
@@ -135,7 +135,7 @@ async function shoot(tag: string, viewport: { width: number; height: number }, s
   const snap = async (name: string) => page.screenshot({ path: `store/screenshots/${tag}-${String(++n).padStart(2, '0')}-${name}.png` });
   const click = (name: RegExp | string) => page.getByRole('button', { name }).first().click({ force: true });
 
-  await page.goto(`${BASE}#/`); await sleep(1800); await snap('oyun-alani');
+  await page.goto(`${BASE}#/`); await sleep(1800); await snap('bugun');
 
   // Ders: kalemle çizim ("video")
   await page.goto(`${BASE}#/ders/panda`); await sleep(900);
@@ -165,11 +165,11 @@ async function shoot(tag: string, viewport: { width: number; height: number }, s
   if (!(await page.locator('.flyout').count())) await page.locator('.capsule__group').nth(2).locator('.capsule__btn').click();
   await page.getByRole('menuitemradio', { name: 'Puantiyeli' }).click();
   await color('#ff7eb6'); await tap(130, 272); await tap(270, 272);
-  await sleep(500); await snap('boyama');
+  await sleep(500); await snap('atolye-boyama');
 
-  await page.goto(`${BASE}#/ogren`); await sleep(1500); await snap('ogrenmek');
+  await page.goto(`${BASE}#/ogren`); await sleep(1500); await snap('dersler');
   await page.goto(`${BASE}#/meydan/memory/ejderha`); await sleep(1200); await snap('meydan-okuma');
-  await page.goto(`${BASE}#/dergi`); await sleep(1500); await snap('dergi');
+  await page.goto(`${BASE}#/dergi`); await sleep(1500); await snap('galerim');
   await ctx.close();
   console.log(`${tag} ekran görüntüleri hazır`);
 }

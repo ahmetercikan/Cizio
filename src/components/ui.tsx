@@ -2,14 +2,14 @@ import { ArrowLeft, Star } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export function Stars({ value, max = 3, size = 22, animate = false, dim = 'rgba(255,255,255,0.25)' }: {
+export function Stars({ value, max = 3, size = 22, animate = false, dim = 'rgba(58,43,39,0.12)' }: {
   value: number; max?: number; size?: number; animate?: boolean; dim?: string;
 }) {
   return (
     <span className="stars" aria-label={`${value} yıldız`}>
       {Array.from({ length: max }, (_, i) => (
         <span key={i} className={animate && i < value ? 'star-pop' : undefined} style={{ animationDelay: `${0.2 + i * 0.2}s` }}>
-          <Star size={size} fill={i < value ? '#ffd43b' : dim} stroke={i < value ? '#f0a500' : 'transparent'} strokeWidth={2} />
+          <Star size={size} fill={i < value ? '#ffc83d' : dim} stroke={i < value ? '#e8a200' : 'transparent'} strokeWidth={2} />
         </span>
       ))}
     </span>

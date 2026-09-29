@@ -12,17 +12,16 @@ import { CHALLENGE_LINES, CHALLENGES } from '../lib/daily';
 
 export const STATIC_LINES: string[] = [
   // Karşılama / ebeveyn ekranı ses testi
-  'Merhaba! Ben Kalemo. Birlikte çizim yapalım mı?',
-  'Merhaba! Ben Kalemo. Seninle adım adım harika resimler çizeceğiz!',
+  'Merhaba! Ben Çizio. Birlikte çizim yapalım mı?',
+  'Merhaba! Ben Çizio. Seninle adım adım harika resimler çizeceğiz!',
 
   // Tanışma (onboarding)
-  'Merhaba! Ben Kalemo. Önce seni tanıyayım. Adın ne?',
+  'Merhaba! Ben Çizio. Önce seni tanıyayım. Adın ne?',
   'Ekranda parmağınla ya da kalemle çizebilirsin. İstersen kâğıda çizip fotoğrafını da çekebilirsin.',
-  'Yanında bir yetişkin var mı?',
-  'Başlamak için yanında bir yetişkin olması daha iyi.',
+  'Hadi bir büyüğünü çağır! Çizio’yu birlikte kuralım.',
   'Avatarını seç!',
   'Adın ne?',
-  'Cizio ile en sevdiğin şeyleri çizebileceksin!',
+  'Çizio ile en sevdiğin şeyleri çizebileceksin!',
   'Hadi başlayalım!',
 
   // Ders akışı
@@ -57,7 +56,7 @@ export const LESSON_LINES: ((l: Lesson) => string)[] = [
 
 /**
  * Karşılamadaki "hangisini daha çok seviyorsun?" turları: her tur farklı cümle, ekranda farklı başlık
- * ve farklı okuma tonu (Kalemo aynı soruyu aynı sesle tekrar etmesin diye).
+ * ve farklı okuma tonu (Çizio aynı soruyu aynı sesle tekrar etmesin diye).
  */
 export const PREF_ROUNDS: { text: string; title: string; tone: string }[] = [
   {

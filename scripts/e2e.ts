@@ -64,17 +64,7 @@ async function run(viewport: { width: number; height: number }, tag: string, ful
   await sleep(1600);
   await shot(page, `${tag}-splash`);
   await click(/Başla/);
-  await sleep(1300);
-  await click('Hayır');
-  await shot(page, `${tag}-adult`);
-  await click(/Devam/);
-  await sleep(600);
-  await shot(page, `${tag}-adult-tip`);
-  await click(/Devam/);
-  await sleep(500);
-  await shot(page, `${tag}-permission`);
-  await click(/Evet/);
-  await sleep(500);
+  await sleep(900);
   await click('Panda');
   await shot(page, `${tag}-avatar`);
   await click(/Devam/);
@@ -90,7 +80,11 @@ async function run(viewport: { width: number; height: number }, tag: string, ful
   await sleep(600);
   await shot(page, `${tag}-showcase`);
   await click(/Devam/);
-  await sleep(1200);
+  await sleep(700);
+  await shot(page, `${tag}-parent`);
+  await page.locator('.parent-card input[type=checkbox]').check({ force: true });
+  await click(/Onayla/);
+  await sleep(1000);
   await shot(page, `${tag}-start`);
   await click('Hadi başlayalım');
   await sleep(800);
@@ -163,14 +157,14 @@ async function run(viewport: { width: number; height: number }, tag: string, ful
     await shot(page, `${tag}-screen-celebrate`);
 
     // --- diğer ekranlar ---
-    for (const [route, name] of [['', 'playground'], ['ogren', 'learn'], ['yol/hayvanlar', 'course'], ['dergi', 'journal'], ['ciz', 'freedraw'], ['ebeveyn', 'gate']] as const) {
+    for (const [route, name] of [['', 'today'], ['ogren', 'lessons'], ['yol/hayvanlar', 'course'], ['dergi', 'gallery'], ['ciz', 'studio'], ['ebeveyn', 'gate'], ['meydan/speed/kedi', 'challenge']] as const) {
       await page.goto(`${BASE}#/${route}`);
       await sleep(1400);
       await shot(page, `${tag}-${name}`);
     }
     await page.goto(`${BASE}#/`);
     await sleep(800);
-    await page.screenshot({ path: `${OUT}/${tag}-playground-full.png`, fullPage: true });
+    await page.screenshot({ path: `${OUT}/${tag}-today-full.png`, fullPage: true });
   }
   await browser.close();
 }

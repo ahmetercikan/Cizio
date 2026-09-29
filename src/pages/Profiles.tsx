@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AvatarArt } from '../components/Avatars';
-import { FlowLine } from '../components/FlowLine';
+import { Doodles } from '../components/Doodles';
 import { sfx } from '../lib/sfx';
 import { unlockAudio } from '../lib/speech';
 import { useApp } from '../store/useApp';
@@ -13,7 +13,7 @@ export default function Profiles() {
 
   return (
     <div className="bg onb">
-      <FlowLine variant={2} />
+      <Doodles variant={2} />
       <div className="onb__center">
         <h1 className="title-xl rise">Kim çizecek?</h1>
         <div className="profile-grid rise" style={{ animationDelay: '0.1s' }}>

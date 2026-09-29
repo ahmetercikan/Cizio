@@ -10,7 +10,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
 /**
- * Cizio: çocuklar çizerken yanlışlıkla sistem çubuklarına dokunmasın diye tam ekran (sürükleyince geçici görünür).
+ * Çizio: çocuklar çizerken yanlışlıkla sistem çubuklarına dokunmasın diye tam ekran (sürükleyince geçici görünür).
  */
 public class MainActivity extends BridgeActivity {
     @Override

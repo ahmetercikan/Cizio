@@ -1,5 +1,5 @@
 /**
- * Kalemo'nun sesi.
+ * Çizio'nun sesi.
  *
  * 1) Doğal ses (varsayılan): sabit cümleler geliştirme sırasında `npm run voice` ile Microsoft Edge nöral
  *    sesiyle MP3'e çevrilir (public/voice/<anahtar>.mp3 + manifest.json). Çalışma anında cümlenin anahtarı
@@ -230,7 +230,7 @@ export function stopSpeaking() {
   if (supported) speechSynthesis.cancel();
 }
 
-/** Şu an Kalemo konuşuyor mu (doğal ses ya da Web Speech)? */
+/** Şu an Çizio konuşuyor mu (doğal ses ya da Web Speech)? */
 export function isSpeaking(): boolean {
   if (audioActive) return true;
   return supported && speechSynthesis.speaking;
