@@ -70,8 +70,54 @@ export function pcmToMp3(pcm: Buffer, sampleRate = 24000, kbps = 64): Buffer {
   return Buffer.concat(chunks.map((c) => Buffer.from(c)));
 }
 
+/**
+ * Gemini TTS bazen kaydın sonuna, kısa bir sessizlikten sonra yüksek sesli bir gürültü patlaması
+ * ("bozuk radyo" cızırtısı, ~0.1–0.4 sn) ekler. Sondaki parça kısa, önünde sessizlik var, yüksek sesli ve
+ * gürültü gibi (sıfır geçiş oranı yüksek) ise kesilir. Birden fazla patlama olursa tekrarlanır.
+ * Kesilen milisaniyeyi de döner (onarım betiği raporlamak için kullanır).
+ */
+export function cutTailArtifact(pcm: Buffer, sampleRate = 24000): { pcm: Buffer; cutMs: number } {
+  const s = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
+  const fr = Math.round(sampleRate * 0.02);
+  const n = Math.floor(s.length / fr);
+  const rms: number[] = [];
+  const zcr: number[] = [];
+  for (let f = 0; f < n; f++) {
+    let e = 0, z = 0;
+    for (let i = f * fr + 1; i < (f + 1) * fr; i++) {
+      e += (s[i] / 32768) ** 2;
+      if (s[i] >= 0 !== s[i - 1] >= 0) z++;
+    }
+    rms.push(Math.sqrt(e / fr));
+    zcr.push(z / fr);
+  }
+  const LOUD = 0.012;
+  let end = n - 1;
+  while (end > 0 && rms[end] < LOUD) end--;
+  let ts = end;
+  while (ts > 0 && rms[ts - 1] >= LOUD) ts--;
+  let gs = ts;
+  while (gs > 0 && rms[gs - 1] < LOUD) gs--;
+  const tailFrames = end - ts + 1;
+  if (gs === 0 || tailFrames > 20 || ts - gs < 4) return { pcm, cutMs: 0 };
+  let maxR = 0, zSum = 0;
+  for (let f = ts; f <= end; f++) {
+    maxR = Math.max(maxR, rms[f]);
+    zSum += zcr[f];
+  }
+  // Konuşmanın en yüksek kareleri (95. yüzdelik): patlama bundan belirgin biçimde yüksek olmalı.
+  // Böylece duraklamadan sonra gelen son sözcük ("... çiz.") kesilmez.
+  const speech = rms.slice(0, gs).filter((r) => r >= LOUD).sort((x, y) => x - y);
+  const p95 = speech[Math.floor(speech.length * 0.95)] ?? 1;
+  if (!(maxR >= 0.3 && maxR >= p95 * 1.35 && zSum / tailFrames >= 0.12)) return { pcm, cutMs: 0 };
+  const cutTo = gs * fr;
+  if (cutTo >= s.length) return { pcm, cutMs: 0 };
+  return { pcm: Buffer.from(s.slice(0, cutTo).buffer), cutMs: Math.round(((s.length - cutTo) / sampleRate) * 1000) };
+}
+
 /** Baştaki/sondaki sessizliği kırpar (Gemini bazen uzun boşluk bırakır), 120 ms pay bırakır. */
-function trimSilence(pcm: Buffer, sampleRate = 24000): Buffer {
+function trimSilence(raw: Buffer, sampleRate = 24000): Buffer {
+  const pcm = cutTailArtifact(raw, sampleRate).pcm;
   const s = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
   const thr = 500;
   let a = 0, b = s.length - 1;

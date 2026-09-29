@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { splitBySilence } from './tts-gemini';
+import { cutTailArtifact, splitBySilence } from './tts-gemini';
 
 const RATE = 24000;
 
@@ -101,5 +101,46 @@ describe('splitBySilence', () => {
     expect(pieces!.length).toBe(1);
     expect(dur(pieces![0])).toBeGreaterThan(1.4);
     expect(dur(pieces![0])).toBeLessThan(1.7);
+  });
+});
+
+/** Konuşma benzeri (düşük frekanslı), sessizlik ve gürültü (rastgele, yüksek sesli) parçalarından PCM. */
+function pcmOf(parts: { kind: 'speech' | 'silence' | 'noise'; sec: number; amp?: number }[]): Buffer {
+  const out: number[] = [];
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+  for (const p of parts) {
+    for (let i = 0; i < p.sec * RATE; i++) {
+      const amp = (p.amp ?? 0.3) * 32767;
+      out.push(p.kind === 'silence' ? 0 : Math.round(p.kind === 'noise' ? amp * rnd() : amp * Math.sin(i / 9) * (0.6 + 0.4 * Math.sin(i / 900))));
+    }
+  }
+  const b = Buffer.alloc(out.length * 2);
+  out.forEach((v, i) => b.writeInt16LE(v, i * 2));
+  return b;
+}
+
+describe('cutTailArtifact', () => {
+  it('sondaki sessizlikten sonra gelen yüksek sesli gürültüyü keser', () => {
+    const pcm = pcmOf([{ kind: 'speech', sec: 2 }, { kind: 'silence', sec: 0.25 }, { kind: 'noise', sec: 0.2, amp: 0.8 }]);
+    const r = cutTailArtifact(pcm, RATE);
+    expect(r.cutMs).toBeGreaterThan(400);
+    expect(dur(r.pcm)).toBeGreaterThan(1.98);
+    expect(dur(r.pcm)).toBeLessThan(2.05);
+  });
+
+  it('duraklamadan sonra gelen son sözcüğe dokunmaz', () => {
+    const pcm = pcmOf([{ kind: 'speech', sec: 2 }, { kind: 'silence', sec: 0.2 }, { kind: 'speech', sec: 0.3, amp: 0.25 }]);
+    expect(cutTailArtifact(pcm, RATE).cutMs).toBe(0);
+  });
+
+  it('konuşma kadar yüksek sesli sürtünmeli son sesi ("çiz") gürültü sanmaz', () => {
+    const pcm = pcmOf([{ kind: 'speech', sec: 2, amp: 0.5 }, { kind: 'silence', sec: 0.15 }, { kind: 'noise', sec: 0.25, amp: 0.3 }]);
+    expect(cutTailArtifact(pcm, RATE).cutMs).toBe(0);
+  });
+
+  it('temiz kayda dokunmaz', () => {
+    const pcm = pcmOf([{ kind: 'speech', sec: 2 }, { kind: 'silence', sec: 0.3 }]);
+    expect(cutTailArtifact(pcm, RATE).cutMs).toBe(0);
   });
 });
