@@ -9,13 +9,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AvatarArt, AVATARS } from '../components/Avatars';
 import { Doodles } from '../components/Doodles';
+import { HeartDraw } from '../components/HeartDraw';
 import { Mascot } from '../components/Mascot';
 import { SketchImg } from '../components/Sketch';
 import { getLesson, lessons, lessonsByPath } from '../lessons';
 
-/** Karşılama ekranında maskotun etrafına çizilen kalp (300×300 kutu, alttan başlayıp sola döner). */
-const HEART_D =
-  'M150,284 C86,238 8,184 8,110 C8,58 54,24 102,46 C125,56 141,76 150,96 C159,76 175,56 198,46 C246,24 292,58 292,110 C292,184 214,238 150,284 Z';
 import type { Lesson, PathId } from '../lessons/types';
 import { sfx } from '../lib/sfx';
 import { speak, unlockAudio } from '../lib/speech';
@@ -24,7 +22,6 @@ import { PREF_ROUNDS } from '../voice/lines';
 
 type Step = 'splash' | 'avatar' | 'name' | 'pref' | 'showcase' | 'parent' | 'start';
 
-/** Açılış ekranında arka planda süzülen çizimler. */
 
 const ROUNDS: [string, string][] = [
   ['tavsan', 'cicek'],
@@ -124,7 +121,6 @@ export default function Onboarding() {
 
       {step === 'splash' && (
         <div className="onb__center splash rise">
-          {/* Arka planda yavaşça yükselen çizim kartları */}
           <button
             type="button"
             className={`splash__mascot ${jump ? 'jump' : ''}`}
@@ -136,37 +132,8 @@ export default function Onboarding() {
             }}
           >
             <span className="splash__glow" />
-            <Mascot size={140} mood="cheer" className="float mascot--wave" />
-            {/* Maskotun etrafına çizilen kalp (uygulama ikonundaki gibi) */}
-            <svg className="splash__heart" viewBox="0 0 300 300" aria-hidden="true">
-              <path id="splash-heart" className="splash__heart-path" pathLength={1} d={HEART_D} />
-            </svg>
-            {/* Kalem ayrı bir katmanda: her zaman kalp çizgisinin ve maskotun üstünde kalsın */}
-            <svg className="splash__heart splash__heart--pencil" viewBox="0 0 300 300" aria-hidden="true">
-              <path id="splash-heart-track" d={HEART_D} fill="none" stroke="none" />
-              {/* Kalem: ucu çizgide, elde tutulur gibi eğik; yazarken hafif titrer, bitince kâğıttan kalkar */}
-              <g className="splash__heart-pencil">
-                <ellipse cx="5" cy="3" rx="14" ry="4" fill="#3a2b27" opacity="0.14" />
-                <circle r="5" fill="#ff6b4a" opacity="0.45" />
-                <g>
-                  <animateTransform attributeName="transform" type="translate" values="0 0;12 -26" begin="3.35s" dur="0.45s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.3 0 0.4 1" />
-                  <g transform="rotate(38)">
-                    <g>
-                      <animateTransform attributeName="transform" type="rotate" values="-2.5;2.5;-2.5" dur="0.28s" repeatCount="indefinite" />
-                      <path d="M0,0 L-3.4,-8 L3.4,-8 Z" fill="#2b2250" />
-                      <path d="M-3.4,-8 L-9,-22 L9,-22 L3.4,-8 Z" fill="#f6d7a7" stroke="#2b2250" strokeWidth="2.2" strokeLinejoin="round" />
-                      <rect x="-9" y="-82" width="18" height="60" fill="#ffc531" stroke="#2b2250" strokeWidth="2.2" />
-                      <path d="M-3,-81 V-23 M3,-81 V-23" stroke="#f5a623" strokeWidth="2.6" />
-                      <rect x="-9" y="-93" width="18" height="11" fill="#cfcbe0" stroke="#2b2250" strokeWidth="2.2" />
-                      <rect x="-9" y="-108" width="18" height="16" rx="6" fill="#ff8fb1" stroke="#2b2250" strokeWidth="2.2" />
-                    </g>
-                  </g>
-                </g>
-                <animateMotion dur="2.6s" begin="0.7s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0.1 0.6 0.9">
-                  <mpath href="#splash-heart-track" />
-                </animateMotion>
-              </g>
-            </svg>
+            <Mascot size={118} mood="cheer" className="float mascot--wave splash__pal" />
+            <HeartDraw />
             <span className="splash__spark" style={{ left: '6%', top: '14%' }} />
             <span className="splash__spark" style={{ right: '4%', top: '26%', animationDelay: '0.7s' }} />
             <span className="splash__spark" style={{ left: '14%', bottom: '8%', animationDelay: '1.3s' }} />

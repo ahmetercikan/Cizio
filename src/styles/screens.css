@@ -109,11 +109,17 @@
 .hint {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin: 26px 0 0;
+  padding: 12px 16px;
+  border: 2px dashed var(--line-2);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.55);
   color: var(--muted);
   font-weight: 800;
 }
+
+.hint svg { flex: none; color: var(--berry); }
 
 .row-section { margin-top: 30px; }
 
@@ -1716,22 +1722,63 @@
   .challenge-row { grid-template-columns: 1fr; }
 }
 
+/* Beyaz kâğıt kartlar: nane zeminden ayrışsın; her meydan okumanın kendi rengi var */
 .challenge-card {
-  display: grid;
-  gap: 2px;
-  padding: 16px;
+  --c: var(--coral);
+  --c-soft: var(--coral-soft);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 14px 14px 18px;
   border-radius: var(--radius);
-  background: var(--teal-soft);
-  border: 2px solid rgba(20, 168, 154, 0.25);
+  background: var(--paper);
+  box-shadow: 0 3px 0 var(--line-2), 0 10px 22px rgba(13, 128, 116, 0.12);
   color: var(--ink);
   text-decoration: none;
-  transition: transform 0.15s;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.challenge-card:active { transform: scale(0.97); }
-.challenge-card__emoji { font-size: 36px; }
+.challenge-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  background: var(--c);
+}
+
+.challenge-card:nth-child(2) { --c: var(--berry); --c-soft: #fde0ea; }
+.challenge-card:nth-child(3) { --c: #7a5cff; --c-soft: #ebe5ff; }
+
+.challenge-card:hover { transform: translateY(-2px); }
+.challenge-card:active { transform: scale(0.97); box-shadow: 0 1px 0 var(--line-2); }
+
+.challenge-card__emoji {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--c-soft);
+  font-size: 30px;
+}
+
+.challenge-card__text { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .challenge-card b { font-family: var(--display); font-size: 19px; font-weight: 600; }
-.challenge-card span:last-child { color: var(--teal-dark); font-weight: 800; }
+.challenge-card__text span { color: var(--c); font-weight: 800; }
+
+.challenge-card__go {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+}
 
 .countdown {
   min-width: 64px;
@@ -1818,9 +1865,11 @@
   cursor: pointer;
 }
 
-.splash__mascot > .mascot,
-.splash__mascot > svg:not(.splash__heart) {
-  margin-top: -14px; /* maskot kalbin optik merkezinde dursun */
+/* Maskot kalbin içinde, üst girintinin altında dursun */
+.splash__pal {
+  position: relative;
+  top: 26px;
+  z-index: 2;
 }
 
 .splash__mascot.jump { animation: jump 0.7s cubic-bezier(0.3, 1.5, 0.4, 1); }
@@ -1885,53 +1934,52 @@
   animation: pop-in 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) both;
 }
 
-.splash__heart {
+/* Kalp çizen kalem (src/components/HeartDraw.tsx) */
+.heart-draw {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
   pointer-events: none;
-  z-index: 2;
 }
 
-/* Kalem katmanı: kalp çizgisinin ve maskotun üstünde */
-.splash__heart--pencil { z-index: 3; }
+.heart-draw--line { z-index: 1; }
+.heart-draw--pencil { z-index: 3; }
 
-.splash__heart-path {
+.heart-draw__path {
   fill: none;
   stroke: var(--coral);
   stroke-width: 8;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  transform-box: view-box;
-  transform-origin: 150px 160px;
-  /* Zamanlama kalemin animateMotion'ıyla aynı eğri (keySplines) olmalı; çizgi kalem ucunun 60 ms gerisinden gelir */
-  animation: draw-line 2.6s cubic-bezier(0.4, 0.1, 0.6, 0.9) 0.76s forwards, heartbeat 1.6s ease-in-out 3.6s infinite;
 }
 
-@keyframes draw-line { to { stroke-dashoffset: 0; } }
+.heart-draw__beat { transform-box: view-box; transform-origin: 150px 165px; }
+.heart-draw.is-done .heart-draw__beat { animation: heartbeat 1.6s ease-in-out 0.35s infinite; }
 
 @keyframes heartbeat {
   0%, 100% { transform: scale(1); }
   14% { transform: scale(1.05); }
   28% { transform: scale(1); }
-  42% { transform: scale(1.04); }
+  42% { transform: scale(1.035); }
 }
 
-.splash__heart-pencil {
+.heart-draw__burst line {
+  stroke: var(--sun);
+  stroke-width: 5;
+  stroke-linecap: round;
   opacity: 0;
-  filter: drop-shadow(0 4px 4px rgba(58, 43, 39, 0.28));
-  animation: pencil-show 3.5s linear 0.55s forwards;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-/* Kalem çizmeye başlarken belirir, kalp bitince kâğıttan kalkıp kaybolur */
-@keyframes pencil-show {
-  0% { opacity: 0; }
-  5%, 84% { opacity: 1; }
-  100% { opacity: 0; }
+.heart-draw.is-done .heart-draw__burst line { animation: burst 0.7s ease-out forwards; }
+
+@keyframes burst {
+  0% { opacity: 0; transform: scale(0.2); }
+  35% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.6) translateY(0); }
 }
 
 .splash__start { position: relative; overflow: hidden; }
