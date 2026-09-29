@@ -109,17 +109,14 @@
 .hint {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 26px 0 0;
-  padding: 12px 16px;
-  border: 2px dashed var(--line-2);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.55);
+  gap: 8px;
+  margin: 22px 0 0;
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 15px;
 }
 
-.hint svg { flex: none; color: var(--berry); }
+.hint svg { flex: none; color: var(--coral); }
 
 .row-section { margin-top: 30px; }
 
@@ -1722,62 +1719,57 @@
   .challenge-row { grid-template-columns: 1fr; }
 }
 
-/* Beyaz kâğıt kartlar: nane zeminden ayrışsın; her meydan okumanın kendi rengi var */
+/* Meydan okuma kartları: ders kartlarıyla aynı kâğıt dili; solda oyunu anlatan el çizimi */
 .challenge-card {
-  --c: var(--coral);
-  --c-soft: var(--coral-soft);
-  position: relative;
+  --tint: var(--sun-soft);
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 14px 14px 18px;
+  align-items: stretch;
+  gap: 16px;
+  padding: 10px 16px 10px 10px;
   border-radius: var(--radius);
   background: var(--paper);
-  box-shadow: 0 3px 0 var(--line-2), 0 10px 22px rgba(13, 128, 116, 0.12);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
   color: var(--ink);
   text-decoration: none;
-  overflow: hidden;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.18s;
 }
 
-.challenge-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 6px;
-  background: var(--c);
-}
+.challenge-card:nth-child(2) { --tint: var(--coral-soft); }
+.challenge-card:nth-child(3) { --tint: var(--teal-soft); }
 
-.challenge-card:nth-child(2) { --c: var(--berry); --c-soft: #fde0ea; }
-.challenge-card:nth-child(3) { --c: #7a5cff; --c-soft: #ebe5ff; }
+.challenge-card:hover { transform: translateY(-2px) rotate(-0.4deg); }
+.challenge-card:active { transform: scale(0.97) rotate(-0.5deg); }
 
-.challenge-card:hover { transform: translateY(-2px); }
-.challenge-card:active { transform: scale(0.97); box-shadow: 0 1px 0 var(--line-2); }
-
-.challenge-card__emoji {
-  display: grid;
-  place-items: center;
+.challenge-card__art {
   flex: none;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  background: var(--c-soft);
-  font-size: 30px;
+  width: 96px;
+  height: 96px;
+  padding: 6px;
+  border-radius: calc(var(--radius) - 6px);
+  background: var(--tint);
 }
 
-.challenge-card__text { display: grid; gap: 2px; min-width: 0; flex: 1; }
-.challenge-card b { font-family: var(--display); font-size: 19px; font-weight: 600; }
-.challenge-card__text span { color: var(--c); font-weight: 800; }
+.challenge-card__text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
 
-.challenge-card__go {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--c);
-  color: #fff;
+.challenge-card b { font-family: var(--display); font-size: 20px; font-weight: 600; line-height: 1.15; }
+.challenge-card__text > span { color: var(--muted); font-weight: 700; font-size: 15px; }
+
+.challenge-card em {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--coral-dark);
 }
 
 .countdown {

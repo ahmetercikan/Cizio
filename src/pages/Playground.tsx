@@ -1,4 +1,5 @@
 import { ArrowRight, Check, Flame, Heart, Play, Sparkles, Star, Target } from 'lucide-react';
+import { ChallengeArt } from '../components/ChallengeArt';
 import { Link } from 'react-router-dom';
 import { SketchImg } from '../components/Sketch';
 import { CHALLENGES, questDone, specialDay, todayQuest } from '../lib/daily';
@@ -76,12 +77,12 @@ export default function Playground() {
         <div className="challenge-row">
           {CHALLENGES.map((c) => (
             <Link key={c.id} to={`/meydan/${c.id}`} className="challenge-card rise">
-              <span className="challenge-card__emoji" aria-hidden="true">{c.emoji}</span>
+              <span className="challenge-card__art"><ChallengeArt kind={c.id} /></span>
               <span className="challenge-card__text">
                 <b>{c.title}</b>
                 <span>{c.desc}</span>
+                <em>Oyna <ArrowRight size={15} /></em>
               </span>
-              <span className="challenge-card__go" aria-hidden="true"><ArrowRight size={18} /></span>
             </Link>
           ))}
         </div>
