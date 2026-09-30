@@ -2779,3 +2779,114 @@
   .studio__right .style-quest { order: 90; }
   .studio__right .looks { order: 95; }
 }
+
+/* =====================================================================
+   Maceralar: hazine haritası
+   ===================================================================== */
+.adv-mapbox {
+  position: relative;
+  width: min(660px, 100%);
+  margin: 22px auto 40px;
+  border-radius: 30px;
+  border: 6px solid #fff;
+  box-shadow: var(--shadow-card), 0 0 0 2px var(--line-2);
+  overflow: visible;
+}
+
+.adv-mapbox__svg { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 24px; }
+.adv-decor--dim { opacity: 0.45; filter: grayscale(0.7); }
+
+.adv-node {
+  --disc: clamp(62px, 17vw, 88px);
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+}
+
+.adv-node__hit { position: relative; display: block; width: var(--disc); height: var(--disc); color: var(--ink); text-decoration: none; }
+
+.adv-node__disc {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 50%;
+  background: #fff;
+  border: 5px solid var(--pc);
+  box-shadow: 0 5px 0 rgba(58, 43, 39, 0.22);
+  overflow: visible;
+  transition: transform 0.18s;
+}
+
+.adv-node__disc > img, .adv-node__disc > svg:first-child { width: 100%; height: 100%; border-radius: 50%; }
+.adv-node__hit:hover .adv-node__disc { transform: scale(1.06) rotate(-3deg); }
+
+.adv-node__num {
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--pc);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 0 0 3px #fff;
+}
+
+.adv-node__badge {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--muted);
+  box-shadow: 0 0 0 3px var(--line-2);
+}
+
+.adv-node__badge--done { background: var(--teal); color: #fff; box-shadow: 0 0 0 3px #fff; }
+
+.adv-node__label {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  gap: 2px;
+  width: clamp(118px, 36vw, 172px);
+  padding: 8px 12px 8px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(58, 43, 39, 0.14);
+  transform: translateY(-50%);
+  text-align: left;
+}
+
+.adv-node__label--right { left: calc(100% + 12px); }
+.adv-node__label--left { right: calc(100% + 12px); }
+.adv-node__label b { font-family: var(--display); font-size: clamp(14px, 3.6vw, 17px); font-weight: 600; line-height: 1.1; padding-right: 26px; }
+.adv-node__label small { color: var(--muted); font-weight: 700; font-size: 11px; }
+.adv-node__bar { display: block; height: 6px; border-radius: 99px; background: var(--cream-2); overflow: hidden; }
+.adv-node__bar i { display: block; height: 100%; border-radius: inherit; background: var(--pc); }
+.adv-node__prize { position: absolute; top: 4px; right: 6px; filter: grayscale(0.9); opacity: 0.55; }
+.adv-node__prize.won { filter: none; opacity: 1; }
+
+.adv-node--here .adv-node__disc { animation: here-pulse 1.8s ease-in-out infinite; }
+@keyframes here-pulse { 50% { box-shadow: 0 5px 0 rgba(58, 43, 39, 0.22), 0 0 0 10px color-mix(in srgb, var(--pc) 30%, transparent); } }
+
+.adv-node__me { position: absolute; left: 50%; bottom: calc(100% - 6px); z-index: 3; transform: translateX(-50%); animation: me-hop 1.4s ease-in-out infinite; }
+@keyframes me-hop { 50% { transform: translate(-50%, -8px); } }
+
+.adv-node--locked .adv-node__disc { border-color: #c9c2b8; filter: grayscale(1); opacity: 0.8; }
+.adv-node--locked .adv-node__label { opacity: 0.7; }
+.adv-node--locked .adv-node__num { background: #b8afa4; }
+.adv-node--locked button.adv-node__hit { padding: 0; border: 0; background: none; font: inherit; }
+
+.adv-treasure { position: absolute; z-index: 2; display: grid; justify-items: center; width: 150px; transform: translate(-50%, -50%); text-align: center; }
+.adv-treasure svg { width: 110px; height: auto; }
+.adv-treasure span { margin-top: 2px; padding: 4px 10px; border-radius: 999px; background: #fff; font-weight: 800; font-size: 12px; box-shadow: 0 2px 6px rgba(58, 43, 39, 0.15); }
