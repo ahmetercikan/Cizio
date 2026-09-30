@@ -5,7 +5,7 @@ import { useProfile } from '../store/useApp';
 import { AvatarArt } from './Avatars';
 import { Doodles } from './Doodles';
 import { Mascot } from './Mascot';
-import { ChestButton } from './Rewards';
+import { ChestButton, RewardsHost } from './Rewards';
 
 const ITEMS = [
   { to: '/', label: 'Bugün', Icon: Sun },
@@ -36,6 +36,7 @@ export function AppShell({ children, flow = 0 }: { children: ReactNode; flow?: n
         </Link>
       </header>
       <main className="app__main">{children}</main>
+      <RewardsHost />
       <nav className="tabbar" aria-label="Ana menü">
         {ITEMS.map(({ to, label, Icon }) => (
           <NavLink key={to} to={to} end={to === '/'} className="tabbar__item">

@@ -6,7 +6,7 @@
  */
 import confetti from 'canvas-confetti';
 import { Camera, Check, Heart, RefreshCw, Shuffle, X } from 'lucide-react';
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { AppShell } from '../components/AppShell';
 import { useToast } from '../components/ui';
 import {
@@ -21,6 +21,9 @@ import { sfx } from '../lib/sfx';
 import { dayKey, uid } from '../lib/util';
 import { useApp, useProfile, useProfileData } from '../store/useApp';
 import { ownsRare } from '../lib/rewards';
+import { ART_PREFIX, useArtPet } from '../dressup/artPets';
+import { getLesson } from '../lessons';
+import { listArtworks, type Artwork } from '../lib/gallery';
 
 type ColorKey = 'hairColor' | 'topColor' | 'bottomColor' | 'dressColor' | 'shoesColor' | 'hatColor';
 type PatternKey = 'topPattern' | 'bottomPattern' | 'dressPattern';
@@ -52,6 +55,45 @@ const CATS: Category[] = [
   { id: 'dost', label: 'Dost', key: 'pet', items: PETS, region: 'pet' },
   { id: 'fon', label: 'Yer', key: 'bg', items: BGS, region: 'full' },
 ];
+
+/** Dost sekmesi: çocuğun galerideki çizimleri (arka planı silinmiş) dost olarak seçilebilir. */
+function MyDrawingPets({ d, onPick }: { d: DollState; onPick: (pet: string) => void }) {
+  const profile = useProfile()!;
+  const [arts, setArts] = useState<Artwork[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void listArtworks(profile.id).then((list) => {
+      if (!alive) return;
+      setArts(list.filter((a) => a.kind !== 'style').sort((a, b) => b.createdAt - a.createdAt).slice(0, 12));
+    });
+    return () => { alive = false; };
+  }, [profile.id]);
+  return (
+    <div className="my-pets">
+      <b className="my-pets__title">Kendi çizimlerin</b>
+      {arts && arts.length === 0 && (
+        <p className="my-pets__hint">Bir ders bitirip çizimini kaydet; çizdiğin hayvan burada dostun olsun!</p>
+      )}
+      <div className="item-grid">
+        {(arts ?? []).map((a) => (
+          <MyPetButton key={a.id} art={a} on={d.pet === ART_PREFIX + a.id} onPick={() => onPick(ART_PREFIX + a.id)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MyPetButton({ art, on, onPick }: { art: Artwork; on: boolean; onPick: () => void }) {
+  const url = useArtPet(art.id);
+  if (url === null) return null;
+  const title = art.lessonId ? getLesson(art.lessonId)?.title ?? 'Çizimim' : 'Çizimim';
+  return (
+    <button type="button" className={`item-btn my-pet ${on ? 'on' : ''}`} title={title} onClick={onPick} disabled={!url}>
+      <span className="item-btn__art my-pet__art">{url ? <img src={url} alt="" /> : <span className="my-pet__wait" />}</span>
+      <span>{title}</span>
+    </button>
+  );
+}
 
 const LockMark = () => (
   <svg viewBox="0 0 24 24" width="22" height="22"><rect x="5" y="10" width="14" height="11" rx="3" fill="#ffc83d" stroke="#3a2b27" strokeWidth="2" /><path d="M8,10 V7 a4,4 0 0,1 8,0 V10" fill="none" stroke="#3a2b27" strokeWidth="2" /></svg>
@@ -260,6 +302,8 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
               <button type="button" className={`toggle-chip ${d.freckles ? 'on' : ''}`} onClick={() => { sfx.select(); update({ ...d, freckles: !d.freckles }); }}>Çiller</button>
             </div>
           )}
+
+          {cat.id === 'dost' && <MyDrawingPets d={d} onPick={(pet) => { sfx.wear(); update({ ...d, pet }); }} />}
 
           <div className="item-grid">
             {cat.items.map((it) => {

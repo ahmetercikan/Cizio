@@ -126,5 +126,14 @@ export function giftStatus(g: GiftState | undefined, now = new Date()): { availa
   return { available: true, streak: cont ? (g!.streak % 7) + 1 : 1 };
 }
 
-/** Takvimin gün ödülü: 7. gün sandık, diğer günler yıldız (1-1-2-1-2-3). */
-export const GIFT_DAYS = [1, 1, 2, 1, 2, 3, 0];
+/** Takvimin gün ödülü: 7. gün hazine sandığı, diğer günler yıldız. */
+export const GIFT_DAYS = [2, 2, 3, 2, 3, 5, 0];
+
+/**
+ * Günün hediyesi penceresi gösterilsin mi? Günde bir kez; profil bugün oluşturulduysa (yeni kayıt, ilk gün)
+ * hiç gösterilmez.
+ */
+export function giftEligible(createdAt: number, g: GiftState | undefined, now = new Date()): boolean {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return createdAt < startOfToday && giftStatus(g, now).available;
+}

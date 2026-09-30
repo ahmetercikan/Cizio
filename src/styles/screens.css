@@ -2911,3 +2911,94 @@
 .wardrobe-modal { width: min(720px, 94vw); }
 .wardrobe-modal .wardrobe { margin: 0; box-shadow: none; border: 0; padding: 0; }
 .wardrobe-modal__actions { display: flex; justify-content: center; margin-top: 14px; }
+
+/* =====================================================================
+   Ödül açılır pencereleri: düşüş, parıltı, kapak, parçacıklar, takvim
+   ===================================================================== */
+@keyframes drop-in {
+  0% { transform: translateY(-160px) scale(0.6); opacity: 0; }
+  55% { transform: translateY(10px) scale(1.05, 0.92); opacity: 1; }
+  75% { transform: translateY(-8px) scale(0.98, 1.03); }
+  100% { transform: none; }
+}
+
+@keyframes glow-pulse { 0%, 100% { transform: scale(0.9); opacity: 0.55; } 50% { transform: scale(1.12); opacity: 0.9; } }
+@keyframes box-open { 0% { transform: scale(1); } 35% { transform: scale(1.15, 0.85); } 70% { transform: scale(0.95, 1.08); } 100% { transform: scale(1.05); } }
+@keyframes fly-out { 0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(200deg); opacity: 0; } }
+@keyframes today-pulse { 50% { box-shadow: 0 0 0 6px rgba(255, 200, 61, 0.45); transform: translateY(-3px); } }
+
+.reward__box { position: relative; display: grid; place-items: center; width: 230px; height: 200px; }
+.reward__box svg { position: relative; width: 210px; height: auto; }
+.reward__box.drop-in { animation: drop-in 0.8s cubic-bezier(0.3, 1.2, 0.5, 1) both; }
+.reward__box.opening svg { animation: box-open 0.7s ease-in-out both; }
+.reward__glow { position: absolute; inset: 14px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 224, 138, 0.95), rgba(255, 224, 138, 0) 70%); animation: glow-pulse 1.6s ease-in-out infinite; }
+
+.chest__lid, .gift__lid { transform-box: fill-box; transform-origin: 0% 100%; transition: transform 0.45s cubic-bezier(0.3, 1.5, 0.5, 1); }
+.chest__lid.open { transform: translate(-10px, -34px) rotate(-32deg); }
+.gift__lid.open { transform: translate(-6px, -46px) rotate(-18deg); }
+
+.particles { position: absolute; left: 50%; top: 42%; width: 0; height: 0; pointer-events: none; z-index: 2; }
+.particles i { position: absolute; left: 0; top: 0; width: 16px; height: 16px; animation: fly-out 1.1s cubic-bezier(0.2, 0.8, 0.4, 1) both; }
+.particles i.coin { border-radius: 50%; background: #ffc83d; box-shadow: inset 0 0 0 3px #e8a200; }
+.particles i.star { background: #ffc83d; clip-path: polygon(50% 0, 61% 36%, 100% 38%, 69% 60%, 80% 100%, 50% 76%, 20% 100%, 31% 60%, 0 38%, 39% 36%); }
+.particles i.spark { width: 10px; height: 10px; background: #ff8fb1; clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
+
+.reward__open { position: relative; width: 260px; height: 220px; }
+.reward__chest-open { position: absolute; left: 30px; bottom: 0; width: 200px; }
+.reward__chest-open .chest__rays { transform-box: fill-box; transform-origin: center; animation: rays-spin 8s linear infinite; }
+
+.level-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(300px, 100%);
+  padding: 8px 14px 8px 8px;
+  border-radius: 18px;
+  background: var(--cream);
+  text-align: left;
+}
+
+.level-progress__n { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--sun); font-family: var(--display); font-weight: 600; font-size: 19px; box-shadow: inset 0 0 0 3px var(--ink); }
+.level-progress > div { display: grid; gap: 3px; flex: 1; }
+.level-progress b { font-family: var(--display); font-weight: 600; font-size: 15px; }
+.level-progress small { color: var(--muted); font-weight: 800; font-size: 11px; }
+.level-progress .level__bar { height: 9px; }
+.level-progress .level__bar i { transition: width 1.1s cubic-bezier(0.3, 1, 0.4, 1); }
+.level-progress.up { background: var(--sun-soft); box-shadow: 0 0 0 3px var(--sun); }
+
+.gift-modal { width: min(520px, 95vw); }
+.gift-cal { list-style: none; margin: 2px 0 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; }
+
+.gift-cal__day {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  min-height: 62px;
+  padding: 6px 2px;
+  border-radius: 14px;
+  background: var(--cream);
+  border: 2px solid var(--line);
+}
+
+.gift-cal__day small { font-size: 10px; font-weight: 800; color: var(--muted); }
+.gift-cal__stars { display: inline-flex; align-items: center; gap: 2px; font-weight: 800; font-size: 14px; }
+.gift-cal__chest { width: 38px; height: 34px; }
+.gift-cal__day.big { background: #fff1c7; border-color: var(--sun); }
+.gift-cal__day.today { background: #fff; border-color: var(--sun); animation: today-pulse 1.4s ease-in-out infinite; }
+.gift-cal__day.done { background: var(--teal-soft); border-color: var(--teal); }
+.gift-cal__check { position: absolute; right: -5px; top: -5px; width: 20px; height: 20px; border-radius: 50%; background: var(--teal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat; box-shadow: 0 0 0 2px #fff; }
+
+@media (max-width: 420px) {
+  .gift-cal { gap: 4px; }
+  .gift-cal__day small { font-size: 9px; }
+}
+
+/* Giydir: kendi çizimlerin (dost) */
+.my-pets { display: grid; gap: 8px; padding-bottom: 10px; border-bottom: 2px dashed var(--line-2); }
+.my-pets__title { font-family: var(--display); font-weight: 600; font-size: 17px; }
+.my-pets__hint { margin: 0; color: var(--muted); font-weight: 700; font-size: 14px; }
+.my-pet__art { display: grid; place-items: center; background: repeating-conic-gradient(#f3efe6 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+.my-pet__art img { max-width: 92%; max-height: 92%; object-fit: contain; }
+.my-pet__wait { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--line-2); border-top-color: var(--coral); animation: spin 0.9s linear infinite; }

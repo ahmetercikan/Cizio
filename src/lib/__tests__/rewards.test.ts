@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BACKS, BGS, DRESSES, HATS, PETS, SHOES, randomOutfit, PRESETS } from '../../dressup/catalog';
 import { lessonsByPath } from '../../lessons';
 import { emptyData, type ProfileData } from '../../store/useApp';
-import { chestsEarned, giftStatus, levelNeed, levelOf, pickReward, RARE, rareKey, xpOf } from '../rewards';
+import { chestsEarned, giftEligible, giftStatus, levelNeed, levelOf, pickReward, RARE, rareKey, xpOf } from '../rewards';
 import { addDays, dayKey } from '../util';
 
 const withStars = (n: number): ProfileData => ({ ...emptyData(), days: { '2026-09-01': { lessons: 1, minutes: 1, drawings: 1, stars: n } } });
@@ -81,5 +81,18 @@ describe('günün hediyesi', () => {
     expect(giftStatus({ last: dayKey(addDays(now, -2)), streak: 3 }, now)).toEqual({ available: true, streak: 1 });
     expect(giftStatus({ last: dayKey(now), streak: 3 }, now).available).toBe(false);
     expect(giftStatus({ last: dayKey(addDays(now, -1)), streak: 7 }, now).streak).toBe(1);
+  });
+});
+
+describe('günün hediyesi penceresi', () => {
+  const now = new Date(2026, 8, 30, 12);
+  const yesterday = new Date(2026, 8, 29, 18).getTime();
+  const todayMorning = new Date(2026, 8, 30, 9).getTime();
+  it('yeni kaydolan çocukta ilk gün çıkmaz', () => {
+    expect(giftEligible(todayMorning, undefined, now)).toBe(false);
+  });
+  it('ertesi günden itibaren günde bir kez çıkar', () => {
+    expect(giftEligible(yesterday, undefined, now)).toBe(true);
+    expect(giftEligible(yesterday, { last: dayKey(now), streak: 2 }, now)).toBe(false);
   });
 });

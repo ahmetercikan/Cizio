@@ -13,6 +13,7 @@ import {
   Pat, PatLimb, PatternDef, Pet, shoe2, SLEEVE2, top2,
 } from './extras';
 import { ARM_L, ARM_R, BODICE, INK, LEG_L, LEG_R, Limb, o, shade, SW, TOP, TORSO } from './ink';
+import { ArtPet, artIdOf, isArtPet } from './artPets';
 import { backFront, backLayer, rareBg, rareDress, rareHat, rarePet, rareShoe } from './rare';
 
 // ------------------------------------------------------------------------------------------------
@@ -673,8 +674,12 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
       {dressed ? <DressLegs id={d.dress} c={d.dressColor} pat={dressPat} /> : <BottomWear id={d.bottom} c={d.bottomColor} pat={bottomPat} />}
       <Shoe id={d.shoes} c={d.shoesColor} />
       <g transform="translate(300 0) scale(-1 1)"><Shoe id={d.shoes} c={d.shoesColor} /></g>
-      <Pet id={d.pet} />
-      {rarePet(d.pet)}
+      {isArtPet(d.pet) ? <ArtPet id={artIdOf(d.pet!)} /> : (
+        <>
+          <Pet id={d.pet} />
+          {rarePet(d.pet)}
+        </>
+      )}
       <rect x="140" y="166" width="20" height="24" fill={skin} {...o} />
       <path d={TORSO} fill={skin} {...o} />
       {dressed ? (

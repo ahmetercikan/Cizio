@@ -1,6 +1,6 @@
 import { ArrowRight, Check, Flame, Heart, MapPin, Play, Sparkles, Star, Target, Trophy } from 'lucide-react';
 import { AvatarArt } from '../components/Avatars';
-import { GiftCard, LevelBadge } from '../components/Rewards';
+import { LevelBadge } from '../components/Rewards';
 import { chapterStates } from '../lib/adventure';
 import { daysLeft, standings } from '../lib/league';
 import { useSettleLeague } from './League';
@@ -200,7 +200,6 @@ function DailyRow() {
   const qLesson = getLesson(quest.lessonId);
   return (
     <div className="daily-row rise">
-      <GiftCard />
       {sp && spLesson && (
         <Link to={`/ders/${spLesson.id}`} className="special-card">
           <span className="special-card__emoji">{sp.emoji}</span>
