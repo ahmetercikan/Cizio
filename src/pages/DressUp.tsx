@@ -6,44 +6,63 @@
  */
 import confetti from 'canvas-confetti';
 import { Camera, Check, Heart, RefreshCw, Shuffle, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { AppShell } from '../components/AppShell';
 import { useToast } from '../components/ui';
 import {
-  BGS, BOTTOMS, CLOTH_COLORS, DRESSES, FACES, GLASSES, HAIR_COLORS, HAIRS, HANDS, HATS, PRESETS, SHOES, SKINS, THEME_GOAL, TOPS,
+  BGS, BOTTOMS, CLOTH_COLORS, DRESSES, FACES, GLASSES, HAIR_COLORS, HAIRS, HANDS, HATS, PATTERNS, PETS, PRESETS, SHOES, SKINS, THEME_GOAL, TOPS,
   randomOutfit, themeMatches, todayTheme, type DollState, type Gender, type Item,
 } from '../dressup/catalog';
 import { Doll, REGIONS } from '../dressup/Doll';
+import { PatternDef } from '../dressup/extras';
+import { CatIcon, ThemeArt } from '../dressup/Icons';
 import { saveArtwork } from '../lib/gallery';
 import { sfx } from '../lib/sfx';
 import { dayKey, uid } from '../lib/util';
 import { useApp, useProfile, useProfileData } from '../store/useApp';
 
 type ColorKey = 'hairColor' | 'topColor' | 'bottomColor' | 'dressColor' | 'shoesColor' | 'hatColor';
+type PatternKey = 'topPattern' | 'bottomPattern' | 'dressPattern';
 
 interface Category {
   id: string;
   label: string;
-  emoji: string;
   key: keyof DollState;
   items: Item[];
   region: string;
   color?: ColorKey;
   colors?: string[];
+  pattern?: PatternKey;
+  /** Giysi mi (seçince kumaş sesi) */
+  wear?: boolean;
 }
 
 const CATS: Category[] = [
-  { id: 'yuz', label: 'Yüz', emoji: '🙂', key: 'face', items: FACES, region: 'face' },
-  { id: 'sac', label: 'Saç', emoji: '💇', key: 'hair', items: HAIRS, region: 'hair', color: 'hairColor', colors: HAIR_COLORS },
-  { id: 'ust', label: 'Üst', emoji: '👕', key: 'top', items: TOPS, region: 'top', color: 'topColor', colors: CLOTH_COLORS },
-  { id: 'alt', label: 'Alt', emoji: '👖', key: 'bottom', items: BOTTOMS, region: 'bottom', color: 'bottomColor', colors: CLOTH_COLORS },
-  { id: 'elbise', label: 'Elbise', emoji: '👗', key: 'dress', items: DRESSES, region: 'dress', color: 'dressColor', colors: CLOTH_COLORS },
-  { id: 'ayakkabi', label: 'Ayakkabı', emoji: '👟', key: 'shoes', items: SHOES, region: 'shoes', color: 'shoesColor', colors: CLOTH_COLORS },
-  { id: 'sapka', label: 'Şapka', emoji: '🎀', key: 'hat', items: HATS, region: 'hat', color: 'hatColor', colors: CLOTH_COLORS },
-  { id: 'gozluk', label: 'Gözlük', emoji: '👓', key: 'glasses', items: GLASSES, region: 'face' },
-  { id: 'elde', label: 'Elde', emoji: '🎈', key: 'hand', items: HANDS, region: 'hand' },
-  { id: 'fon', label: 'Yer', emoji: '🏞️', key: 'bg', items: BGS, region: 'full' },
+  { id: 'yuz', label: 'Yüz', key: 'face', items: FACES, region: 'face' },
+  { id: 'sac', label: 'Saç', key: 'hair', items: HAIRS, region: 'hair', color: 'hairColor', colors: HAIR_COLORS },
+  { id: 'ust', label: 'Üst', key: 'top', items: TOPS, region: 'top', color: 'topColor', colors: CLOTH_COLORS, pattern: 'topPattern', wear: true },
+  { id: 'alt', label: 'Alt', key: 'bottom', items: BOTTOMS, region: 'bottom', color: 'bottomColor', colors: CLOTH_COLORS, pattern: 'bottomPattern', wear: true },
+  { id: 'elbise', label: 'Elbise', key: 'dress', items: DRESSES, region: 'dress', color: 'dressColor', colors: CLOTH_COLORS, pattern: 'dressPattern', wear: true },
+  { id: 'ayakkabi', label: 'Ayakkabı', key: 'shoes', items: SHOES, region: 'shoes', color: 'shoesColor', colors: CLOTH_COLORS, wear: true },
+  { id: 'sapka', label: 'Şapka', key: 'hat', items: HATS, region: 'hat', color: 'hatColor', colors: CLOTH_COLORS, wear: true },
+  { id: 'gozluk', label: 'Gözlük', key: 'glasses', items: GLASSES, region: 'face', wear: true },
+  { id: 'elde', label: 'Elde', key: 'hand', items: HANDS, region: 'hand' },
+  { id: 'dost', label: 'Dost', key: 'pet', items: PETS, region: 'pet' },
+  { id: 'fon', label: 'Yer', key: 'bg', items: BGS, region: 'full' },
 ];
+
+/** Desen seçim düğmesi: mevcut giysi renginde küçük bir kumaş parçası. */
+function PatternSwatch({ kind, color }: { kind: string; color: string }) {
+  const id = `sw${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  return (
+    <svg viewBox="0 0 40 40" width="100%" height="100%" aria-hidden="true">
+      <defs><PatternDef id={id} kind={kind} color={color} /></defs>
+      <rect x="2" y="2" width="36" height="36" rx="10" fill={color} />
+      {kind !== 'duz' && <rect x="2" y="2" width="36" height="36" rx="10" fill={`url(#${id})`} />}
+      <rect x="2" y="2" width="36" height="36" rx="10" fill="none" stroke="#3a2b27" strokeWidth="2.5" />
+    </svg>
+  );
+}
 
 /** Bir parçayı giyince tutarlılık: üst/alt seçilirse elbise çıkar. */
 function wear(d: DollState, key: keyof DollState, value: string): DollState {
@@ -76,15 +95,16 @@ function Picker({ current, onDone }: { current?: DollState; onDone: () => void }
       </header>
       <div className="gender-toggle rise" role="radiogroup" aria-label="Karakter">
         {(['kiz', 'erkek'] as Gender[]).map((g) => (
-          <button key={g} type="button" role="radio" aria-checked={gender === g} className={`gender-btn ${gender === g ? 'on' : ''}`} onClick={() => { sfx.tap(); setGender(g); }}>
-            {g === 'kiz' ? '👧 Kız' : '👦 Erkek'}
+          <button key={g} type="button" role="radio" aria-checked={gender === g} className={`gender-btn ${gender === g ? 'on' : ''}`} onClick={() => { sfx.tab(); setGender(g); }}>
+            <span className="gender-btn__face"><Doll d={PRESETS.find((p) => p.gender === g)!} bg={false} viewBox={REGIONS.head} /></span>
+            {g === 'kiz' ? 'Kız' : 'Erkek'}
           </button>
         ))}
       </div>
       <div className="preset-grid">
         {list.map((p, i) => (
           <button key={p.name} type="button" className="preset-card rise" style={{ animationDelay: `${i * 0.05}s` }}
-            onClick={() => { sfx.pop(); setDoll({ ...p }); onDone(); }}>
+            onClick={() => { sfx.wear(); setDoll({ ...p }); onDone(); }}>
             <Doll d={{ ...p, bg: '' }} bg={false} viewBox="20 0 260 440" className="preset-card__doll" />
             <b>{p.name}</b>
           </button>
@@ -123,6 +143,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
 
   const surprise = () => {
     sfx.pop();
+    sfx.wear();
     setShake((n) => n + 1);
     update(randomOutfit(d));
   };
@@ -130,7 +151,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
   const photo = async () => {
     const svg = stageRef.current?.querySelector('svg');
     if (!svg) return;
-    sfx.success();
+    sfx.shutter();
     setFlash(true);
     window.setTimeout(() => setFlash(false), 450);
     const W = 600, H = 880;
@@ -185,7 +206,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
             <button type="button" className="studio-btn" onClick={surprise}><Shuffle size={20} /> Şaşırt beni</button>
             <button type="button" className="studio-btn" onClick={() => void photo()}><Camera size={20} /> Fotoğraf çek</button>
             <button type="button" className="studio-btn" disabled={(data.looks ?? []).some(sameAsCurrent)}
-              onClick={() => { sfx.pop(); saveLook({ ...d }); showToast('Kombin dolabına eklendi!'); }}>
+              onClick={() => { sfx.success(); saveLook({ ...d }); showToast('Kombin dolabına eklendi!'); }}>
               <Heart size={20} /> Kombini sakla
             </button>
             <button type="button" className="studio-btn studio-btn--ghost" onClick={onChangeCharacter}><RefreshCw size={18} /> Karakter</button>
@@ -195,7 +216,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
         <section className="studio__right">
           {/* Günün stil görevi */}
           <div className={`style-quest ${doneToday ? 'done' : ''}`}>
-            <span className="style-quest__emoji" aria-hidden="true">{theme.emoji}</span>
+            <span className="style-quest__art"><ThemeArt id={theme.id} /></span>
             <div className="style-quest__text">
               <span className="style-quest__label">Günün stil görevi</span>
               <b>{theme.title}</b>
@@ -216,8 +237,8 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
 
           <div className="cat-tabs" role="tablist" aria-label="Giysi türleri">
             {CATS.map((c) => (
-              <button key={c.id} type="button" role="tab" aria-selected={cat.id === c.id} className={`cat-tab ${cat.id === c.id ? 'on' : ''}`} onClick={() => { sfx.tap(); setCat(c); }}>
-                <span aria-hidden="true">{c.emoji}</span> {c.label}
+              <button key={c.id} type="button" role="tab" aria-selected={cat.id === c.id} className={`cat-tab ${cat.id === c.id ? 'on' : ''}`} onClick={() => { sfx.tab(); setCat(c); }}>
+                <span className="cat-tab__icon"><CatIcon id={c.id} /></span> {c.label}
               </button>
             ))}
           </div>
@@ -225,19 +246,19 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
           {cat.id === 'yuz' && (
             <div className="swatches" aria-label="Ten rengi">
               {SKINS.map((s) => (
-                <button key={s} type="button" className={`swatch ${d.skin === s ? 'on' : ''}`} style={{ background: s }} aria-label="Ten rengi" onClick={() => { sfx.tap(); update({ ...d, skin: s }); }} />
+                <button key={s} type="button" className={`swatch ${d.skin === s ? 'on' : ''}`} style={{ background: s }} aria-label="Ten rengi" onClick={() => { sfx.select(); update({ ...d, skin: s }); }} />
               ))}
-              <button type="button" className={`toggle-chip ${d.freckles ? 'on' : ''}`} onClick={() => { sfx.tap(); update({ ...d, freckles: !d.freckles }); }}>Çiller</button>
+              <button type="button" className={`toggle-chip ${d.freckles ? 'on' : ''}`} onClick={() => { sfx.select(); update({ ...d, freckles: !d.freckles }); }}>Çiller</button>
             </div>
           )}
 
           <div className="item-grid">
             {cat.items.map((it) => {
               const preview = wear(d, cat.key, it.id);
-              const on = d[cat.key] === it.id && (cat.key !== 'top' && cat.key !== 'bottom' ? true : !d.dress);
+              const on = (d[cat.key] ?? '') === it.id && (cat.key !== 'top' && cat.key !== 'bottom' ? true : !d.dress);
               return (
                 <button key={it.id || 'none'} type="button" className={`item-btn ${on ? 'on' : ''}`} title={it.title}
-                  onClick={() => { sfx.tap(); update(wear(d, cat.key, it.id)); }}>
+                  onClick={() => { if (cat.wear && it.id) sfx.wear(); else sfx.select(); update(wear(d, cat.key, it.id)); }}>
                   <Doll d={preview} bg={cat.id === 'fon'} viewBox={REGIONS[cat.region]} className="item-btn__art" title={it.title} />
                   <span>{it.title}</span>
                 </button>
@@ -249,7 +270,19 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
             <div className="swatches" aria-label="Renk">
               {cat.colors.map((c) => (
                 <button key={c} type="button" className={`swatch ${d[cat.color!] === c ? 'on' : ''}`} style={{ background: c }} aria-label="Renk"
-                  onClick={() => { sfx.tap(); update({ ...d, [cat.color!]: c }); }} />
+                  onClick={() => { sfx.select(); update({ ...d, [cat.color!]: c }); }} />
+              ))}
+            </div>
+          )}
+
+          {cat.pattern && (cat.key !== 'dress' || d.dress) && (cat.key === 'dress' || !d.dress) && (
+            <div className="patterns" aria-label="Desen">
+              {PATTERNS.map((p) => (
+                <button key={p.id} type="button" className={`pattern-btn ${(d[cat.pattern!] ?? 'duz') === p.id ? 'on' : ''}`} title={p.title}
+                  onClick={() => { sfx.select(); update({ ...d, [cat.pattern!]: p.id }); }}>
+                  <PatternSwatch kind={p.id} color={d[cat.color!] as string} />
+                  <span>{p.title}</span>
+                </button>
               ))}
             </div>
           )}
@@ -260,7 +293,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
               <div className="looks__row">
                 {data.looks!.map((l, i) => (
                   <div key={i} className="look">
-                    <button type="button" className="look__btn" aria-label="Bu kombini giy" onClick={() => { sfx.pop(); update({ ...l }); }}>
+                    <button type="button" className="look__btn" aria-label="Bu kombini giy" onClick={() => { sfx.wear(); update({ ...l }); }}>
                       <Doll d={l} viewBox="20 0 260 440" />
                     </button>
                     <button type="button" className="look__del" aria-label="Kombini sil" onClick={() => removeLook(i)}><X size={14} /></button>

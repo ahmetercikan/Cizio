@@ -2439,7 +2439,7 @@
 
 .gender-btn.on { border-color: var(--coral); background: var(--coral-soft); }
 
-.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
 
 .preset-card {
   display: grid;
@@ -2529,7 +2529,7 @@
 }
 
 .style-quest.done { border-style: solid; border-color: var(--teal); background: var(--teal-soft); }
-.style-quest__emoji { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: var(--sun-soft); font-size: 32px; }
+
 .style-quest__text { display: grid; gap: 2px; flex: 1; min-width: 0; }
 .style-quest__label { font-size: 12px; font-weight: 800; color: #9a6a00; text-transform: uppercase; letter-spacing: 0.05em; }
 .style-quest__text b { font-family: var(--display); font-size: 20px; font-weight: 600; }
@@ -2606,3 +2606,33 @@
 @media (max-width: 480px) {
   .tabbar__item { font-size: 12px; padding: 8px 2px 6px; }
 }
+
+/* Giydir: el çizimi ikonlar, desenler */
+.gender-btn { display: inline-flex; align-items: center; gap: 10px; padding: 6px 22px 6px 6px; }
+.gender-btn__face { display: block; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--sun-soft); }
+.gender-btn__face svg { display: block; width: 100%; height: 100%; }
+
+.style-quest__art { flex: none; width: 64px; height: 64px; padding: 4px; border-radius: 16px; background: var(--sun-soft); }
+
+.cat-tab { padding: 6px 14px 6px 8px; }
+.cat-tab__icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--cream); }
+.cat-tab.on .cat-tab__icon { background: #fff; }
+
+.patterns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.pattern-btn {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  width: 70px;
+  padding: 6px 4px;
+  border-radius: 14px;
+  background: var(--paper);
+  border: 2px solid transparent;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.pattern-btn svg { width: 38px; height: 38px; }
+.pattern-btn.on { border-color: var(--coral); background: var(--coral-soft); }

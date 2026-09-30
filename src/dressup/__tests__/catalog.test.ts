@@ -7,9 +7,9 @@ import {
 const has = (list: Item[], id: string) => list.some((i) => i.id === id);
 
 describe('giydirme kataloğu', () => {
-  it('hazır karakterler geçerli parçalar kullanır; 4 kız, 4 erkek', () => {
-    expect(PRESETS.filter((p) => p.gender === 'kiz')).toHaveLength(4);
-    expect(PRESETS.filter((p) => p.gender === 'erkek')).toHaveLength(4);
+  it('hazır karakterler geçerli parçalar kullanır; 6 kız, 6 erkek', () => {
+    expect(PRESETS.filter((p) => p.gender === 'kiz')).toHaveLength(6);
+    expect(PRESETS.filter((p) => p.gender === 'erkek')).toHaveLength(6);
     for (const p of PRESETS) {
       expect(has(HAIRS, p.hair)).toBe(true);
       expect(has(FACES, p.face)).toBe(true);
@@ -23,7 +23,7 @@ describe('giydirme kataloğu', () => {
   });
 
   it('hazır karakterler farklı ten ve saç tiplerinde', () => {
-    expect(new Set(PRESETS.map((p) => p.skin)).size).toBeGreaterThanOrEqual(5);
+    expect(new Set(PRESETS.map((p) => p.skin)).size).toBeGreaterThanOrEqual(7);
     expect(new Set(PRESETS.map((p) => p.hair)).size).toBe(PRESETS.length);
   });
 

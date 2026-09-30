@@ -8,35 +8,11 @@
 import { useId, type ReactNode } from 'react';
 import type { DollState } from './catalog';
 
-const INK = '#3a2b27';
-const SW = 3.5;
-const o = { stroke: INK, strokeWidth: SW, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
-
-const ARM_L = 'M118,198 C104,226 96,256 90,296';
-const ARM_R = 'M182,198 C196,226 204,256 210,296';
-const LEG_L = 'M134,300 L130,392';
-const LEG_R = 'M166,300 L170,392';
-const TORSO = 'M112,196 C112,186 122,180 134,180 H166 C178,180 188,186 188,196 L192,300 C192,306 186,310 180,310 H120 C114,310 108,306 108,300 Z';
-const TOP = 'M110,196 C110,184 121,178 134,178 H166 C179,178 190,184 190,196 L194,302 C194,308 188,312 182,312 H118 C112,312 106,308 106,302 Z';
-const BODICE = 'M113,196 C113,186 122,181 134,181 H166 C178,181 187,186 187,196 L189,292 H111 Z';
-
-/** Kontürlü kalın çizgi (kol, bacak, kol giysisi). `dash` verilirse yalnızca baştaki o uzunluk çizilir. */
-function Limb({ d, c, w, dash }: { d: string; c: string; w: number; dash?: number }) {
-  const da = dash ? `${dash} 999` : undefined;
-  const cap = dash ? 'butt' : 'round';
-  return (
-    <>
-      <path d={d} fill="none" stroke={INK} strokeWidth={w + 2 * SW} strokeLinecap={cap} strokeDasharray={da} />
-      <path d={d} fill="none" stroke={c} strokeWidth={w} strokeLinecap={cap} strokeDasharray={da} />
-    </>
-  );
-}
-
-const shade = (hex: string, k: number) => {
-  const n = parseInt(hex.slice(1), 16);
-  const f = (v: number) => Math.max(0, Math.min(255, Math.round(v * k)));
-  return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
-};
+import {
+  bg2, bottom2, DRESS_PATTERN_SHAPES, DRESS_SLEEVE2, dressBack2, dressBody2, dressLegs2, face2, glasses2, hairBack2, hairFront2, hand2, hasFace2, hat2,
+  Pat, PatLimb, PatternDef, Pet, shoe2, SLEEVE2, top2,
+} from './extras';
+import { ARM_L, ARM_R, BODICE, INK, LEG_L, LEG_R, Limb, o, shade, SW, TOP, TORSO } from './ink';
 
 // ------------------------------------------------------------------------------------------------
 // Arka planlar
@@ -129,7 +105,7 @@ function Background({ id }: { id: string }) {
         </g>
       );
     default:
-      return <rect width="300" height="440" fill="#fffdf8" />;
+      return bg2(id) ?? <rect width="300" height="440" fill="#fffdf8" />;
   }
 }
 
@@ -184,12 +160,14 @@ function HairBack({ style, c }: { style: string; c: string }) {
         </g>
       );
     default:
-      return null;
+      return hairBack2(style, c);
   }
 }
 
 function HairFront({ style, c }: { style: string; c: string }) {
   const f = { fill: c, ...o };
+  const extra = hairFront2(style, c);
+  if (extra) return extra;
   switch (style) {
     case 'yan':
       return <path d="M86,124 C80,60 118,44 152,46 C190,48 220,66 214,124 C208,96 190,80 162,82 C152,98 124,106 100,104 C94,110 90,116 86,124 Z" {...f} />;
@@ -248,8 +226,12 @@ function Face({ face, freckles }: { face: string; freckles: boolean }) {
   const happyArc = (x: number) => <path d={`M${x - 8},130 Q${x},120 ${x + 8},130`} {...line} />;
   return (
     <g>
-      <path d="M118,108 Q128,102 138,108 M162,108 Q172,102 182,108" {...line} strokeWidth={3} />
-      {face === 'gulus' ? (
+      {face === 'kararli' ? (
+        <path d="M118,104 L138,110 M162,110 L182,104" {...line} strokeWidth={3.4} />
+      ) : (
+        <path d="M118,108 Q128,102 138,108 M162,108 Q172,102 182,108" {...line} strokeWidth={3} />
+      )}
+      {hasFace2(face) ? null : face === 'gulus' ? (
         <>
           {happyArc(128)}
           {happyArc(172)}
@@ -279,7 +261,7 @@ function Face({ face, freckles }: { face: string; freckles: boolean }) {
           ))}
         </g>
       )}
-      {face === 'gulus' ? (
+      {hasFace2(face) ? face2(face, (x) => <Eye x={x} />) : face === 'gulus' ? (
         <g>
           <path d="M134,148 H166 C166,162 158,170 150,170 C142,170 134,162 134,148 Z" fill={INK} />
           <ellipse cx="150" cy="164" rx="8" ry="4" fill="#ff8fb1" />
@@ -325,7 +307,7 @@ function Glasses({ id }: { id: string }) {
         <path d="M116,124 L124,132 M162,124 L170,132" stroke="#fff" strokeWidth={2.5} opacity={0.7} />
       </g>
     );
-  return null;
+  return glasses2(id);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -334,13 +316,16 @@ function Glasses({ id }: { id: string }) {
 const SHORT = 38;
 const LONG = 94;
 
-function TopWear({ id, c, clip }: { id: string; c: string; clip: string }) {
+function TopWear({ id, c, clip, pat }: { id: string; c: string; clip: string; pat?: string }) {
   const f = { fill: c, ...o };
   const dark = shade(c, 0.8);
+  const extra = top2(id, c, pat);
+  if (extra) return <>{extra}</>;
   return (
     <g>
       {id === 'kapsonlu' && <path d="M116,190 C116,166 184,166 184,190 C170,200 130,200 116,190 Z" fill={dark} {...o} />}
       <path d={TOP} {...f} />
+      <Pat d={TOP} p={pat} />
       {id === 'kazak' && (
         <g clipPath={`url(#${clip})`}>
           {[210, 234, 258, 282, 306].map((y) => <path key={y} d={`M100,${y} H200`} stroke="#fff" strokeWidth="8" opacity="0.55" />)}
@@ -372,15 +357,19 @@ function TopWear({ id, c, clip }: { id: string; c: string; clip: string }) {
 }
 
 function sleeveLen(top: string) {
+  if (SLEEVE2[top]) return SLEEVE2[top][0];
   return top === 'kazak' || top === 'kapsonlu' ? LONG : SHORT;
 }
 
-function BottomWear({ id, c }: { id: string; c: string }) {
+function BottomWear({ id, c, pat }: { id: string; c: string; pat?: string }) {
   const f = { fill: c, ...o };
+  const extra = bottom2(id, c, pat);
+  if (extra) return <>{extra}</>;
   if (id === 'etek')
     return (
       <g>
         <path d="M112,284 H188 L212,356 C188,366 112,366 88,356 Z" {...f} />
+        <Pat d="M112,284 H188 L212,356 C188,366 112,366 88,356 Z" p={pat} />
         <path d="M130,290 L120,358 M150,290 V362 M170,290 L180,358" stroke={shade(c, 0.8)} strokeWidth="3" />
       </g>
     );
@@ -390,7 +379,10 @@ function BottomWear({ id, c }: { id: string; c: string }) {
     <g>
       <Limb d="M134,298 L130,390" c={c} w={w} dash={dash} />
       <Limb d="M166,298 L170,390" c={c} w={w} dash={dash} />
+      <PatLimb d="M134,298 L130,390" w={w} p={pat} dash={dash} />
+      <PatLimb d="M166,298 L170,390" w={w} p={pat} dash={dash} />
       <path d="M110,284 H190 L193,318 C170,322 130,322 107,318 Z" {...f} />
+      <Pat d="M110,284 H190 L193,318 C170,322 130,322 107,318 Z" p={pat} />
       {id === 'pantolon' && <path d="M150,300 V318" stroke={shade(c, 0.75)} strokeWidth="3" />}
     </g>
   );
@@ -398,24 +390,28 @@ function BottomWear({ id, c }: { id: string; c: string }) {
 
 /** Tek parça giysinin arka katmanı (pelerin). */
 function DressBack({ id, c }: { id: string; c: string }) {
-  if (id !== 'kahraman') return null;
+  if (id !== 'kahraman') return <>{dressBack2(id)}</>;
   const cape = c.toLowerCase() === '#ff6b4a' || c.toLowerCase() === '#e9487d' ? '#5b8def' : '#ff6b4a';
   return <path d="M120,186 L90,396 C126,410 174,410 210,396 L180,186 Z" fill={cape} {...o} />;
 }
 
-function DressLegs({ id, c }: { id: string; c: string }) {
+function DressLegs({ id, c, pat }: { id: string; c: string; pat?: string }) {
   if (id === 'kahraman' || id === 'tulum')
     return (
       <g>
         <Limb d="M134,298 L130,390" c={c} w={27} />
         <Limb d="M166,298 L170,390" c={c} w={27} />
+        <PatLimb d="M134,298 L130,390" w={27} p={pat} />
+        <PatLimb d="M166,298 L170,390" w={27} p={pat} />
         <path d="M110,284 H190 L193,318 C170,322 130,322 107,318 Z" fill={c} {...o} />
       </g>
     );
-  return null;
+  return <>{dressLegs2(id, c, pat)}</>;
 }
 
-function DressBody({ id, c }: { id: string; c: string }) {
+function DressBody({ id, c, pat }: { id: string; c: string; pat?: string }) {
+  const extra = dressBody2(id, c, pat);
+  if (extra) return <>{extra}</>;
   const f = { fill: c, ...o };
   switch (id) {
     case 'yazlik':
@@ -463,11 +459,14 @@ function DressBody({ id, c }: { id: string; c: string }) {
 }
 
 function dressSleeve(id: string) {
+  if (DRESS_SLEEVE2[id]) return DRESS_SLEEVE2[id][0];
   return id === 'kahraman' ? LONG : id === 'tulum' ? SHORT : 0;
 }
 
 function Shoe({ id, c }: { id: string; c: string }) {
   const f = { fill: c, ...o };
+  const extra = shoe2(id, c);
+  if (extra) return <>{extra}</>;
   switch (id) {
     case 'bot':
       return (
@@ -578,7 +577,7 @@ function Hat({ id, c }: { id: string; c: string }) {
         </g>
       );
     default:
-      return null;
+      return <>{hat2(id, c)}</>;
   }
 }
 
@@ -637,7 +636,7 @@ function HandItem({ id }: { id: string }) {
         </g>
       );
     default:
-      return null;
+      return <>{hand2(id, 'back')}</>;
   }
 }
 
@@ -651,7 +650,17 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
   const skin = d.skin;
   const dressed = !!d.dress;
   const sleeve = dressed ? dressSleeve(d.dress) : sleeveLen(d.top);
-  const sleeveColor = dressed ? (d.dress === 'tulum' ? '#ffffff' : d.dressColor) : d.topColor;
+  const sleeveColor = dressed
+    ? (DRESS_SLEEVE2[d.dress]?.[1] ?? (d.dress === 'tulum' ? '#ffffff' : d.dressColor))
+    : (SLEEVE2[d.top]?.[1] ?? d.topColor);
+  // Desenler: her giysi için kendi rengine göre kontrastlı bir desen tanımı
+  const pats = { top: `pt${uid}`, bottom: `pb${uid}`, dress: `pd${uid}` };
+  const on = (p?: string) => !!p && p !== 'duz';
+  const patUrl = (key: 'top' | 'bottom' | 'dress', p?: string) => (on(p) ? `url(#${pats[key]})` : undefined);
+  const topPat = patUrl('top', d.topPattern);
+  const bottomPat = patUrl('bottom', d.bottomPattern);
+  const dressPat = patUrl('dress', d.dressPattern);
+  const sleevePat = dressed ? (DRESS_SLEEVE2[d.dress]?.[1] || d.dress === 'tulum' ? undefined : dressPat) : SLEEVE2[d.top]?.[1] ? undefined : topPat;
   const hand = (x: number) => <circle cx={x} cy="300" r="11" fill={skin} {...o} />;
   const body: ReactNode = (
     <>
@@ -659,12 +668,20 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
       {dressed && <DressBack id={d.dress} c={d.dressColor} />}
       <Limb d={LEG_L} c={skin} w={20} />
       <Limb d={LEG_R} c={skin} w={20} />
-      {dressed ? <DressLegs id={d.dress} c={d.dressColor} /> : <BottomWear id={d.bottom} c={d.bottomColor} />}
+      {dressed ? <DressLegs id={d.dress} c={d.dressColor} pat={dressPat} /> : <BottomWear id={d.bottom} c={d.bottomColor} pat={bottomPat} />}
       <Shoe id={d.shoes} c={d.shoesColor} />
       <g transform="translate(300 0) scale(-1 1)"><Shoe id={d.shoes} c={d.shoesColor} /></g>
+      <Pet id={d.pet} />
       <rect x="140" y="166" width="20" height="24" fill={skin} {...o} />
       <path d={TORSO} fill={skin} {...o} />
-      {dressed ? <DressBody id={d.dress} c={d.dressColor} /> : <TopWear id={d.top} c={d.topColor} clip={clip} />}
+      {dressed ? (
+        <>
+          <DressBody id={d.dress} c={d.dressColor} pat={dressPat} />
+          {(DRESS_PATTERN_SHAPES[d.dress] ?? []).map((sh, i) => <Pat key={i} d={sh} p={dressPat} />)}
+        </>
+      ) : (
+        <TopWear id={d.top} c={d.topColor} clip={clip} pat={topPat} />
+      )}
       {/* Kollar gövdenin dışında kalacak şekilde kırpılır: omuzda gövdenin kenarından temizce çıkar. */}
       <g clipPath={`url(#${armsClip})`}>
         <Limb d={ARM_L} c={skin} w={20} />
@@ -673,6 +690,8 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
           <>
             <Limb d={ARM_L} c={sleeveColor} w={25} dash={sleeve} />
             <Limb d={ARM_R} c={sleeveColor} w={25} dash={sleeve} />
+            <PatLimb d={ARM_L} w={25} p={sleevePat} dash={sleeve} />
+            <PatLimb d={ARM_R} w={25} p={sleevePat} dash={sleeve} />
           </>
         )}
       </g>
@@ -692,6 +711,7 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
       <HairFront style={d.hair} c={d.hairColor} />
       <Glasses id={d.glasses} />
       <Hat id={d.hat} c={d.hatColor} />
+      {hand2(d.hand, 'front')}
     </>
   );
   return (
@@ -699,6 +719,9 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
       <defs>
         <clipPath id={clip}><path d={TOP} /></clipPath>
         <clipPath id={armsClip}><path d={`M-60,-60 H360 V500 H-60 Z ${TOP}`} clipRule="evenodd" /></clipPath>
+        {on(d.topPattern) && <PatternDef id={pats.top} kind={d.topPattern!} color={d.topColor} />}
+        {on(d.bottomPattern) && <PatternDef id={pats.bottom} kind={d.bottomPattern!} color={d.bottomColor} />}
+        {on(d.dressPattern) && <PatternDef id={pats.dress} kind={d.dressPattern!} color={d.dressColor} />}
       </defs>
       {bg && <Background id={d.bg} />}
       {body}
@@ -717,5 +740,6 @@ export const REGIONS: Record<string, string> = {
   dress: '56 160 188 256',
   shoes: '96 336 108 80',
   hat: '56 -14 200 150',
-  hand: '150 130 130 200',
+  hand: '146 40 146 290',
+  pet: '4 296 130 124',
 };
