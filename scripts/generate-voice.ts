@@ -14,6 +14,7 @@
  *                     dosyası olmayan cümleleri uygulama tarayıcı sesiyle okur)
  *   --verify          üretilen dosyaları Whisper ile yazıya dökerek doğrula (python scripts/voice-verify.py);
  *                     yanlış cümle içerenleri tek tek yeniden üret. pip install faster-whisper gerekir.
+ *   --single          toplu üretim yerine her cümleyi ayrı istekle üret (az sayıda kalan cümle için)
  *   --keys a,b,c      / --redo dosya.txt: verilen anahtarları silip yeniden üret (ör. doğrulamada yanlış çıkanlar)
  * Sağlayıcı/ses verilmezse mevcut manifest'teki ayarlar kullanılır.
  *
@@ -246,6 +247,8 @@ if (provider === 'gemini') {
   const toned = todo.filter((k) => lines.get(k)!.tone);
   const plain = todo.filter((k) => !lines.get(k)!.tone);
   for (const k of toned) jobs.push(() => single(k));
+  // --single: her cümle ayrı istek (toplu bölmenin tutmadığı birbirine benzeyen kısa cümleler için)
+  if (flag('--single')) for (const k of todo.filter((k) => !lines.get(k)!.tone)) jobs.push(() => single(k));
   // Komşu cümleler farklı uzunlukta olsun: bölme bir cümle kayarsa süre kontrolü yakalasın.
   const interleave = (keys: string[]) => {
     const sorted = [...keys].sort((a, b) => lines.get(a)!.text.length - lines.get(b)!.text.length);
@@ -256,7 +259,7 @@ if (provider === 'gemini') {
     }
     return out;
   };
-  const ordered = [...interleave(plain.filter((k) => !existsSync(mp3(k)))), ...interleave(plain.filter((k) => existsSync(mp3(k))))];
+  const ordered = flag('--single') ? [] : [...interleave(plain.filter((k) => !existsSync(mp3(k)))), ...interleave(plain.filter((k) => existsSync(mp3(k))))];
   for (let i = 0; i < ordered.length; i += BATCH) {
     const group = ordered.slice(i, i + BATCH);
     jobs.push(() => batch(group));
