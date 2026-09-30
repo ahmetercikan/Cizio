@@ -1,10 +1,18 @@
 /** Çizio — uygulamanın maskotu, sevimli bir kurşun kalem. */
+import { useApp } from '../store/useApp';
+import { getOutfit } from './Outfits';
+
 export type Mood = 'happy' | 'cheer' | 'think' | 'wow';
 
-export function Mascot({ size = 120, mood = 'happy', className }: { size?: number; mood?: Mood; className?: string }) {
+/**
+ * `outfit` verilmezse aktif profilin seçtiği kıyafet giyilir (maceralarda açılır); 'none' → kıyafetsiz.
+ */
+export function Mascot({ size = 120, mood = 'happy', className, outfit }: { size?: number; mood?: Mood; className?: string; outfit?: string }) {
+  const chosen = useApp((st) => (st.activeId ? st.data[st.activeId]?.outfit : undefined));
+  const wear = getOutfit(outfit ?? chosen);
   const armsUp = mood === 'cheer' || mood === 'wow';
   return (
-    <svg className={className} width={size} height={(size * 170) / 140} viewBox="0 0 140 170" role="img" aria-label="Çizio">
+    <svg className={className} width={size} height={(size * 170) / 140} viewBox="0 0 140 170" role="img" aria-label="Çizio" overflow="visible">
       <ellipse cx="70" cy="164" rx="34" ry="5" fill="#2b2250" opacity="0.08" />
       {/* kollar */}
       <g stroke="#2b2250" strokeWidth="5" strokeLinecap="round" fill="none">
@@ -65,6 +73,7 @@ export function Mascot({ size = 120, mood = 'happy', className }: { size?: numbe
       )}
       <ellipse cx="54" cy="92" rx="5" ry="3.5" fill="#ff8fb1" opacity="0.8" />
       <ellipse cx="86" cy="92" rx="5" ry="3.5" fill="#ff8fb1" opacity="0.8" />
+      {wear?.art}
     </svg>
   );
 }

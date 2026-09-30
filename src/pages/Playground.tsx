@@ -1,4 +1,8 @@
-import { ArrowRight, Check, Flame, Heart, Play, Sparkles, Star, Target } from 'lucide-react';
+import { ArrowRight, Check, Flame, Heart, MapPin, Play, Sparkles, Star, Target, Trophy } from 'lucide-react';
+import { AvatarArt } from '../components/Avatars';
+import { chapterStates } from '../lib/adventure';
+import { daysLeft, standings } from '../lib/league';
+import { useSettleLeague } from './League';
 import { ChallengeArt } from '../components/ChallengeArt';
 import { Link } from 'react-router-dom';
 import { SketchImg } from '../components/Sketch';
@@ -60,6 +64,8 @@ export default function Playground() {
 
       <DailyRow />
 
+      <FeatureRow />
+
       <section className="hero rise" style={{ animationDelay: '0.05s' }}>
         <LessonCard lesson={today} size="xl" isNew={untouched.has(today.id)} />
         <div className="hero__side">
@@ -81,10 +87,21 @@ export default function Playground() {
               <span className="challenge-card__text">
                 <b>{c.title}</b>
                 <span>{c.desc}</span>
-                <em>Oyna <ArrowRight size={15} /></em>
+                <em>
+                  Oyna <ArrowRight size={15} />
+                  {data.records?.[c.id] !== undefined && <small className="challenge-card__record">Rekor %{data.records[c.id]}</small>}
+                </em>
               </span>
             </Link>
           ))}
+          <Link to="/duello" className="challenge-card rise">
+            <span className="challenge-card__art"><ChallengeArt kind="duel" /></span>
+            <span className="challenge-card__text">
+              <b>Düello</b>
+              <span>Kim daha benzer çizecek?</span>
+              <em>Oyna <ArrowRight size={15} /></em>
+            </span>
+          </Link>
         </div>
       </section>
 
@@ -128,6 +145,45 @@ function NewStickers({ ids, onOpen }: { ids: string[]; onOpen: () => void }) {
         <button className="btn-dark" onClick={() => setOpen(false)}>Süper!</button>
       </div>
     </Modal>
+  );
+}
+
+/** Maceralar ve haftalık lig kartları. */
+function FeatureRow() {
+  const profile = useProfile()!;
+  const data = useProfileData();
+  useSettleLeague();
+  const chapters = chapterStates(data);
+  const done = chapters.filter((c) => c.complete).length;
+  const next = chapters.find((c) => !c.complete);
+  const rows = standings(profile, data);
+  const rank = rows.findIndex((r) => r.you) + 1;
+  const left = daysLeft();
+  return (
+    <div className="feature-row rise" style={{ animationDelay: '0.03s' }}>
+      <Link to="/macera" className="feature-card feature-card--adventure">
+        <span className="feature-card__art"><Mascot size={62} mood="cheer" /></span>
+        <span className="feature-card__text">
+          <span className="feature-card__label"><MapPin size={15} /> Çizio'nun maceraları</span>
+          <b>{next ? next.place : 'Tüm duraklar tamam!'}</b>
+          <span className="feature-card__bar"><i style={{ width: `${(done / Math.max(1, chapters.length)) * 100}%` }} /></span>
+          <small>{done} / {chapters.length} durak · {next ? `${next.done}/${next.total} ders` : 'Macera kahramanısın'}</small>
+        </span>
+      </Link>
+      <Link to="/lig" className="feature-card feature-card--league">
+        <span className="feature-card__rank"><Trophy size={18} /> {rank}.</span>
+        <span className="feature-card__text">
+          <span className="feature-card__label"><Star size={15} /> Haftalık lig</span>
+          <b>{rank === 1 ? 'Zirvedesin!' : `${rank}. sıradasın`}</b>
+          <span className="feature-card__faces">
+            {rows.slice(0, 5).map((r) => (
+              <span key={r.id} className={r.you ? 'you' : ''}><AvatarArt id={r.avatar} size={28} /></span>
+            ))}
+          </span>
+          <small>{rows[rank - 1].stars} yıldız · {left === 1 ? 'son gün' : `${left} gün kaldı`}</small>
+        </span>
+      </Link>
+    </div>
   );
 }
 

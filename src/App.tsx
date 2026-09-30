@@ -3,9 +3,12 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { setSfxEnabled } from './lib/sfx';
 import { setNaturalVoice, unlockAudio } from './lib/speech';
+import Adventure from './pages/Adventure';
 import Challenge from './pages/Challenge';
+import Duel from './pages/Duel';
 import FreeDraw from './pages/FreeDraw';
 import Journal from './pages/Journal';
+import League from './pages/League';
 import Learn, { CoursePage } from './pages/Learn';
 import LessonPage from './pages/LessonPage';
 import Onboarding from './pages/Onboarding';
@@ -46,6 +49,9 @@ export default function App() {
         <Route path="/dergi" element={<NeedsProfile><Journal /></NeedsProfile>} />
         <Route path="/ders/:id" element={<NeedsProfile><LessonPage /></NeedsProfile>} />
         <Route path="/ciz" element={<NeedsProfile><FreeDraw /></NeedsProfile>} />
+        <Route path="/duello" element={<NeedsProfile><Duel /></NeedsProfile>} />
+        <Route path="/macera" element={<NeedsProfile><Adventure /></NeedsProfile>} />
+        <Route path="/lig" element={<NeedsProfile><League /></NeedsProfile>} />
         <Route path="/meydan/:kind" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/meydan/:kind/:lessonId" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/ebeveyn" element={<Parent />} />

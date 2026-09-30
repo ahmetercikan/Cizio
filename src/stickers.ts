@@ -1,4 +1,5 @@
 import { lessons, lessonsByPath } from './lessons';
+import { chapterStates } from './lib/adventure';
 import type { ProfileData } from './store/useApp';
 
 export interface Sticker {
@@ -25,6 +26,12 @@ const MILESTONES: Sticker[] = [
   { id: 'challenge-10', emoji: '🥇', title: 'Şampiyon', hint: '10 meydan okuma tamamla' },
   { id: 'quest-3', emoji: '🎯', title: 'Görev Avcısı', hint: '3 günün görevini tamamla' },
   { id: 'quest-10', emoji: '👑', title: 'Görev Kraliçesi', hint: '10 günün görevini tamamla' },
+  { id: 'duel-first', emoji: '⚔️', title: 'Düellocu', hint: 'İlk düellonu oyna' },
+  { id: 'duel-wins-5', emoji: '🤺', title: 'Düello Ustası', hint: '5 düello kazan' },
+  { id: 'league-podium', emoji: '🥉', title: 'Kürsüde', hint: 'Haftalık ligde ilk üçe gir' },
+  { id: 'league-champion', emoji: '🏅', title: 'Lig Şampiyonu', hint: 'Haftalık ligi birinci bitir' },
+  { id: 'adventure-3', emoji: '🗺️', title: 'Kâşif', hint: 'Maceralarda 3 durağı tamamla' },
+  { id: 'adventure-all', emoji: '🏰', title: 'Macera Kahramanı', hint: 'Maceralardaki tüm durakları tamamla' },
 ];
 
 export function allStickers(): Sticker[] {
@@ -55,6 +62,15 @@ export function milestoneStickers(d: ProfileData, streak: number): string[] {
   if (challenges >= 10) out.push('challenge-10');
   if ((d.quests?.length ?? 0) >= 3) out.push('quest-3');
   if ((d.quests?.length ?? 0) >= 10) out.push('quest-10');
+  if ((d.duels ?? 0) >= 1) out.push('duel-first');
+  if ((d.duelWins ?? 0) >= 5) out.push('duel-wins-5');
+  const ranks = Object.values(d.leagues ?? {});
+  if (ranks.some((r) => r <= 3)) out.push('league-podium');
+  if (ranks.some((r) => r === 1)) out.push('league-champion');
+  const chapters = chapterStates(d);
+  const complete = chapters.filter((c) => c.complete).length;
+  if (complete >= 3) out.push('adventure-3');
+  if (chapters.length && complete === chapters.length) out.push('adventure-all');
   const tem = lessonsByPath('temeller');
   if (tem.length && tem.every((l) => d.lessons[l.id])) out.push('temeller-all');
   return out;

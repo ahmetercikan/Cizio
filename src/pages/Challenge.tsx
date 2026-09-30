@@ -53,7 +53,7 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
   const profile = useProfile();
   const [phase, setPhase] = useState<Phase>('intro');
   const [left, setLeft] = useState(kind === 'memory' ? MEMORY_SECONDS : SPEED_SECONDS);
-  const [result, setResult] = useState<{ stars: number; image: string; earned: string[]; quest: boolean } | null>(null);
+  const [result, setResult] = useState<{ stars: number; percent: number; record: boolean; image: string; earned: string[]; quest: boolean } | null>(null);
   const [toast, showToast] = useToast();
   const doc = useMemo(() => new DrawingDoc(), []);
   const ts = useToolState({ tool: 'pencil', color: '#2f2f36' });
@@ -110,15 +110,18 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
       showToast('Önce bir şeyler çiz!');
       return;
     }
-    const stars = scoreFreehand(lesson.steps.flatMap((s) => s.shapes), strokes).stars;
+    const res = scoreFreehand(lesson.steps.flatMap((s) => s.shapes), strokes);
+    const stars = res.stars;
+    const percent = Math.round(res.score * 100);
     const blob = await doc.toBlob();
     if (profile) await saveArtwork({ id: uid(), profileId: profile.id, lessonId: lesson.id, kind: 'free', stars, createdAt: Date.now(), blob });
     const before = useApp.getState();
     const questBefore = profile ? before.data[profile.id]?.quests?.length ?? 0 : 0;
-    const earned = recordChallenge(kind, lesson.id);
+    const prevRecord = profile ? before.data[profile.id]?.records?.[kind] : undefined;
+    const earned = recordChallenge(kind, lesson.id, stars, percent);
     const after = profile ? useApp.getState().data[profile.id] : undefined;
     const quest = !!after && (after.quests?.length ?? 0) > questBefore;
-    setResult({ stars, image: URL.createObjectURL(blob), earned, quest });
+    setResult({ stars, percent, record: prevRecord !== undefined && percent > prevRecord, image: URL.createObjectURL(blob), earned, quest });
     setPhase('result');
     sfx.fanfare();
     void confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, disableForReducedMotion: true });
@@ -219,6 +222,10 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
           <div className="celebrate__text rise" style={{ animationDelay: '0.15s' }}>
             <h1 className="title-xl">{result.stars >= 3 ? 'Muhteşem!' : result.stars === 2 ? 'Çok iyi!' : 'Güzel deneme!'}</h1>
             <Stars value={result.stars} size={46} animate />
+            <p className="similarity">
+              <b>%{result.percent}</b> benzerlik
+              {result.record && <span className="similarity__record">Yeni rekor!</span>}
+            </p>
             <p className="sub">{def.title} meydan okumasını tamamladın.</p>
             {result.quest && <div className="celebrate__stickers">🎯 <span>Günün görevini tamamladın!</span></div>}
             {result.earned.length > 0 && (

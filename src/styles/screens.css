@@ -1723,7 +1723,7 @@
   padding-left: 3px;
 }
 
-.challenge-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.challenge-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
 
 @media (max-width: 640px) {
   .challenge-row { grid-template-columns: 1fr; }
@@ -2001,4 +2001,415 @@
 @keyframes shine {
   0% { left: -70%; }
   35%, 100% { left: 140%; }
+}
+
+/* =====================================================================
+   Oyunlaştırma: rekorlar, maceralar, haftalık lig, düello
+   ===================================================================== */
+
+.similarity { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 2px 0 0; font-weight: 800; color: var(--muted); }
+.similarity b { font-family: var(--display); font-size: 30px; font-weight: 600; color: var(--teal-dark); }
+.similarity__record { padding: 4px 12px; border-radius: 999px; background: var(--sun); color: var(--ink); font-size: 14px; animation: pop-in 0.5s 0.6s both; }
+
+.challenge-card em { flex-wrap: wrap; }
+.challenge-card__record { margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--sun-soft); color: #9a6a00; font-size: 12px; font-weight: 800; }
+
+/* ---- Bugün: macera ve lig kartları ---- */
+.feature-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+
+@media (max-width: 700px) {
+  .feature-row { grid-template-columns: 1fr; }
+}
+
+.feature-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  text-decoration: none;
+  transition: transform 0.18s;
+}
+
+.feature-card:hover { transform: translateY(-2px); }
+.feature-card:active { transform: scale(0.98); }
+
+.feature-card__art {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 20px;
+  background: var(--sun-soft);
+  padding-top: 8px;
+}
+
+.feature-card__rank {
+  flex: none;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  width: 84px;
+  height: 84px;
+  border-radius: 20px;
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.feature-card__text { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.feature-card__label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-weight: 800; font-size: 13px; }
+.feature-card b { font-family: var(--display); font-size: 21px; font-weight: 600; }
+.feature-card small { color: var(--muted); font-weight: 700; font-size: 13px; }
+.feature-card__bar { display: block; height: 8px; border-radius: 99px; background: var(--cream-2); overflow: hidden; }
+.feature-card__bar i { display: block; height: 100%; border-radius: inherit; background: var(--coral); }
+.feature-card__faces { display: flex; }
+.feature-card__faces > span { margin-right: -6px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; line-height: 0; }
+.feature-card__faces > span.you { box-shadow: 0 0 0 3px var(--coral); z-index: 1; }
+
+/* ---- Maceralar: gardırop ---- */
+.wardrobe {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.wardrobe__stage { flex: none; display: grid; justify-items: center; gap: 6px; width: 150px; padding-top: 18px; }
+.wardrobe__stage b { font-family: var(--display); font-weight: 600; font-size: 17px; text-align: center; }
+.wardrobe__list { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.outfit-chip {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 92px;
+  padding: 14px 6px 8px;
+  border-radius: 18px;
+  background: var(--cream);
+  border: 2px solid transparent;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.outfit-chip.on { border-color: var(--coral); background: var(--coral-soft); }
+.outfit-chip.locked { opacity: 0.55; filter: grayscale(0.9); cursor: not-allowed; }
+.outfit-chip__lock { position: absolute; top: 6px; right: 6px; color: var(--muted); }
+
+@media (max-width: 700px) {
+  .wardrobe { flex-direction: column; }
+  .wardrobe__list { justify-content: center; }
+  .outfit-chip { width: 84px; }
+}
+
+/* ---- Maceralar: harita ---- */
+.adv-map {
+  position: relative;
+  list-style: none;
+  margin: 26px auto 40px;
+  padding: 0;
+  max-width: 760px;
+  display: grid;
+  gap: 18px;
+}
+
+/* Duraklar arasındaki kesikli yol */
+.adv-map::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  bottom: 40px;
+  left: 50%;
+  border-left: 5px dashed rgba(13, 128, 116, 0.35);
+  transform: translateX(-50%);
+}
+
+.adv-stop { position: relative; display: flex; justify-content: flex-start; }
+.adv-stop--right { justify-content: flex-end; }
+
+.adv-stop__card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(430px, 100%);
+  padding: 12px 16px 12px 12px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 3px solid var(--line);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  text-decoration: none;
+  transition: transform 0.18s;
+}
+
+.adv-stop__card:hover { transform: translateY(-2px) rotate(-0.4deg); }
+.adv-stop.done .adv-stop__card { border-color: var(--pc); }
+.adv-stop.here .adv-stop__card { border-color: var(--coral); box-shadow: 0 0 0 5px var(--coral-soft), var(--shadow-card); }
+
+.adv-stop__art {
+  position: relative;
+  flex: none;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pc) 16%, #fff);
+  border: 3px solid var(--pc);
+}
+
+.adv-stop__art > img, .adv-stop__art > svg:first-child { width: 100%; height: 100%; border-radius: 50%; }
+.adv-stop__pin { position: absolute; top: -34px; right: -16px; animation: float 3s ease-in-out infinite; }
+
+.adv-stop__text { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.adv-stop__text em { font-style: normal; font-weight: 800; font-size: 12px; color: var(--pc); text-transform: uppercase; letter-spacing: 0.04em; }
+.adv-stop__text b { font-family: var(--display); font-size: 20px; font-weight: 600; }
+.adv-stop__text > span:not(.adv-stop__bar) { color: var(--muted); font-weight: 700; font-size: 14px; }
+.adv-stop__text small { color: var(--muted); font-weight: 700; font-size: 12px; }
+.adv-stop__bar { display: block; height: 7px; border-radius: 99px; background: var(--cream-2); overflow: hidden; margin-top: 2px; }
+.adv-stop__bar i { display: block; height: 100%; background: var(--pc); border-radius: inherit; }
+
+.adv-stop__prize {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 60px;
+  padding-top: 8px;
+  border-radius: 16px;
+  background: var(--cream);
+  filter: grayscale(0.8);
+  opacity: 0.7;
+}
+
+.adv-stop__prize.won { background: var(--sun-soft); filter: none; opacity: 1; }
+.adv-stop__check { position: absolute; right: -4px; bottom: -4px; padding: 2px; border-radius: 50%; background: #fff; color: var(--teal-dark); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
+
+@media (max-width: 700px) {
+  .adv-map::before { left: 58px; }
+  .adv-stop, .adv-stop--right { justify-content: stretch; }
+}
+
+/* ---- Haftalık lig ---- */
+.league-last { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; padding: 10px 16px; border-radius: 16px; background: var(--sun-soft); font-weight: 700; }
+.league-last svg { color: #c98a00; }
+
+.podium { display: flex; justify-content: center; align-items: flex-end; gap: 14px; margin: 34px 0 6px; }
+.podium__step { position: relative; display: grid; justify-items: center; gap: 6px; width: 132px; }
+.podium__step b { font-family: var(--display); font-weight: 600; font-size: 18px; text-align: center; }
+.podium__stars { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; }
+.podium__crown { position: absolute; top: -30px; font-size: 32px; animation: float 3s ease-in-out infinite; }
+
+.podium__block {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  border-radius: 16px 16px 6px 6px;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.podium__step--1 .podium__block { height: 96px; background: var(--sun); color: var(--ink); }
+.podium__step--2 .podium__block { height: 70px; background: #b9c6cc; }
+.podium__step--3 .podium__block { height: 52px; background: #e0a47a; }
+.podium__step.you b { color: var(--coral-dark); }
+
+.league-tip { text-align: center; font-weight: 800; color: var(--teal-dark); margin: 12px 0; min-height: 1.4em; }
+
+.league-list { list-style: none; margin: 0 auto; padding: 0; max-width: 620px; display: grid; gap: 8px; }
+
+.league-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  border-radius: 18px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+}
+
+.league-row.you { border-color: var(--coral); background: var(--coral-soft); }
+.league-row__rank { width: 26px; text-align: center; font-family: var(--display); font-size: 20px; font-weight: 600; color: var(--muted); }
+.league-row__name { flex: 1; font-weight: 800; }
+.league-row__stars { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; }
+
+.league-actions { display: grid; justify-items: center; gap: 10px; text-align: center; margin: 22px auto 30px; max-width: 520px; }
+
+/* ---- Düello: kurulum ---- */
+.duel-setup { display: flex; flex-direction: column; min-height: 100dvh; padding: calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 24px); }
+.duel-setup__top { position: relative; z-index: 1; }
+.duel-setup__body { position: relative; z-index: 1; display: grid; justify-items: center; gap: 20px; width: min(860px, 100%); margin: 0 auto; }
+.duel-setup__title { display: flex; align-items: center; gap: 16px; }
+.duel-setup__title .title-xl { margin: 0; }
+.duel-setup__art { flex: none; width: 96px; height: 96px; padding: 6px; border-radius: 24px; background: var(--paper); box-shadow: var(--shadow-card); }
+
+.duel-players { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 26px; width: 100%; }
+
+.duel-slot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 8px;
+  padding: 18px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.duel-slot__label { font-weight: 800; font-size: 13px; color: var(--muted); }
+.duel-slot > b { font-family: var(--display); font-size: 22px; font-weight: 600; }
+.duel-slot__pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+
+.duel-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: var(--cream);
+  border: 2px solid transparent;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.duel-pick.on { border-color: var(--coral); background: var(--coral-soft); }
+.duel-slot__name { width: 100%; max-width: 220px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line-2); font: inherit; font-weight: 800; text-align: center; background: #fff; }
+
+.duel-vs {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: -40px;
+  transform: translateY(-50%) rotate(-8deg);
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 20px;
+  box-shadow: 0 4px 0 var(--coral-dark);
+}
+
+.duel-warn { margin: -8px 0 0; color: var(--red); font-weight: 800; }
+
+.duel-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; }
+.duel-lesson { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: var(--radius); background: var(--paper); border: 2px solid var(--line); }
+.duel-lesson > :first-child { flex: none; width: 96px; height: 96px; border-radius: 14px; }
+.duel-lesson > div { display: grid; gap: 8px; justify-items: start; }
+.duel-lesson b { font-family: var(--display); font-size: 19px; font-weight: 600; }
+
+.duel-modes { display: grid; gap: 10px; }
+
+.duel-mode {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  text-align: left;
+  color: var(--ink);
+  font-size: 22px;
+}
+
+.duel-mode b { font-size: 16px; font-weight: 800; }
+.duel-mode span:last-child { grid-column: 2; font-size: 13px; font-weight: 700; color: var(--muted); }
+.duel-mode > :first-child { grid-row: span 2; color: var(--teal-dark); }
+.duel-mode.on { border-color: var(--teal); background: var(--teal-soft); }
+
+@media (max-width: 700px) {
+  .duel-players, .duel-options { grid-template-columns: 1fr; }
+  .duel-vs { top: auto; bottom: -40px; right: 50%; transform: translateX(50%) rotate(-8deg); }
+  .duel-setup__title { flex-direction: column; text-align: center; }
+}
+
+/* ---- Düello: sıra perdesi ---- */
+.duel-curtain { display: grid; place-items: center; min-height: 100dvh; padding: 24px; }
+
+.duel-curtain__card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: min(440px, 100%);
+  padding: 30px 26px;
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-pop);
+  text-align: center;
+}
+
+.duel-curtain__card .title-xl { margin: 0 0 4px; }
+.duel-curtain__turn { padding: 4px 14px; border-radius: 999px; background: var(--teal-soft); color: var(--teal-dark); font-weight: 800; font-size: 13px; }
+.duel-curtain__hint { margin: 0; color: var(--muted); font-weight: 700; }
+.duel-curtain__card .pill { margin-top: 10px; }
+
+.duel-title { display: flex; align-items: center; gap: 8px; }
+
+/* ---- Düello: sonuç ---- */
+.duel-reveal { display: grid; align-content: center; justify-items: center; gap: 22px; row-gap: 48px; min-height: 100dvh; padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 24px); }
+.duel-reveal__title { position: relative; z-index: 1; margin: 0; text-align: center; }
+.duel-reveal__cards { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr 0.62fr; gap: 18px; align-items: end; width: min(980px, 100%); }
+.duel-reveal .celebrate__actions { position: relative; z-index: 1; justify-content: center; }
+
+.duel-card {
+  position: relative;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  border: 3px solid var(--line);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1), opacity 0.4s;
+}
+
+.duel-card > img { width: 100%; aspect-ratio: 1; border-radius: 16px; background: #fffdf8; object-fit: contain; }
+.duel-card figcaption { display: flex; align-items: center; gap: 8px; }
+.duel-card figcaption b { flex: 1; font-family: var(--display); font-size: 19px; font-weight: 600; }
+.duel-card__pct { font-family: var(--display); font-size: 30px; font-weight: 600; color: var(--teal-dark); font-variant-numeric: tabular-nums; }
+.duel-card__bar { display: block; height: 10px; border-radius: 99px; background: var(--cream-2); overflow: hidden; }
+.duel-card__bar i { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
+.duel-card.win { border-color: var(--sun); transform: translateY(-10px) scale(1.03); box-shadow: 0 0 0 6px var(--sun-soft), var(--shadow-pop); }
+.duel-card.win .duel-card__bar i { background: var(--sun); }
+.duel-card.lose { opacity: 0.8; }
+.duel-card__crown { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); font-size: 44px; animation: pop-in 0.5s both; }
+.duel-card--ref { align-self: center; }
+.duel-card--ref > :first-child { width: 100%; aspect-ratio: 1; border-radius: 16px; }
+.duel-card--ref figcaption { justify-content: center; }
+
+@media (max-width: 700px) {
+  .duel-reveal__cards { grid-template-columns: 1fr 1fr; }
+  .duel-card--ref { grid-column: span 2; width: 45%; justify-self: center; }
+  .duel-card__pct { font-size: 24px; }
 }

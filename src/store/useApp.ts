@@ -35,6 +35,8 @@ export interface DayActivity {
   lessons: number;
   minutes: number;
   drawings: number;
+  /** O gün kazanılan yıldızlar (haftalık lig için). */
+  stars?: number;
 }
 
 export interface ProfileData {
@@ -51,6 +53,15 @@ export interface ProfileData {
   challenges?: Record<string, string[]>;
   /** Günün görevinin tamamlandığı günler. */
   quests?: string[];
+  /** Meydan okuma rekorları: tür → en yüksek benzerlik yüzdesi. */
+  records?: Record<string, number>;
+  /** Çizio'nun giydiği kıyafet (maceralarda açılır). */
+  outfit?: string;
+  /** Oynanan / kazanılan düellolar. */
+  duels?: number;
+  duelWins?: number;
+  /** Biten haftalık liglerin sıralaması: hafta anahtarı → sıra. */
+  leagues?: Record<string, number>;
 }
 
 export interface Settings {
@@ -88,7 +99,12 @@ interface AppState {
   setActive(id?: string): void;
   completeLesson(c: CompleteInput): string[];
   recordDrawing(kind: 'paper' | 'free'): string[];
-  recordChallenge(kind: ChallengeKind, lessonId: string): string[];
+  recordChallenge(kind: ChallengeKind, lessonId: string, stars: number, percent: number): string[];
+  /** Düello sonucu (oyuncu cihazdaki bir profilse). */
+  recordDuel(profileId: string, stars: number, won: boolean): string[];
+  setOutfit(outfit?: string): void;
+  /** Biten haftanın lig sırasını kaydeder (kürsü çıkartmaları). */
+  settleLeague(week: string, rank: number): string[];
   consumeNewStickers(): void;
   toggleFavorite(lessonId: string): void;
   updateSettings(patch: Partial<Settings>): void;
@@ -177,7 +193,7 @@ export const useApp = create<AppState>()(
             },
           },
           paperCount: d.paperCount + (scaffold === 'paper' ? 1 : 0),
-          days: { ...d.days, [dayKey()]: { ...t, lessons: t.lessons + 1, minutes: t.minutes + minutes, drawings: t.drawings + 1 } },
+          days: { ...d.days, [dayKey()]: { ...t, lessons: t.lessons + 1, minutes: t.minutes + minutes, drawings: t.drawings + 1, stars: (t.stars ?? 0) + stars } },
         };
         const profile = get().profiles.find((p) => p.id === activeId);
         const { data: withS, earned } = withStickers(withQuest(profile, next), [`lesson:${lessonId}`]);
@@ -201,7 +217,7 @@ export const useApp = create<AppState>()(
         return earned;
       },
 
-      recordChallenge(kind, lessonId) {
+      recordChallenge(kind, lessonId, stars, percent) {
         const { activeId, data } = get();
         if (!activeId) return [];
         const d = { ...emptyData(), ...data[activeId] };
@@ -210,10 +226,44 @@ export const useApp = create<AppState>()(
         const next: ProfileData = {
           ...d,
           challenges: { ...(d.challenges ?? {}), [k]: [...(d.challenges?.[k] ?? []), `${kind}:${lessonId}`] },
-          days: { ...d.days, [k]: { ...t, drawings: t.drawings + 1 } },
+          records: { ...d.records, [kind]: Math.max(d.records?.[kind] ?? 0, percent) },
+          days: { ...d.days, [k]: { ...t, drawings: t.drawings + 1, stars: (t.stars ?? 0) + stars } },
         };
         const profile = get().profiles.find((p) => p.id === activeId);
         const { data: withS, earned } = withStickers(withQuest(profile, next), []);
+        set({ data: { ...data, [activeId]: withS } });
+        return earned;
+      },
+
+      recordDuel(profileId, stars, won) {
+        const { data } = get();
+        if (!data[profileId]) return [];
+        const d = { ...emptyData(), ...data[profileId] };
+        const k = dayKey();
+        const t = today(d);
+        const next: ProfileData = {
+          ...d,
+          duels: (d.duels ?? 0) + 1,
+          duelWins: (d.duelWins ?? 0) + (won ? 1 : 0),
+          days: { ...d.days, [k]: { ...t, drawings: t.drawings + 1, stars: (t.stars ?? 0) + stars } },
+        };
+        const { data: withS, earned } = withStickers(next, []);
+        set({ data: { ...get().data, [profileId]: withS } });
+        return earned;
+      },
+
+      setOutfit(outfit) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        set({ data: { ...data, [activeId]: { ...emptyData(), ...data[activeId], outfit } } });
+      },
+
+      settleLeague(week, rank) {
+        const { activeId, data } = get();
+        if (!activeId) return [];
+        const d = { ...emptyData(), ...data[activeId] };
+        if (d.leagues?.[week]) return [];
+        const { data: withS, earned } = withStickers({ ...d, leagues: { ...d.leagues, [week]: rank } }, []);
         set({ data: { ...data, [activeId]: withS } });
         return earned;
       },

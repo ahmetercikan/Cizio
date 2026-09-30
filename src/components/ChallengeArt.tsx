@@ -70,10 +70,30 @@ function OneLine() {
   );
 }
 
-export function ChallengeArt({ kind }: { kind: ChallengeKind }) {
+/** Düello: çapraz iki kalem (kılıç gibi) ve arada kıvılcım. */
+function Duel() {
+  const pencil = (fill: string) => (
+    <>
+      <path d="M0,0 L-4,-10 L4,-10 Z" fill={INK} />
+      <path d="M-4,-10 L-9,-22 H9 L4,-10 Z" fill="#f6d7a7" stroke={INK} strokeWidth={2.4} strokeLinejoin="round" />
+      <rect x="-9" y="-78" width="18" height="56" fill={fill} stroke={INK} strokeWidth={2.4} />
+      <rect x="-9" y="-88" width="18" height="10" fill="#cfcbe0" stroke={INK} strokeWidth={2.4} />
+      <rect x="-9" y="-100" width="18" height="13" rx="5" fill="#ff8fb1" stroke={INK} strokeWidth={2.4} />
+    </>
+  );
+  return (
+    <>
+      <g transform="translate(78 24) rotate(-143)">{pencil('#ffc531')}</g>
+      <g transform="translate(42 24) rotate(143)">{pencil('#14a89a')}</g>
+      <path d="M60,14 V6 M50,18 L45,12 M70,18 L75,12" {...line} stroke="#e8a200" />
+    </>
+  );
+}
+
+export function ChallengeArt({ kind }: { kind: ChallengeKind | 'duel' }) {
   return (
     <svg viewBox="0 0 120 120" width="100%" height="100%" aria-hidden="true">
-      {kind === 'speed' ? <Stopwatch /> : kind === 'memory' ? <Memory /> : <OneLine />}
+      {kind === 'duel' ? <Duel /> : kind === 'speed' ? <Stopwatch /> : kind === 'memory' ? <Memory /> : <OneLine />}
     </svg>
   );
 }
