@@ -1,4 +1,4 @@
-import { Brush, Images, LibraryBig, Settings, Sun } from 'lucide-react';
+import { Brush, Images, LibraryBig, Settings, Shirt, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useProfile } from '../store/useApp';
@@ -10,6 +10,7 @@ const ITEMS = [
   { to: '/', label: 'Bugün', Icon: Sun },
   { to: '/ogren', label: 'Dersler', Icon: LibraryBig },
   { to: '/ciz', label: 'Atölye', Icon: Brush },
+  { to: '/giydir', label: 'Giydir', Icon: Shirt },
   { to: '/dergi', label: 'Galerim', Icon: Images },
 ];
 

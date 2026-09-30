@@ -20,7 +20,7 @@ async function migrateLegacy(): Promise<void> {
 }
 const ready = migrateLegacy();
 
-export type ArtKind = 'screen' | 'paper' | 'free';
+export type ArtKind = 'screen' | 'paper' | 'free' | 'style';
 
 export interface Artwork {
   id: string;

@@ -92,6 +92,26 @@ describe('maceralar', () => {
   });
 });
 
+describe('maceralar: sıralı kilit', () => {
+  it('ilk durak açık, diğerleri kapalı', () => {
+    const st = chapterStates(emptyData());
+    expect(st[0].open).toBe(true);
+    expect(st.slice(1).every((c) => !c.open)).toBe(true);
+  });
+
+  it('önceki durak bitmeden sonraki durağın kıyafeti açılmaz', () => {
+    const d = emptyData();
+    for (const l of lessonsByPath('hayvanlar')) d.lessons[l.id] = { bestStars: 3, completions: 1, lastAt: 0 };
+    const st = chapterStates(d);
+    expect(st[1].done).toBe(st[1].total);
+    expect(st[1].open).toBe(false);
+    expect(unlockedOutfits(d)).toEqual([]);
+    for (const l of lessonsByPath('temeller')) d.lessons[l.id] = { bestStars: 3, completions: 1, lastAt: 0 };
+    expect(unlockedOutfits(d)).toEqual(['bere', 'kulak']);
+    expect(chapterStates(d)[2].open).toBe(true);
+  });
+});
+
 describe('yeni çıkartmalar', () => {
   it('düello, lig ve macera çıkartmaları', () => {
     const d: ProfileData = { ...emptyData(), duels: 1, duelWins: 5, leagues: { '2026-09-21': 2 } };

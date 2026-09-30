@@ -32,6 +32,8 @@ const MILESTONES: Sticker[] = [
   { id: 'league-champion', emoji: '🏅', title: 'Lig Şampiyonu', hint: 'Haftalık ligi birinci bitir' },
   { id: 'adventure-3', emoji: '🗺️', title: 'Kâşif', hint: 'Maceralarda 3 durağı tamamla' },
   { id: 'adventure-all', emoji: '🏰', title: 'Macera Kahramanı', hint: 'Maceralardaki tüm durakları tamamla' },
+  { id: 'style-first', emoji: '👗', title: 'Stil İkonu', hint: 'Günün stil görevini tamamla' },
+  { id: 'style-5', emoji: '🕶️', title: 'Moda Tasarımcısı', hint: '5 günün stil görevini tamamla' },
 ];
 
 export function allStickers(): Sticker[] {
@@ -71,6 +73,8 @@ export function milestoneStickers(d: ProfileData, streak: number): string[] {
   const complete = chapters.filter((c) => c.complete).length;
   if (complete >= 3) out.push('adventure-3');
   if (chapters.length && complete === chapters.length) out.push('adventure-all');
+  if ((d.styled?.length ?? 0) >= 1) out.push('style-first');
+  if ((d.styled?.length ?? 0) >= 5) out.push('style-5');
   const tem = lessonsByPath('temeller');
   if (tem.length && tem.every((l) => d.lessons[l.id])) out.push('temeller-all');
   return out;

@@ -5,6 +5,7 @@ import { setSfxEnabled } from './lib/sfx';
 import { setNaturalVoice, unlockAudio } from './lib/speech';
 import Adventure from './pages/Adventure';
 import Challenge from './pages/Challenge';
+import DressUp from './pages/DressUp';
 import Duel from './pages/Duel';
 import FreeDraw from './pages/FreeDraw';
 import Journal from './pages/Journal';
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/duello" element={<NeedsProfile><Duel /></NeedsProfile>} />
         <Route path="/macera" element={<NeedsProfile><Adventure /></NeedsProfile>} />
         <Route path="/lig" element={<NeedsProfile><League /></NeedsProfile>} />
+        <Route path="/giydir" element={<NeedsProfile><DressUp /></NeedsProfile>} />
         <Route path="/meydan/:kind" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/meydan/:kind/:lessonId" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/ebeveyn" element={<Parent />} />

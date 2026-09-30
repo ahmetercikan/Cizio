@@ -1,6 +1,7 @@
 /**
- * Çizio'nun maceraları: her ders yolu haritada bir durak. Durağın bütün dersleri bitince
- * Çizio o durağın kıyafetini kazanır (gardıroptan giydirilir).
+ * Çizio'nun maceraları: her ders yolu haritada bir durak. Duraklar sırayla açılır: bir durağın bütün
+ * dersleri bitince bir sonraki durak açılır ve Çizio o durağın kıyafetini kazanır (gardıroptan giydirilir).
+ * Dersler başka yerlerden (Dersler, Bugün) de yapılabilir; sayılırlar ama kıyafet ancak durağa ulaşınca açılır.
  */
 import { lessonsByPath, paths } from '../lessons';
 import type { PathId } from '../lessons/types';
@@ -27,16 +28,23 @@ export const CHAPTERS: Chapter[] = [
 export interface ChapterState extends Chapter {
   done: number;
   total: number;
+  /** Durağa ulaşıldı mı (ilk durak ya da önceki durak tamam). */
+  open: boolean;
+  /** Durağa ulaşıldı ve bütün dersleri bitti. */
   complete: boolean;
 }
 
 export function chapterStates(data: ProfileData): ChapterState[] {
+  let prevComplete = true;
   return CHAPTERS.map((c) => {
     const ls = lessonsByPath(c.path);
     const done = ls.filter((l) => data.lessons[l.id]).length;
-    return { ...c, done, total: ls.length, complete: ls.length > 0 && done === ls.length };
+    const open = prevComplete;
+    const complete = open && ls.length > 0 && done === ls.length;
+    prevComplete = complete;
+    return { ...c, done, total: ls.length, open, complete };
   });
 }
 
-/** Açılmış kıyafetler (tamamlanan duraklar). */
+/** Açılmış kıyafetler (sırayla ulaşılıp tamamlanan duraklar). */
 export const unlockedOutfits = (data: ProfileData) => chapterStates(data).filter((c) => c.complete).map((c) => c.outfit);

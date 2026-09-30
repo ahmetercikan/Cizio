@@ -72,7 +72,7 @@ export default function Journal() {
               <button key={a.id} className="pinned" style={{ ['--r' as string]: `${((i * 37) % 7) - 3}deg` }} onClick={() => setOpen(a)}>
                 <span className="pinned__pin" />
                 <img src={urls.get(a.id)} alt="" loading="lazy" />
-                <span className="pinned__cap">{a.lessonId ? getLesson(a.lessonId)?.title : 'Serbest çizim'}</span>
+                <span className="pinned__cap">{artTitle(a)}</span>
               </button>
             ))}
           </div>
@@ -98,8 +98,8 @@ export default function Journal() {
           <div className="art-view">
             <div className="art-view__head">
               <div>
-                <b className="title-md">{open.lessonId ? getLesson(open.lessonId)?.title : 'Serbest çizim'}</b>
-                <p className="muted">{formatDate(open.createdAt)} · {open.kind === 'paper' ? 'Kâğıtta' : open.kind === 'free' ? 'Serbest' : 'Ekranda'}</p>
+                <b className="title-md">{artTitle(open)}</b>
+                <p className="muted">{formatDate(open.createdAt)} · {open.kind === 'paper' ? 'Kâğıtta' : open.kind === 'free' ? 'Serbest' : open.kind === 'style' ? 'Giydir' : 'Ekranda'}</p>
               </div>
               <button className="round-btn round-btn--light" aria-label="Kapat" onClick={() => setOpen(null)}><X /></button>
             </div>
@@ -119,4 +119,10 @@ export default function Journal() {
       {toast}
     </AppShell>
   );
+}
+
+/** Galeri kartının başlığı. */
+function artTitle(a: { lessonId?: string; kind: string }): string {
+  if (a.kind === 'style') return 'Kombinim';
+  return a.lessonId ? getLesson(a.lessonId)?.title ?? 'Çizim' : 'Serbest çizim';
 }

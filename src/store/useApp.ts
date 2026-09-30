@@ -10,6 +10,7 @@ import { milestoneStickers } from '../stickers';
 import { lessons as allLessons } from '../lessons';
 import { questDone, todayQuest, type ChallengeKind } from '../lib/daily';
 import { STATE_KEY } from '../lib/legacy';
+import type { DollState } from '../dressup/catalog';
 
 export type DrawMode = 'screen' | 'paper';
 /** Ekranda çizimde yardım seviyesi: iz sür → noktalar → kendin çiz (azalan iskele). */
@@ -62,6 +63,10 @@ export interface ProfileData {
   duelWins?: number;
   /** Biten haftalık liglerin sıralaması: hafta anahtarı → sıra. */
   leagues?: Record<string, number>;
+  /** Karakter giydirme: güncel karakter, kayıtlı kombinler, stil görevinin yapıldığı günler. */
+  doll?: DollState;
+  looks?: DollState[];
+  styled?: string[];
 }
 
 export interface Settings {
@@ -103,6 +108,11 @@ interface AppState {
   /** Düello sonucu (oyuncu cihazdaki bir profilse). */
   recordDuel(profileId: string, stars: number, won: boolean): string[];
   setOutfit(outfit?: string): void;
+  setDoll(d: DollState): void;
+  saveLook(d: DollState): void;
+  removeLook(index: number): void;
+  /** Günün stil görevi tamamlandı: günde bir kez 2 yıldız (lige sayılır). */
+  recordStyle(): string[];
   /** Biten haftanın lig sırasını kaydeder (kürsü çıkartmaları). */
   settleLeague(week: string, rank: number): string[];
   consumeNewStickers(): void;
@@ -256,6 +266,43 @@ export const useApp = create<AppState>()(
         const { activeId, data } = get();
         if (!activeId) return;
         set({ data: { ...data, [activeId]: { ...emptyData(), ...data[activeId], outfit } } });
+      },
+
+      setDoll(doll) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        set({ data: { ...data, [activeId]: { ...emptyData(), ...data[activeId], doll } } });
+      },
+
+      saveLook(look) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = { ...emptyData(), ...data[activeId] };
+        set({ data: { ...data, [activeId]: { ...d, looks: [look, ...(d.looks ?? [])].slice(0, 8) } } });
+      },
+
+      removeLook(index) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = { ...emptyData(), ...data[activeId] };
+        set({ data: { ...data, [activeId]: { ...d, looks: (d.looks ?? []).filter((_, i) => i !== index) } } });
+      },
+
+      recordStyle() {
+        const { activeId, data } = get();
+        if (!activeId) return [];
+        const d = { ...emptyData(), ...data[activeId] };
+        const k = dayKey();
+        if (d.styled?.includes(k)) return [];
+        const t = today(d);
+        const next: ProfileData = {
+          ...d,
+          styled: [...(d.styled ?? []), k],
+          days: { ...d.days, [k]: { ...t, drawings: t.drawings + 1, stars: (t.stars ?? 0) + 2 } },
+        };
+        const { data: withS, earned } = withStickers(next, []);
+        set({ data: { ...data, [activeId]: withS } });
+        return earned;
       },
 
       settleLeague(week, rank) {

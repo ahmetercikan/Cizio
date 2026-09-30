@@ -4,6 +4,7 @@
  */
 import { Check, Lock, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useToast } from '../components/ui';
 import { AppShell } from '../components/AppShell';
 import { Mascot } from '../components/Mascot';
 import { getOutfit, OUTFITS } from '../components/Outfits';
@@ -16,6 +17,7 @@ import { useApp, useProfileData } from '../store/useApp';
 export default function Adventure() {
   const data = useProfileData();
   const setOutfit = useApp((s) => s.setOutfit);
+  const [toast, showToast] = useToast();
   const chapters = chapterStates(data);
   const doneCount = chapters.filter((c) => c.complete).length;
   const here = chapters.findIndex((c) => !c.complete);
@@ -67,10 +69,9 @@ export default function Adventure() {
         {chapters.map((c, i) => {
           const path = getPath(c.path);
           const first = lessonsByPath(c.path)[0];
-          const state = c.complete ? 'done' : i === here ? 'here' : '';
-          return (
-            <li key={c.path} className={`adv-stop ${state} ${i % 2 ? 'adv-stop--right' : ''}`} style={{ ['--pc' as string]: path?.color }}>
-              <Link to={`/yol/${c.path}`} className="adv-stop__card rise" style={{ animationDelay: `${i * 0.04}s` }}>
+          const state = c.complete ? 'done' : i === here ? 'here' : c.open ? '' : 'locked';
+          const body = (
+            <>
                 <span className="adv-stop__art">
                   {first && <SketchImg lesson={first} mode={c.complete ? 'color' : 'graphite'} pad={14} />}
                   {state === 'here' && (
@@ -88,11 +89,24 @@ export default function Adventure() {
                   <Mascot size={34} outfit={c.outfit} />
                   {c.complete ? <Check size={14} strokeWidth={3} className="adv-stop__check" /> : <Lock size={12} className="adv-stop__check" />}
                 </span>
-              </Link>
+                {!c.open && <span className="adv-stop__lock" aria-hidden="true"><Lock size={26} /></span>}
+            </>
+          );
+          return (
+            <li key={c.path} className={`adv-stop ${state} ${i % 2 ? 'adv-stop--right' : ''}`} style={{ ['--pc' as string]: path?.color }}>
+              {c.open ? (
+                <Link to={`/yol/${c.path}`} className="adv-stop__card rise" style={{ animationDelay: `${i * 0.04}s` }}>{body}</Link>
+              ) : (
+                <button type="button" className="adv-stop__card rise" style={{ animationDelay: `${i * 0.04}s` }} aria-disabled="true"
+                  onClick={() => { sfx.soft(); showToast(`Önce ${chapters[i - 1].place} durağını bitir!`); }}>
+                  {body}
+                </button>
+              )}
             </li>
           );
         })}
       </ol>
+      {toast}
     </AppShell>
   );
 }
