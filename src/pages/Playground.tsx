@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Flame, Heart, MapPin, Play, Sparkles, Star, Target, Trophy } from 'lucide-react';
 import { AvatarArt } from '../components/Avatars';
-import { LevelBadge } from '../components/Rewards';
+import { ChestArt, LevelBadge, StarIcon } from '../components/Rewards';
+import { dailyDeal, walletOf } from '../lib/rewards';
 import { chapterStates } from '../lib/adventure';
 import { daysLeft, standings } from '../lib/league';
 import { useSettleLeague } from './League';
@@ -182,6 +183,14 @@ function FeatureRow() {
             ))}
           </span>
           <small>{rows[rank - 1].stars} yıldız · {left === 1 ? 'son gün' : `${left} gün kaldı`}</small>
+        </span>
+      </Link>
+      <Link to="/dukkan" className="feature-card feature-card--shop">
+        <span className="feature-card__art feature-card__art--shop"><ChestArt /></span>
+        <span className="feature-card__text">
+          <span className="feature-card__label"><StarIcon size={15} /> Yıldız Dükkanı</span>
+          <b>{walletOf(data)} yıldızın var</b>
+          <small>{dailyDeal(data, profile.id) ? 'Bugün bir nadir eşya yarı fiyatına!' : 'Sandık ve çerçeveler seni bekliyor'}</small>
         </span>
       </Link>
     </div>

@@ -16,12 +16,21 @@ import { addDays, dayKey } from './util';
 // ------------------------------------------------------------------------------------------------
 export const LEVEL_NAMES = ['Minik Kalem', 'Çırak Ressam', 'Renk Kâşifi', 'Çizgi Ustası', 'Renk Sihirbazı', 'Sanatçı', 'Büyük Ressam', 'Efsane Ressam'];
 
-/** Toplam yıldız (XP): kazanılan bütün yıldızlar; eski kayıtlar için en iyi ders yıldızları. */
+/** Günlük etkinliklere yazılmış (kazanılmış) yıldızların toplamı. */
+export const earnedSum = (d: ProfileData) => Object.values(d.days).reduce((a, x) => a + (x.stars ?? 0), 0);
+
+/**
+ * Deneyim (seviye için, hiç azalmaz). Store her yıldız kazanımında `xp`'yi artırır; alan henüz yoksa
+ * (eski kayıt) kazanılan yıldızlar ile en iyi ders yıldızlarından büyüğü başlangıç sayılır.
+ */
 export function xpOf(d: ProfileData): number {
-  const earned = Object.values(d.days).reduce((a, x) => a + (x.stars ?? 0), 0);
+  if (d.xp !== undefined) return d.xp;
   const best = Object.values(d.lessons).reduce((a, l) => a + l.bestStars, 0);
-  return Math.max(earned, best);
+  return Math.max(earnedSum(d), best);
 }
+
+/** Harcanabilir yıldızlar (Yıldız Dükkanı). Eski kayıtta başlangıç bakiyesi deneyim kadardır. */
+export const walletOf = (d: ProfileData) => d.wallet ?? xpOf(d);
 
 /** n. seviyeye ulaşmak için gereken toplam yıldız (1. seviye 0'dan başlar): 0, 8, 24, 48, 80, 120… */
 export const levelNeed = (n: number) => 4 * n * (n - 1);
@@ -72,7 +81,7 @@ export const ownsRare = (d: ProfileData, slot: string, id: string) => (d.owned ?
 // ------------------------------------------------------------------------------------------------
 // Sandıklar
 // ------------------------------------------------------------------------------------------------
-export type ChestReason = 'quest' | 'style' | 'level' | 'adventure' | 'league' | 'gift';
+export type ChestReason = 'quest' | 'style' | 'level' | 'adventure' | 'league' | 'gift' | 'shop';
 
 export const CHEST_TEXT: Record<ChestReason, string> = {
   quest: 'Günün görevini tamamladın!',
@@ -81,7 +90,37 @@ export const CHEST_TEXT: Record<ChestReason, string> = {
   adventure: 'Bir macera durağını bitirdin!',
   league: 'Haftalık ligde kürsüye çıktın!',
   gift: '7 gün üst üste geldin!',
+  shop: 'Yıldız Dükkanı\'ndan aldın!',
 };
+
+// ------------------------------------------------------------------------------------------------
+// Yıldız Dükkanı
+// ------------------------------------------------------------------------------------------------
+export const RARE_PRICE = 30;
+export const CHEST_PRICE = 20;
+
+export interface Frame {
+  id: string;
+  title: string;
+  price: number;
+}
+
+/** Avatar çerçeveleri (üst çubuktaki ve profil seçimindeki avatarın çevresi). */
+export const FRAMES: Frame[] = [
+  { id: 'altin', title: 'Altın çerçeve', price: 15 },
+  { id: 'cicek', title: 'Çiçekli çerçeve', price: 20 },
+  { id: 'yildiz', title: 'Yıldızlı çerçeve', price: 25 },
+  { id: 'gokkusagi', title: 'Gökkuşağı çerçeve', price: 35 },
+];
+
+/** Günün fırsatı: sahip olunmayan nadir eşyalardan biri, yarı fiyatına (her gün değişir). */
+export function dailyDeal(d: ProfileData, profileId: string, now = new Date()): { item: RareItem; price: number } | null {
+  const left = RARE.filter((r) => !(d.owned ?? []).includes(rareKey(r)));
+  if (!left.length) return null;
+  let h = 2166136261;
+  for (const ch of `${dayKey(now)}|${profileId}|firsat`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return { item: left[(h >>> 0) % left.length], price: Math.ceil(RARE_PRICE / 2) };
+}
 
 export type Reward = { kind: 'item'; item: RareItem } | { kind: 'stars'; n: number };
 

@@ -16,6 +16,7 @@ import Onboarding from './pages/Onboarding';
 import Parent from './pages/Parent';
 import Playground from './pages/Playground';
 import Profiles from './pages/Profiles';
+import Shop from './pages/Shop';
 import { useApp } from './store/useApp';
 
 /** Profil yoksa karşılama akışına yönlendirir. */
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/macera" element={<NeedsProfile><Adventure /></NeedsProfile>} />
         <Route path="/lig" element={<NeedsProfile><League /></NeedsProfile>} />
         <Route path="/giydir" element={<NeedsProfile><DressUp /></NeedsProfile>} />
+        <Route path="/dukkan" element={<NeedsProfile><Shop /></NeedsProfile>} />
         <Route path="/meydan/:kind" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/meydan/:kind/:lessonId" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/ebeveyn" element={<Parent />} />

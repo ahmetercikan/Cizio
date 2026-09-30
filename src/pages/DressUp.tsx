@@ -20,7 +20,8 @@ import { saveArtwork } from '../lib/gallery';
 import { sfx } from '../lib/sfx';
 import { dayKey, uid } from '../lib/util';
 import { useApp, useProfile, useProfileData } from '../store/useApp';
-import { ownsRare } from '../lib/rewards';
+import { ownsRare, RARE } from '../lib/rewards';
+import { BuyRareModal } from './Shop';
 import { ART_PREFIX, useArtPet } from '../dressup/artPets';
 import { getLesson } from '../lessons';
 import { listArtworks, type Artwork } from '../lib/gallery';
@@ -184,6 +185,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
   const [toast, showToast] = useToast();
   const [shake, setShake] = useState(0);
   const [flash, setFlash] = useState(false);
+  const [buying, setBuying] = useState<(typeof RARE)[number] | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   const theme = todayTheme(profile.id);
@@ -314,8 +316,9 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
                 <button key={it.id || 'none'} type="button" className={`item-btn ${on ? 'on' : ''} ${it.rare ? 'rare' : ''} ${locked ? 'locked' : ''}`} title={it.title}
                   onClick={() => {
                     if (locked) {
-                      sfx.soft();
-                      showToast('Bu nadir eşya hazine sandığından çıkar! Görevleri yap, sandık kazan.');
+                      const r = RARE.find((x) => x.slot === cat.key && x.id === it.id);
+                      sfx.pop();
+                      if (r) setBuying(r);
                       return;
                     }
                     if (cat.wear && it.id) sfx.wear();
@@ -323,7 +326,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
                     update(wear(d, cat.key, it.id));
                   }}>
                   <Doll d={preview} bg={cat.id === 'fon'} viewBox={REGIONS[cat.region]} className="item-btn__art" title={it.title} />
-                  <span>{locked ? 'Sandıktan çıkar' : it.title}</span>
+                  <span>{locked ? 'Kilitli' : it.title}</span>
                   {it.rare && <span className="item-btn__rare" aria-hidden="true">{locked ? <LockMark /> : <SparkMark />}</span>}
                 </button>
               );
@@ -368,6 +371,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
           )}
         </section>
       </div>
+      {buying && <BuyRareModal item={buying} onClose={() => setBuying(null)} />}
       {toast}
     </AppShell>
   );

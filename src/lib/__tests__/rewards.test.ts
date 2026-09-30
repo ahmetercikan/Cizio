@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BACKS, BGS, DRESSES, HATS, PETS, SHOES, randomOutfit, PRESETS } from '../../dressup/catalog';
 import { lessonsByPath } from '../../lessons';
 import { emptyData, type ProfileData } from '../../store/useApp';
-import { chestsEarned, giftEligible, giftStatus, levelNeed, levelOf, pickReward, RARE, rareKey, xpOf } from '../rewards';
+import { chestsEarned, dailyDeal, giftEligible, giftStatus, levelNeed, walletOf, RARE_PRICE, levelOf, pickReward, RARE, rareKey, xpOf } from '../rewards';
 import { addDays, dayKey } from '../util';
 
 const withStars = (n: number): ProfileData => ({ ...emptyData(), days: { '2026-09-01': { lessons: 1, minutes: 1, drawings: 1, stars: n } } });
@@ -94,5 +94,28 @@ describe('günün hediyesi penceresi', () => {
   it('ertesi günden itibaren günde bir kez çıkar', () => {
     expect(giftEligible(yesterday, undefined, now)).toBe(true);
     expect(giftEligible(yesterday, { last: dayKey(now), streak: 2 }, now)).toBe(false);
+  });
+});
+
+describe('yıldız cüzdanı ve dükkan', () => {
+  it('eski kayıtta cüzdan deneyim kadar başlar; alanlar varsa onlar kullanılır', () => {
+    const old = withStars(12);
+    expect(xpOf(old)).toBe(12);
+    expect(walletOf(old)).toBe(12);
+    const now: ProfileData = { ...withStars(12), xp: 40, wallet: 7 };
+    expect(xpOf(now)).toBe(40);
+    expect(walletOf(now)).toBe(7);
+  });
+
+  it('günün fırsatı gün boyu aynı, yarı fiyat ve sahip olunanı göstermez', () => {
+    const d = emptyData();
+    const day = new Date(2026, 8, 30, 9);
+    const a = dailyDeal(d, 'p1', day)!;
+    expect(dailyDeal(d, 'p1', new Date(2026, 8, 30, 20))).toEqual(a);
+    expect(a.price).toBe(Math.ceil(RARE_PRICE / 2));
+    d.owned = [rareKey(a.item)];
+    expect(rareKey(dailyDeal(d, 'p1', day)!.item)).not.toBe(rareKey(a.item));
+    d.owned = RARE.map(rareKey);
+    expect(dailyDeal(d, 'p1', day)).toBeNull();
   });
 });

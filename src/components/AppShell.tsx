@@ -1,11 +1,11 @@
 import { Brush, Images, LibraryBig, Settings, Shirt, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { useProfile } from '../store/useApp';
+import { useApp, useProfile } from '../store/useApp';
 import { AvatarArt } from './Avatars';
 import { Doodles } from './Doodles';
 import { Mascot } from './Mascot';
-import { ChestButton, RewardsHost } from './Rewards';
+import { ChestButton, RewardsHost, StarCounter } from './Rewards';
 
 const ITEMS = [
   { to: '/', label: 'Bugün', Icon: Sun },
@@ -18,6 +18,7 @@ const ITEMS = [
 /** Uygulama kabuğu: üstte marka çubuğu, altta yüzen sekme çubuğu, zeminde boya lekeleri. */
 export function AppShell({ children, flow = 0 }: { children: ReactNode; flow?: number }) {
   const profile = useProfile();
+  const frame = useApp((s) => (s.activeId ? s.data[s.activeId]?.frame : undefined));
   return (
     <div className="bg app">
       <Doodles variant={flow} />
@@ -28,10 +29,11 @@ export function AppShell({ children, flow = 0 }: { children: ReactNode; flow?: n
         </Link>
         <span className="appbar__spacer" />
         <ChestButton />
+        <StarCounter />
         <Link to="/ebeveyn" className="round-btn round-btn--soft" aria-label="Ebeveyn bölümü" title="Ebeveyn bölümü">
           <Settings size={22} />
         </Link>
-        <Link to="/profiller" className="appbar__avatar" aria-label="Profil değiştir">
+        <Link to="/profiller" className={`appbar__avatar ${frame ? `frame frame--${frame}` : ''}`} aria-label="Profil değiştir">
           {profile && <AvatarArt id={profile.avatar} size={46} />}
         </Link>
       </header>

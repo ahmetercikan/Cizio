@@ -11,7 +11,7 @@ import { lessons as allLessons } from '../lessons';
 import { questDone, todayQuest, type ChallengeKind } from '../lib/daily';
 import { STATE_KEY } from '../lib/legacy';
 import type { DollState } from '../dressup/catalog';
-import { chestsEarned, giftStatus, GIFT_DAYS, pickReward, rareKey, type ChestReason, type GiftState, type Reward } from '../lib/rewards';
+import { chestsEarned, earnedSum, giftStatus, GIFT_DAYS, pickReward, rareKey, walletOf, xpOf, type ChestReason, type GiftState, type Reward } from '../lib/rewards';
 
 export type DrawMode = 'screen' | 'paper';
 /** Ekranda çizimde yardım seviyesi: iz sür → noktalar → kendin çiz (azalan iskele). */
@@ -74,6 +74,12 @@ export interface ProfileData {
   owned?: string[];
   /** Günün hediyesi takvimi. */
   gift?: GiftState;
+  /** Deneyim (seviye) ve harcanabilir yıldızlar; bkz. lib/rewards xpOf / walletOf. */
+  xp?: number;
+  wallet?: number;
+  /** Dükkandan alınan avatar çerçeveleri ve takılı olan. */
+  frames?: string[];
+  frame?: string;
 }
 
 export interface Settings {
@@ -124,6 +130,11 @@ interface AppState {
   openChest(): { reason: ChestReason; reward: Reward } | null;
   /** Günün hediyesini alır; bugün alındıysa null. */
   claimGift(): { streak: number; stars: number; chest: boolean } | null;
+  /** Yıldız Dükkanı: bakiye yetmezse false. */
+  buyRare(key: string, price: number): boolean;
+  buyChest(price: number): boolean;
+  buyFrame(id: string, price: number): boolean;
+  setFrame(id?: string): void;
   /** Biten haftanın lig sırasını kaydeder (kürsü çıkartmaları). */
   settleLeague(week: string, rank: number): string[];
   consumeNewStickers(): void;
@@ -164,10 +175,23 @@ function withStickers(d: ProfileData, extra: string[]): { data: ProfileData; ear
   };
 }
 
-/** Güncellemede kazanılan sandıkları (görev, seviye, macera, lig...) bekleyenlere ekler. */
+/**
+ * Her yıldız/görev güncellemesinin son adımı: kazanılan yıldızları deneyime ve cüzdana ekler, kazanılan
+ * sandıkları (görev, seviye, macera, lig...) bekleyenlere ekler.
+ */
 function withChests(prev: ProfileData, next: ProfileData): ProfileData {
-  const won = chestsEarned(prev, next);
-  return won.length ? { ...next, chests: [...(next.chests ?? []), ...won] } : next;
+  const gained = earnedSum(next) - earnedSum(prev);
+  let out = next;
+  if (gained > 0) out = { ...out, xp: xpOf(prev) + gained, wallet: walletOf(prev) + gained };
+  const won = chestsEarned(prev, out);
+  return won.length ? { ...out, chests: [...(out.chests ?? []), ...won] } : out;
+}
+
+/** Cüzdandan harcar; yetmezse null. */
+function spend(d: ProfileData, price: number): ProfileData | null {
+  const w = walletOf(d);
+  if (w < price) return null;
+  return { ...d, xp: xpOf(d), wallet: w - price };
 }
 
 export const useApp = create<AppState>()(
@@ -371,6 +395,43 @@ export const useApp = create<AppState>()(
         };
         set({ data: { ...data, [activeId]: withChests(d, next) } });
         return { streak: st.streak, stars, chest };
+      },
+
+      buyRare(key, price) {
+        const { activeId, data } = get();
+        if (!activeId) return false;
+        const d = { ...emptyData(), ...data[activeId] };
+        if ((d.owned ?? []).includes(key)) return false;
+        const paid = spend(d, price);
+        if (!paid) return false;
+        set({ data: { ...data, [activeId]: { ...paid, owned: [...(d.owned ?? []), key] } } });
+        return true;
+      },
+
+      buyChest(price) {
+        const { activeId, data } = get();
+        if (!activeId) return false;
+        const paid = spend({ ...emptyData(), ...data[activeId] }, price);
+        if (!paid) return false;
+        set({ data: { ...data, [activeId]: { ...paid, chests: [...(paid.chests ?? []), 'shop'] } } });
+        return true;
+      },
+
+      buyFrame(id, price) {
+        const { activeId, data } = get();
+        if (!activeId) return false;
+        const d = { ...emptyData(), ...data[activeId] };
+        if ((d.frames ?? []).includes(id)) return false;
+        const paid = spend(d, price);
+        if (!paid) return false;
+        set({ data: { ...data, [activeId]: { ...paid, frames: [...(d.frames ?? []), id], frame: id } } });
+        return true;
+      },
+
+      setFrame(id) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        set({ data: { ...data, [activeId]: { ...emptyData(), ...data[activeId], frame: id } } });
       },
 
       consumeNewStickers() {

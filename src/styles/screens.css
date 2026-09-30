@@ -2015,7 +2015,7 @@
 .challenge-card__record { margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--sun-soft); color: #9a6a00; font-size: 12px; font-weight: 800; }
 
 /* ---- Bugün: macera ve lig kartları ---- */
-.feature-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.feature-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; margin-top: 16px; }
 
 @media (max-width: 700px) {
   .feature-row { grid-template-columns: 1fr; }
@@ -3002,3 +3002,111 @@
 .my-pet__art { display: grid; place-items: center; background: repeating-conic-gradient(#f3efe6 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
 .my-pet__art img { max-width: 92%; max-height: 92%; object-fit: contain; }
 .my-pet__wait { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--line-2); border-top-color: var(--coral); animation: spin 0.9s linear infinite; }
+
+/* =====================================================================
+   Yıldız cüzdanı ve Yıldız Dükkanı
+   ===================================================================== */
+@keyframes star-bump { 0% { transform: scale(1) rotate(0); } 30% { transform: scale(1.6) rotate(-20deg); } 60% { transform: scale(0.9) rotate(10deg); } 100% { transform: scale(1) rotate(0); } }
+
+.star-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 46px;
+  padding: 0 14px 0 10px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--line-2);
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--display);
+  font-size: 20px;
+}
+
+.star-counter b { font-weight: 600; }
+.star-counter__icon { display: grid; }
+.star-counter__icon.bump { animation: star-bump 0.7s ease-out; }
+
+.wallet-gain { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--sun-soft); font-weight: 700; }
+.wallet-gain b { font-family: var(--display); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
+.wallet-gain em { font-style: normal; font-weight: 800; color: var(--green); }
+
+.price { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; }
+.price s { color: var(--muted); font-weight: 700; margin-right: 2px; }
+.price b { font-family: var(--display); font-weight: 600; font-size: 18px; }
+.pill .price { margin-left: 6px; padding: 2px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.55); }
+
+.buy__preview { width: 170px; height: 170px; }
+.buy__wallet { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--muted); }
+.buy__wallet b { color: var(--ink); font-family: var(--display); font-size: 18px; }
+.buy__need { margin: 0; width: 100%; padding: 10px 14px; border-radius: 14px; background: var(--coral-soft); font-weight: 800; color: var(--coral-dark); }
+
+.shop-wallet { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 999px; background: #fff; box-shadow: 0 3px 0 var(--line-2); font-family: var(--display); font-size: 26px; }
+.shop-wallet b { font-weight: 600; }
+.shop-wallet span { font-family: var(--font); font-size: 15px; font-weight: 800; color: var(--muted); }
+
+.shop-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+
+.shop-deal, .shop-chest {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #fff7d6, #ffffff 70%);
+  border: 3px solid var(--sun);
+  box-shadow: 0 4px 0 var(--sun-dark);
+  color: var(--ink);
+  text-align: left;
+}
+
+.shop-chest { background: linear-gradient(135deg, #ffe9d6, #ffffff 70%); border-color: #e9a25b; box-shadow: 0 4px 0 #c9793b; }
+.shop-chest .pill { margin-left: auto; }
+.shop-deal__tag { position: absolute; top: -12px; left: 16px; padding: 3px 12px; border-radius: 999px; background: var(--coral); color: #fff; font-weight: 800; font-size: 12px; }
+.shop-deal__art { flex: none; width: 96px; height: 96px; border-radius: 18px; overflow: hidden; background: #fff; border: 3px solid var(--sun); }
+.shop-deal__art svg, .shop-item__art svg { width: 100%; height: 100%; display: block; }
+.shop-chest__art { flex: none; width: 96px; height: 86px; }
+.shop-deal__text { display: grid; gap: 3px; }
+.shop-deal__text b { font-family: var(--display); font-size: 20px; font-weight: 600; }
+.shop-deal__text small { color: var(--muted); font-weight: 700; }
+
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+
+.shop-item {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 8px 12px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 3px solid transparent;
+  box-shadow: var(--shadow-card), 0 0 0 2px var(--sun);
+  color: var(--ink);
+  text-align: center;
+  transition: transform 0.15s;
+}
+
+.shop-item:hover { transform: translateY(-3px); }
+.shop-item b { font-size: 14px; font-weight: 800; }
+.shop-item__art { width: 100%; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: var(--cream); }
+.shop-item.owned { box-shadow: var(--shadow-card), 0 0 0 2px var(--teal); }
+.shop-item.on { border-color: var(--coral); }
+.shop-item__owned { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; background: var(--teal-soft); color: var(--teal-dark); font-weight: 800; font-size: 13px; }
+.shop-item__frame { display: grid; place-items: center; width: 90px; height: 90px; margin: 4px 0; border-radius: 50%; }
+
+.shop-how { margin: 26px 0 10px; padding: 14px 18px; border-radius: var(--radius); background: rgba(255, 255, 255, 0.6); border: 2px dashed var(--line-2); }
+.shop-how p { margin: 4px 0 0; color: var(--muted); font-weight: 700; }
+
+.feature-card__art--shop { background: #ffe9d6; }
+.feature-card__art--shop svg { width: 70px; height: 62px; }
+
+/* Avatar çerçeveleri */
+.frame { position: relative; border-radius: 50%; padding: 4px; }
+.frame--altin { background: conic-gradient(#ffd966, #e8a200, #fff1c7, #e8a200, #ffd966); }
+.frame--gokkusagi { background: conic-gradient(#ff6b4a, #ffc83d, #2bb673, #5b8def, #9b6bff, #ff6b4a); }
+.frame--yildiz { background: #1d3557; box-shadow: 0 0 0 2px #ffc83d; }
+.frame--yildiz::after { content: ''; position: absolute; right: -4px; top: -4px; width: 18px; height: 18px; background: #ffc83d; clip-path: polygon(50% 0, 61% 36%, 100% 38%, 69% 60%, 80% 100%, 50% 76%, 20% 100%, 31% 60%, 0 38%, 39% 36%); }
+.frame--cicek { background: repeating-conic-gradient(#ff8fb1 0 30deg, #fff 30deg 60deg); }
+.appbar__avatar.frame { padding: 3px; }

@@ -6,11 +6,11 @@
  * bugün oluşturulduysa hiç), sonra bekleyen sandıklar.
  */
 import confetti from 'canvas-confetti';
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { PRESETS, type DollState } from '../dressup/catalog';
 import { Doll, REGIONS } from '../dressup/Doll';
-import { CHEST_TEXT, GIFT_DAYS, giftEligible, giftStatus, levelOf, xpOf, type ChestReason, type Reward } from '../lib/rewards';
+import { CHEST_TEXT, GIFT_DAYS, giftEligible, giftStatus, levelOf, walletOf, xpOf, type ChestReason, type RareItem, type Reward } from '../lib/rewards';
 import { sfx } from '../lib/sfx';
 import { dayKey } from '../lib/util';
 import { useApp, useProfile, useProfileData } from '../store/useApp';
@@ -128,14 +128,69 @@ function LevelProgress({ fromXp, toXp }: { fromXp: number; toXp: number }) {
 // ------------------------------------------------------------------------------------------------
 const SLOT_REGION: Record<string, string> = { back: 'back', dress: 'dress', hat: 'hat', pet: 'pet', bg: 'full', shoes: 'shoes' };
 
-function RewardPreview({ reward, base }: { reward: Reward; base: DollState }) {
-  if (reward.kind === 'stars') return <StarBurst n={reward.n + 2} />;
-  const { slot, id } = reward.item;
-  const d = { ...base, [slot]: id } as DollState;
+/** Nadir eşyayı çocuğun kendi karakterinin üstünde gösterir (dükkan, sandık, Giydir). */
+export function RarePreview({ item, className = 'reward__item' }: { item: RareItem; className?: string }) {
+  const data = useProfileData();
+  const base = data.doll ?? PRESETS[0];
+  const d = { ...base, [item.slot]: item.id } as DollState;
   return (
-    <div className="reward__item">
-      <Doll d={d} bg={slot === 'bg'} viewBox={REGIONS[SLOT_REGION[slot]]} />
+    <div className={className}>
+      <Doll d={d} bg={item.slot === 'bg'} viewBox={REGIONS[SLOT_REGION[item.slot]]} />
     </div>
+  );
+}
+
+function RewardPreview({ reward }: { reward: Reward; base: DollState }) {
+  if (reward.kind === 'stars') return <StarBurst n={reward.n + 2} />;
+  return <RarePreview item={reward.item} />;
+}
+
+/** Cüzdan artışı: eski bakiyeden yeniye sayarak yükselir. */
+function WalletGain({ from, to }: { from: number; to: number }) {
+  const [v, setV] = useState(from);
+  useEffect(() => {
+    if (to <= from) return setV(to);
+    let raf = 0;
+    const t0 = performance.now() + 450;
+    const tick = (now: number) => {
+      const k = Math.max(0, Math.min(1, (now - t0) / 900));
+      setV(Math.round(from + (to - from) * k));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [from, to]);
+  return (
+    <div className="wallet-gain">
+      <StarIcon size={26} />
+      <span>Yıldız cüzdanın: <b>{v}</b></span>
+      {to > from && <em>+{to - from}</em>}
+    </div>
+  );
+}
+
+export function StarIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path d="M12,2 l3,6.5 l7,1 l-5,4.8 l1.3,7 l-6.3,-3.4 l-6.3,3.4 l1.3,-7 l-5,-4.8 l7,-1 Z" fill="#ffc83d" stroke="#3a2b27" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Üst çubuktaki yıldız cüzdanı: artınca zıplar; dokununca Yıldız Dükkanı. */
+export function StarCounter() {
+  const wallet = useApp((s) => (s.activeId && s.data[s.activeId] ? walletOf(s.data[s.activeId]) : 0));
+  const prev = useRef(wallet);
+  const [bump, setBump] = useState(0);
+  useEffect(() => {
+    if (wallet > prev.current) setBump((b) => b + 1);
+    prev.current = wallet;
+  }, [wallet]);
+  return (
+    <Link to="/dukkan" className="star-counter" aria-label={`${wallet} yıldız, Yıldız Dükkanı`} title="Yıldız Dükkanı">
+      <span key={bump} className={bump ? 'star-counter__icon bump' : 'star-counter__icon'}><StarIcon size={26} /></span>
+      <b>{wallet}</b>
+    </Link>
   );
 }
 
@@ -143,7 +198,7 @@ export function ChestModal({ onClose }: { onClose: () => void }) {
   const nav = useNavigate();
   const data = useProfileData();
   const openChest = useApp((s) => s.openChest);
-  const [result, setResult] = useState<{ reason: ChestReason; reward: Reward; fromXp: number } | null>(null);
+  const [result, setResult] = useState<{ reason: ChestReason; reward: Reward; fromXp: number; fromWallet: number } | null>(null);
   const [opening, setOpening] = useState(false);
   const pending = data.chests?.length ?? 0;
   const reason = result?.reason ?? data.chests?.[0];
@@ -155,11 +210,12 @@ export function ChestModal({ onClose }: { onClose: () => void }) {
     setOpening(true);
     sfx.tap();
     const fromXp = xpOf(data);
+    const fromWallet = walletOf(data);
     window.setTimeout(() => {
       const r = openChest();
       setOpening(false);
       if (!r) return onClose();
-      setResult({ ...r, fromXp });
+      setResult({ ...r, fromXp, fromWallet });
       sfx.fanfare();
       void confetti({ particleCount: 160, spread: 110, origin: { y: 0.42 }, colors: ['#ffc83d', '#ff6b4a', '#14a89a', '#9b6bff', '#ffffff'], disableForReducedMotion: true });
     }, 750);
@@ -190,6 +246,7 @@ export function ChestModal({ onClose }: { onClose: () => void }) {
               {result.reward.kind === 'item' ? `Nadir eşya: ${result.reward.item.title}!` : `${result.reward.n + 2} yıldız kazandın!`}
             </h2>
             {result.reward.kind === 'item' && <p className="sub">Giydir'de karakterine hemen giydirebilirsin. Üstelik 2 yıldız da senin!</p>}
+            <WalletGain from={result.fromWallet} to={walletOf(data)} />
             <LevelProgress fromXp={result.fromXp} toXp={xpOf(data)} />
             <div className="reward__actions">
               {result.reward.kind === 'item' && (
@@ -241,7 +298,7 @@ export function DailyGiftModal({ onDone }: { onDone: (openChest: boolean) => voi
   const claim = useApp((s) => s.claimGift);
   const st = giftStatus(data.gift);
   const [phase, setPhase] = useState<'closed' | 'opening' | 'opened'>('closed');
-  const [result, setResult] = useState<{ streak: number; stars: number; chest: boolean; fromXp: number } | null>(null);
+  const [result, setResult] = useState<{ streak: number; stars: number; chest: boolean; fromXp: number; fromWallet: number } | null>(null);
   const streak = result?.streak ?? st.streak;
 
   const open = () => {
@@ -249,10 +306,11 @@ export function DailyGiftModal({ onDone }: { onDone: (openChest: boolean) => voi
     setPhase('opening');
     sfx.tap();
     const fromXp = xpOf(data);
+    const fromWallet = walletOf(data);
     window.setTimeout(() => {
       const r = claim();
       if (!r) return onDone(false);
-      setResult({ ...r, fromXp });
+      setResult({ ...r, fromXp, fromWallet });
       setPhase('opened');
       sfx.success();
       void confetti({ particleCount: 110, spread: 90, origin: { y: 0.45 }, colors: ['#ffc83d', '#ff6b4a', '#ff8fb1', '#14a89a'], disableForReducedMotion: true });
@@ -282,6 +340,7 @@ export function DailyGiftModal({ onDone }: { onDone: (openChest: boolean) => voi
               <Particles />
               <div className="reward__prize"><StarBurst n={result!.stars} /></div>
             </div>
+            <WalletGain from={result!.fromWallet} to={walletOf(data)} />
             <LevelProgress fromXp={result!.fromXp} toXp={xpOf(data)} />
             <p className="sub">{result!.chest ? 'Bir hazine sandığı kazandın, hadi aç!' : `Yarın yine gel! ${7 - result!.streak} gün sonra hazine sandığı.`}</p>
             <div className="reward__actions">
