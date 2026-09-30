@@ -933,42 +933,52 @@
 
 /* Orta kontroller */
 
-.center-ctrl {
-  position: absolute;
-  z-index: 7;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+/* Oynatma düğmeleri (alt çubukta, zaman çubuğunun solunda) */
+.play-ctrl {
   display: flex;
   align-items: center;
-  gap: 32px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
+  gap: 8px;
+  flex: none;
+  padding: 6px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 0 rgba(13, 128, 116, 0.25), 0 10px 24px rgba(13, 80, 70, 0.15);
 }
 
-.center-ctrl.show { opacity: 1; pointer-events: auto; }
-
-.ctrl-main {
-  width: 92px;
-  height: 92px;
+.play-ctrl__main {
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: var(--coral);
   color: #fff;
-  box-shadow: 0 6px 0 var(--coral-dark), 0 14px 30px rgba(255, 107, 74, 0.4);
+  box-shadow: 0 4px 0 var(--coral-dark);
+  transition: transform 0.12s;
 }
 
-.ctrl-ghost {
-  width: 62px;
-  height: 62px;
+.play-ctrl__main:active { transform: translateY(2px) scale(0.96); box-shadow: 0 2px 0 var(--coral-dark); }
+/* Duraklatılınca "devam et" düğmesi hafifçe nabız atar */
+.play-ctrl__main.is-paused { animation: pulse 1.4s ease-in-out infinite; }
+
+.play-ctrl__side {
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #fff;
   color: var(--teal-dark);
-  box-shadow: 0 4px 0 rgba(13, 128, 116, 0.3);
+  background: var(--teal-soft);
+}
+
+.play-ctrl__side:active { transform: scale(0.94); }
+
+@media (max-width: 520px) {
+  .play-ctrl { gap: 4px; padding: 4px; }
+  .play-ctrl__main { width: 48px; height: 48px; }
+  .play-ctrl__side { width: 38px; height: 38px; }
+  /* Dar ekranda oynatma düğmeleri varken süre yazıları sığmıyor */
+  .player__bottom:has(.play-ctrl) .timebar__time { display: none; }
 }
 
 /* Alt çubuk */

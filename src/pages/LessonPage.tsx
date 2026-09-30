@@ -90,7 +90,6 @@ function Player({ lesson }: { lesson: Lesson }) {
   const [cur, setCur] = useState(0);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [controls, setControls] = useState(true);
   const [gear, setGear] = useState(false);
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [stepStars, setStepStars] = useState<number[]>([]);
@@ -103,7 +102,6 @@ function Player({ lesson }: { lesson: Lesson }) {
   const tRef = useRef(0);
   const curRef = useRef(0);
   const startedAt = useRef(Date.now());
-  const hideTimer = useRef<number>();
   const doc = useMemo(() => new DrawingDoc(), []);
   const ts = useToolState();
   const photo = usePhoto(lesson);
@@ -134,7 +132,6 @@ function Player({ lesson }: { lesson: Lesson }) {
       setT(nt);
       if (nt >= end) {
         setPlaying(false);
-        setControls(true);
         setPhase('turn');
         sfx.pop();
         if (curRef.current === 0 && !isSpeaking())
@@ -159,14 +156,7 @@ function Player({ lesson }: { lesson: Lesson }) {
     setResult(null);
     setPhase('watch');
     setPlaying(true);
-    bumpControls();
     if (speakIt) say(play.steps[i].say);
-  };
-
-  const bumpControls = () => {
-    setControls(true);
-    window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => setControls(false), 2500);
   };
 
   const start = () => {
@@ -184,10 +174,8 @@ function Player({ lesson }: { lesson: Lesson }) {
     if (playing) {
       setPlaying(false);
       stopSpeaking();
-      setControls(true);
     } else {
       setPlaying(true);
-      bumpControls();
     }
   };
 
@@ -284,7 +272,7 @@ function Player({ lesson }: { lesson: Lesson }) {
   const showPlayer = phase === 'watch' || phase === 'turn' || phase === 'feedback';
 
   return (
-    <div className={`player desk ${settings.leftHanded ? 'player--left' : ''} ${phase === 'intro' ? 'player--intro' : ''} ${mode === 'screen' && (phase === 'turn' || phase === 'color') ? 'player--tools' : ''} ${phase === 'color' ? 'player--palette' : ''}`} onPointerDown={() => phase === 'watch' && bumpControls()}>
+    <div className={`player desk ${settings.leftHanded ? 'player--left' : ''} ${phase === 'intro' ? 'player--intro' : ''} ${mode === 'screen' && (phase === 'turn' || phase === 'color') ? 'player--tools' : ''} ${phase === 'color' ? 'player--palette' : ''}`}>
       {/* üst çubuk */}
       <header className="player__top">
         <button className="round-btn round-btn--light" aria-label="Dersten çık" onClick={() => (phase === 'intro' || phase === 'done' ? exit() : setLeave(true))}>
@@ -362,17 +350,6 @@ function Player({ lesson }: { lesson: Lesson }) {
         </div>
       )}
 
-      {/* ortadaki oynatma düğmeleri */}
-      {phase === 'watch' && (
-        <div className={`center-ctrl ${controls || !playing ? 'show' : ''}`}>
-          <button className="ctrl-ghost" aria-label="Adımı baştan izle" onClick={replayStep}><RotateCcw size={30} /></button>
-          <button className="ctrl-main" aria-label={playing ? 'Duraklat' : 'Oynat'} onClick={togglePlay}>
-            {playing ? <Pause size={38} fill="currentColor" /> : <Play size={38} fill="currentColor" />}
-          </button>
-          <button className="ctrl-ghost" aria-label="Adımı atla" onClick={skipToTurn}><RotateCw size={30} /></button>
-        </div>
-      )}
-
       {/* çizim araçları */}
       {drawingEnabled && (
         <div className="tools-float">
@@ -388,6 +365,16 @@ function Player({ lesson }: { lesson: Lesson }) {
       {/* alt: zaman çubuğu + eylem */}
       {showPlayer && (
         <footer className="player__bottom">
+          {/* Oynatma düğmeleri alt çubukta: izlerken hiçbir şey çizimin üstüne gelmesin */}
+          {phase === 'watch' && (
+            <div className="play-ctrl">
+              <button className="play-ctrl__side" aria-label="Adımı baştan izle" onClick={replayStep}><RotateCcw size={22} /></button>
+              <button className={`play-ctrl__main ${playing ? '' : 'is-paused'}`} aria-label={playing ? 'Duraklat' : 'Oynat'} onClick={togglePlay}>
+                {playing ? <Pause size={26} fill="currentColor" /> : <Play size={26} fill="currentColor" />}
+              </button>
+              <button className="play-ctrl__side" aria-label="Adımı atla" onClick={skipToTurn}><RotateCw size={22} /></button>
+            </div>
+          )}
           <TimeBar tl={tl} t={t} cur={cur} limitToStep={mode === 'screen'}
             onSeek={(nt) => {
               seek(nt);
