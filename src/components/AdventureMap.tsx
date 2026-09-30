@@ -1,7 +1,8 @@
 /**
  * Çizio'nun maceraları: el çizimi hazine haritası. Kıvrımlı toprak yol duraklar arasında dönemeçlerle
  * ilerler; tamamlanan kısım boyanır. Her durağın çevresinde kendi temasına uygun süsler, yolun başında
- * tabela, sonunda hazine sandığı. Koordinatlar 400 genişlikte bir SVG'de; duraklar yüzde ile yerleşir.
+ * tabela, sonunda hazine sandığı. Harita ekranı boydan boya kaplar: piksel ölçüsünde çizilir, yol ortada
+ * kıvrılır, kenarlar ağaç, çalı ve taşlarla dolar.
  */
 import { Check, Lock } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -12,30 +13,10 @@ import { Mascot } from './Mascot';
 import { getOutfit } from './Outfits';
 import { ChestArt } from './Rewards';
 import { SketchImg } from './Sketch';
+import { useSize } from './ui';
 
 const INK = '#3a2b27';
 const s = { stroke: INK, strokeWidth: 2.4, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
-
-const W = 400;
-const TOP = 120;
-const STEP = 190;
-/** Yolun dönemeçleri: duraklar sırayla sağa sola kıvrılır. */
-const XS = [110, 292, 120, 296, 104, 286, 126, 300, 150];
-
-const point = (i: number) => ({ x: XS[i % XS.length], y: TOP + i * STEP });
-
-function roadPath(n: number): string {
-  const p0 = point(0);
-  let d = `M${W / 2},30 C${W / 2},70 ${p0.x},${p0.y - 70} ${p0.x},${p0.y}`;
-  for (let i = 1; i < n; i++) {
-    const a = point(i - 1);
-    const b = point(i);
-    d += ` C${a.x},${a.y + STEP * 0.55} ${b.x},${b.y - STEP * 0.55} ${b.x},${b.y}`;
-  }
-  const last = point(n - 1);
-  d += ` C${last.x},${last.y + 90} ${W / 2},${last.y + 80} ${W / 2},${last.y + 150}`;
-  return d;
-}
 
 // ------------------------------------------------------------------------------------------------
 // Süsler (her durağın teması)
@@ -179,111 +160,177 @@ const DECOR: ((x: number, y: number) => ReactNode)[] = [
 ];
 
 // ------------------------------------------------------------------------------------------------
-// Harita
+// Sahne (kenarları dolduran ağaçlar, çalılar, taşlar, gölcük)
 // ------------------------------------------------------------------------------------------------
+const roundTree = (x: number, y: number, k = 1) => (
+  <g key={`r${x}-${y}`} transform={`translate(${x} ${y}) scale(${k})`}>
+    <rect x="-4" y="6" width="8" height="18" rx="3" fill="#8c5a2b" />
+    <circle cx="0" cy="-8" r="20" fill="#6cc46a" {...s} />
+    <circle cx="-8" cy="-12" r="5" fill="#8fd38a" />
+  </g>
+);
+const rock = (x: number, y: number) => (
+  <g key={`k${x}-${y}`}>
+    <path d={`M${x - 16},${y + 8} C${x - 16},${y - 8} ${x - 4},${y - 12} ${x + 6},${y - 8} C${x + 16},${y - 4} ${x + 18},${y + 8} ${x + 12},${y + 8} Z`} fill="#c9c2b8" {...s} strokeWidth={2} />
+  </g>
+);
+const pond = (x: number, y: number) => (
+  <g key={`o${x}-${y}`}>
+    <ellipse cx={x} cy={y} rx="44" ry="18" fill="#8fd3f0" stroke="#6cbfe0" strokeWidth="3" />
+    <path d={`M${x - 20},${y} q6,-4 12,0 M${x + 6},${y + 6} q6,-4 12,0`} fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+  </g>
+);
+
+/** Tekrarlanabilir sahte rastgele (her açılışta aynı harita). */
+const rnd = (i: number, k: number) => {
+  const v = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+  return v - Math.floor(v);
+};
+
+// ------------------------------------------------------------------------------------------------
+// Harita: ölçülen genişliğe göre çizilir (büyümez; geniş ekranda kenarlar sahneyle dolar)
+// ------------------------------------------------------------------------------------------------
+const TOP = 170;
+const STEP = 200;
+/** Dönemeçler: durak sırayla ortanın sağına/soluna (genliğe oranla). */
+const OFFS = [-0.9, 0.92, -0.8, 0.96, -0.96, 0.86, -0.74, 1, -0.5];
+
 export function AdventureMap({ chapters, here, onLocked }: { chapters: ChapterState[]; here: number; onLocked: (i: number) => void }) {
+  const [ref, box] = useSize<HTMLDivElement>();
+  const w = Math.round(box.w);
   const n = chapters.length;
-  const H = TOP + (n - 1) * STEP + 230;
-  const road = roadPath(n);
-  const reached = here < 0 ? n - 1 : here;
-  // Tamamlanan yol: başlangıçtan bulunulan durağa kadar (yaklaşık, uzunluk oranıyla)
-  const progress = n > 1 ? (reached + 0.35) / (n + 0.7) : 0;
-  const end = { x: W / 2, y: point(n - 1).y + 150 };
-  const pct = (v: number, of: number) => `${(v / of) * 100}%`;
+  const cx = w / 2;
+  const A = Math.min(w * 0.28, 190);
+  const pt = (i: number) => ({ x: cx + OFFS[i % OFFS.length] * A, y: TOP + i * STEP });
+  const last = pt(n - 1);
+  const end = { x: cx, y: last.y + 170 };
+  const H = end.y + 230;
+
+  let road = `M${cx},70 C${cx},120 ${pt(0).x},${pt(0).y - 80} ${pt(0).x},${pt(0).y}`;
+  for (let i = 1; i < n; i++) {
+    const a = pt(i - 1);
+    const b = pt(i);
+    road += ` C${a.x},${a.y + STEP * 0.55} ${b.x},${b.y - STEP * 0.55} ${b.x},${b.y}`;
+  }
+  road += ` C${last.x},${last.y + 100} ${cx},${end.y - 90} ${cx},${end.y}`;
+
+  const reached = here < 0 ? n : here;
+  const progress = n > 0 ? Math.min(1, (reached + 0.3) / (n + 0.6)) : 0;
+  const riverY = pt(5).y + STEP / 2;
+  const river = `M0,${riverY - 20} C${w * 0.25},${riverY - 50} ${w * 0.4},${riverY + 30} ${cx},${riverY} S${w * 0.8},${riverY - 40} ${w},${riverY + 10}`;
+
+  // Kenar sahnesi: yolun ve kartların dışında kalan şeritler
+  const inner = A + 220;
+  const scenery: ReactNode[] = [];
+  for (let row = 0; row * 120 + 60 < H - 80; row++) {
+    const y = 60 + row * 120 + rnd(row, 1) * 40;
+    for (const side of [-1, 1]) {
+      const room = cx - inner;
+      if (room < 50) continue;
+      const x = cx + side * (inner + rnd(row, side + 3) * (room - 30));
+      const kind = Math.floor(rnd(row, side + 7) * 6);
+      const item = kind === 0 ? pine(x, y, 1.2) : kind === 1 ? roundTree(x, y) : kind === 2 ? bush(x, y) : kind === 3 ? rock(x, y) : kind === 4 && row % 3 === 1 ? pond(x, y) : flower(x, y, ['#ff8fb1', '#ffffff', '#ffc83d', '#b79cf0'][row % 4]);
+      scenery.push(<g key={`${row}${side}`}>{item}</g>);
+      if (room > 160) scenery.push(<g key={`${row}${side}b`}>{flower(x + side * 50, y + 44, ['#ffffff', '#ff8fb1', '#b79cf0'][row % 3])}</g>);
+    }
+  }
 
   return (
-    <div className="adv-mapbox" style={{ aspectRatio: `${W} / ${H}` }}>
-      <svg className="adv-mapbox__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-        {/* zemin: çayır, bölge lekeleri, nehir */}
-        <rect width={W} height={H} rx="28" fill="#e3f4d0" />
-        {/* çayırda serpiştirilmiş çiçekler */}
-        {Array.from({ length: Math.floor(H / 70) }, (_, i) => {
-          const x = i % 2 ? 22 + ((i * 37) % 60) : W - 26 - ((i * 53) % 60);
-          const y = 70 + i * 70 + ((i * 29) % 30);
-          return flower(x, y, ['#ff8fb1', '#ffffff', '#ffc83d', '#b79cf0'][i % 4]);
-        })}
-        <path d={`M0,${TOP + 5.3 * STEP} C120,${TOP + 5.0 * STEP} 200,${TOP + 5.8 * STEP} ${W},${TOP + 5.45 * STEP}`} fill="none" stroke="#8fd3f0" strokeWidth="26" strokeLinecap="round" />
-        <path d={`M0,${TOP + 5.3 * STEP} C120,${TOP + 5.0 * STEP} 200,${TOP + 5.8 * STEP} ${W},${TOP + 5.45 * STEP}`} fill="none" stroke="#fff" strokeWidth="2.5" strokeDasharray="10 14" opacity="0.8" />
-        {[[40, 60], [350, 40], [30, 420], [370, 560], [20, 900], [375, 1100], [40, 1400], [360, 1650]].filter(([, y]) => y < H - 60).map(([x, y]) => bush(x, y))}
+    <div className="adv-world" ref={ref}>
+      {w > 0 && (
+        <div className="adv-world__inner" style={{ height: H }}>
+          <svg className="adv-world__svg" width={w} height={H} viewBox={`0 0 ${w} ${H}`} aria-hidden="true">
+            {/* çayır: üstte dalgalı kenarla sayfaya karışır */}
+            <path d={`M0,40 C${w * 0.2},10 ${w * 0.35},56 ${w * 0.55},30 S${w * 0.85},8 ${w},34 V${H} H0 Z`} fill="#e3f4d0" />
+            <path d={`M0,40 C${w * 0.2},10 ${w * 0.35},56 ${w * 0.55},30 S${w * 0.85},8 ${w},34`} fill="none" stroke="#b9e3a0" strokeWidth="6" />
+            {scenery}
+            {Array.from({ length: Math.floor(H / 90) }, (_, i) => {
+              const side = i % 2 ? 1 : -1;
+              const x = cx + side * (A + 40 + rnd(i, 11) * 60);
+              const y = TOP + 90 + i * 90;
+              return y < H - 60 ? <g key={`fl${i}`}>{flower(x, y, ['#ff8fb1', '#ffffff', '#ffc83d', '#b79cf0'][i % 4])}</g> : null;
+            })}
 
-        {/* yol */}
-        <path d={road} fill="none" stroke="#c9a36a" strokeWidth="38" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={road} fill="none" stroke="#f3dfb2" strokeWidth="29" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={road} fill="none" stroke="#ffc83d" strokeWidth="29" strokeLinecap="round" pathLength={1} strokeDasharray={`${progress} 2`} opacity="0.85" />
-        <path d={road} fill="none" stroke="#fff" strokeWidth="3" strokeDasharray="9 12" strokeLinecap="round" />
+            {/* nehir ve köprü */}
+            <path d={river} fill="none" stroke="#8fd3f0" strokeWidth="30" strokeLinecap="round" />
+            <path d={river} fill="none" stroke="#fff" strokeWidth="2.5" strokeDasharray="10 14" opacity="0.8" />
 
-        {/* süsler: durağın boş tarafında */}
-        {chapters.map((c, i) => {
-          const p = point(i);
-          const left = p.x > W / 2;
-          const dx = left ? 40 : W - 110;
-          return <g key={c.path} className={c.open ? '' : 'adv-decor--dim'}>{DECOR[i % DECOR.length](dx, p.y - 48 + (i % 2) * 10)}</g>;
-        })}
+            {/* yol */}
+            <path d={road} fill="none" stroke="#c9a36a" strokeWidth="40" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={road} fill="none" stroke="#f3dfb2" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={road} fill="none" stroke="#ffc83d" strokeWidth="30" strokeLinecap="round" pathLength={1} strokeDasharray={`${progress} 2`} opacity="0.85" />
+            <path d={road} fill="none" stroke="#fff" strokeWidth="3" strokeDasharray="9 12" strokeLinecap="round" />
+            <g transform={`translate(${cx - 32} ${riverY - 13})`}>
+              <rect width="64" height="26" rx="5" fill="#b07a4f" {...s} />
+              <path d="M10,0 V26 M22,0 V26 M34,0 V26 M46,0 V26" stroke="#8c5a2b" strokeWidth="2" />
+            </g>
 
-        {/* başlangıç tabelası */}
-        <g transform={`translate(${W / 2 + 38} 20)`}>
-          <path d="M0,50 V6" stroke="#8c5a2b" strokeWidth="5" strokeLinecap="round" />
-          <path d="M-4,4 H54 L64,14 L54,24 H-4 Z" fill="#fff1c7" {...s} />
-          <text x="26" y="19" textAnchor="middle" fontFamily="Fredoka, Nunito, sans-serif" fontWeight="700" fontSize="12" fill={INK}>Başla</text>
-        </g>
+            {/* her durağın teması: durağın altındaki boş kıvrımda */}
+            {chapters.map((c, i) => {
+              const p = pt(i);
+              return (
+                <g key={c.path} className={c.open ? '' : 'adv-decor--dim'}>
+                  {DECOR[i % DECOR.length](p.x - 30, p.y + 110)}
+                </g>
+              );
+            })}
 
-        {/* köprü */}
-        <g transform={`translate(${point(5).x - 36} ${TOP + 5.42 * STEP - 12})`}>
-          <rect x="0" y="0" width="44" height="24" rx="4" fill="#b07a4f" {...s} />
-          <path d="M8,0 V24 M18,0 V24 M28,0 V24 M38,0 V24" stroke="#8c5a2b" strokeWidth="2" />
-        </g>
+            {/* başlangıç tabelası */}
+            <g transform={`translate(${cx + 34} 56)`}>
+              <path d="M0,50 V6" stroke="#8c5a2b" strokeWidth="5" strokeLinecap="round" />
+              <path d="M-4,4 H54 L64,14 L54,24 H-4 Z" fill="#fff1c7" {...s} />
+              <text x="26" y="19" textAnchor="middle" fontFamily="Fredoka, Nunito, sans-serif" fontWeight="700" fontSize="12" fill={INK}>Başla</text>
+            </g>
 
-        {/* hazine */}
-        <path d={`M${end.x - 14},${end.y - 14} L${end.x + 14},${end.y + 14} M${end.x + 14},${end.y - 14} L${end.x - 14},${end.y + 14}`} stroke="#e63946" strokeWidth="7" strokeLinecap="round" />
-      </svg>
+            {/* hazine işareti */}
+            <path d={`M${end.x - 16},${end.y + 22} L${end.x + 16},${end.y + 54} M${end.x + 16},${end.y + 22} L${end.x - 16},${end.y + 54}`} stroke="#e63946" strokeWidth="7" strokeLinecap="round" />
+          </svg>
 
-      {/* hazine sandığı (yolun sonu) */}
-      <div className="adv-treasure" style={{ left: pct(end.x, W), top: pct(end.y - 30, H) }}>
-        <ChestArt className={here < 0 ? 'shake' : ''} />
-        <span>{here < 0 ? 'Bütün maceralar tamam!' : 'Yolun sonunda hazine!'}</span>
-      </div>
-
-      {/* duraklar */}
-      {chapters.map((c, i) => {
-        const p = point(i);
-        const path = getPath(c.path);
-        const first = lessonsByPath(c.path)[0];
-        const state = c.complete ? 'done' : i === here ? 'here' : c.open ? 'open' : 'locked';
-        const side = p.x > W / 2 ? 'left' : 'right';
-        const body = (
-          <>
-            <span className="adv-node__disc">
-              {first && <SketchImg lesson={first} mode={c.complete ? 'color' : 'graphite'} pad={12} />}
-              <span className="adv-node__num">{i + 1}</span>
-              {state === 'done' && <span className="adv-node__badge adv-node__badge--done"><Check size={16} strokeWidth={3.4} /></span>}
-              {state === 'locked' && <span className="adv-node__badge"><Lock size={16} /></span>}
-            </span>
-            <span className={`adv-node__label adv-node__label--${side}`}>
-              <b>{c.place}</b>
-              <small>{path?.title}</small>
-              <span className="adv-node__bar"><i style={{ width: `${(c.done / Math.max(1, c.total)) * 100}%` }} /></span>
-              <small>{c.done} / {c.total} ders</small>
-              <span className={`adv-node__prize ${c.complete ? 'won' : ''}`} title={getOutfit(c.outfit)?.title}>
-                <Mascot size={24} outfit={c.outfit} />
-              </span>
-            </span>
-          </>
-        );
-        return (
-          <div key={c.path} className={`adv-node adv-node--${state}`} style={{ left: pct(p.x, W), top: pct(p.y, H), ['--pc' as string]: path?.color }}>
-            {state === 'here' && (
-              <span className="adv-node__me" aria-label="Buradasın"><Mascot size={46} mood="cheer" /></span>
-            )}
-            {c.open ? (
-              <Link to={`/yol/${c.path}`} className="adv-node__hit" aria-label={`${i + 1}. durak: ${c.place}`}>{body}</Link>
-            ) : (
-              <button type="button" className="adv-node__hit" aria-disabled="true" aria-label={`${i + 1}. durak: ${c.place} (kilitli)`} onClick={() => onLocked(i)}>
-                {body}
-              </button>
-            )}
+          <div className="adv-treasure" style={{ left: end.x, top: end.y }}>
+            <ChestArt className={here < 0 ? 'shake' : ''} />
+            <span>{here < 0 ? 'Bütün maceralar tamam!' : 'Yolun sonunda hazine!'}</span>
           </div>
-        );
-      })}
+
+          {chapters.map((c, i) => {
+            const p = pt(i);
+            const path = getPath(c.path);
+            const first = lessonsByPath(c.path)[0];
+            const state = c.complete ? 'done' : i === here ? 'here' : c.open ? 'open' : 'locked';
+            const side = p.x > cx ? 'left' : 'right';
+            const body = (
+              <>
+                <span className="adv-node__disc">
+                  {first && <SketchImg lesson={first} mode={c.complete ? 'color' : 'graphite'} pad={12} />}
+                  <span className="adv-node__num">{i + 1}</span>
+                  {state === 'done' && <span className="adv-node__badge adv-node__badge--done"><Check size={16} strokeWidth={3.4} /></span>}
+                  {state === 'locked' && <span className="adv-node__badge"><Lock size={16} /></span>}
+                </span>
+                <span className={`adv-node__label adv-node__label--${side}`}>
+                  <b>{c.place}</b>
+                  <small>{path?.title}</small>
+                  <span className="adv-node__bar"><i style={{ width: `${(c.done / Math.max(1, c.total)) * 100}%` }} /></span>
+                  <small>{c.done} / {c.total} ders</small>
+                  <span className={`adv-node__prize ${c.complete ? 'won' : ''}`} title={getOutfit(c.outfit)?.title}>
+                    <Mascot size={24} outfit={c.outfit} />
+                  </span>
+                </span>
+              </>
+            );
+            return (
+              <div key={c.path} className={`adv-node adv-node--${state}`} style={{ left: p.x, top: p.y, ['--pc' as string]: path?.color }}>
+                {state === 'here' && <span className="adv-node__me" aria-label="Buradasın"><Mascot size={46} mood="cheer" /></span>}
+                {c.open ? (
+                  <Link to={`/yol/${c.path}`} className="adv-node__hit" aria-label={`${i + 1}. durak: ${c.place}`}>{body}</Link>
+                ) : (
+                  <button type="button" className="adv-node__hit" aria-disabled="true" aria-label={`${i + 1}. durak: ${c.place} (kilitli)`} onClick={() => onLocked(i)}>
+                    {body}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
