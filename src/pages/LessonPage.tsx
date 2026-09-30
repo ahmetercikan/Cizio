@@ -32,6 +32,7 @@ import { isSpeaking, preloadLines, speak, stopSpeaking } from '../lib/speech';
 import { uid } from '../lib/util';
 import { getSticker } from '../stickers';
 import { useApp, useProfile, useProfileData, type DrawMode, type LessonProgress, type Scaffold } from '../store/useApp';
+import { ChestNote } from '../components/Rewards';
 
 type Phase = 'intro' | 'watch' | 'turn' | 'feedback' | 'color' | 'camera' | 'review' | 'done';
 
@@ -517,6 +518,7 @@ function Player({ lesson }: { lesson: Lesson }) {
             <h1 className="title-xl">Tebrikler{profile ? `, ${profile.name}` : ''}!</h1>
             <Stars value={final.stars} size={46} animate />
             <p className="sub">{lesson.skill}</p>
+            <ChestNote />
             {final.earned.length > 0 && (
               <div className="celebrate__stickers">
                 {final.earned.map((sid) => {

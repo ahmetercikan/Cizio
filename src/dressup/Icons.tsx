@@ -72,6 +72,14 @@ const CATS: Record<string, ReactNode> = {
       <path d="M18,12 q2,-4 6,-5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none" opacity="0.8" />
     </>
   ),
+  sirt: (
+    <>
+      <path d="M16,14 C16,6 32,6 32,14" {...ln} strokeWidth={3} />
+      <rect x="9" y="12" width="30" height="32" rx="9" fill="#ff6b4a" {...s} />
+      <rect x="15" y="28" width="18" height="12" rx="4" fill="#ffc83d" {...s} />
+      <path d="M9,24 C18,28 30,28 39,24" {...ln} />
+    </>
+  ),
   dost: (
     <>
       <path d="M12,18 L10,6 L20,13 Z M36,18 L38,6 L28,13 Z" fill="#ff9f43" {...s} />

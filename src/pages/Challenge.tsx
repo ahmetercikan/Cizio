@@ -25,6 +25,7 @@ import { speak, stopSpeaking } from '../lib/speech';
 import { uid } from '../lib/util';
 import { getSticker } from '../stickers';
 import { useApp, useProfile } from '../store/useApp';
+import { ChestNote } from '../components/Rewards';
 
 const SPEED_SECONDS = 60;
 const MEMORY_SECONDS = 6;
@@ -227,7 +228,8 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
               {result.record && <span className="similarity__record">Yeni rekor!</span>}
             </p>
             <p className="sub">{def.title} meydan okumasını tamamladın.</p>
-            {result.quest && <div className="celebrate__stickers">🎯 <span>Günün görevini tamamladın!</span></div>}
+            {result.quest && <div className="celebrate__stickers"><span>Günün görevini tamamladın!</span></div>}
+            <ChestNote />
             {result.earned.length > 0 && (
               <div className="celebrate__stickers">
                 {result.earned.map((id) => {

@@ -11,6 +11,7 @@ import { lessons as allLessons } from '../lessons';
 import { questDone, todayQuest, type ChallengeKind } from '../lib/daily';
 import { STATE_KEY } from '../lib/legacy';
 import type { DollState } from '../dressup/catalog';
+import { chestsEarned, giftStatus, GIFT_DAYS, pickReward, rareKey, type ChestReason, type GiftState, type Reward } from '../lib/rewards';
 
 export type DrawMode = 'screen' | 'paper';
 /** Ekranda çizimde yardım seviyesi: iz sür → noktalar → kendin çiz (azalan iskele). */
@@ -67,6 +68,12 @@ export interface ProfileData {
   doll?: DollState;
   looks?: DollState[];
   styled?: string[];
+  /** Açılmayı bekleyen hazine sandıkları (neden kazanıldı). */
+  chests?: ChestReason[];
+  /** Sandıktan çıkan nadir eşyalar: "slot:id". */
+  owned?: string[];
+  /** Günün hediyesi takvimi. */
+  gift?: GiftState;
 }
 
 export interface Settings {
@@ -113,6 +120,10 @@ interface AppState {
   removeLook(index: number): void;
   /** Günün stil görevi tamamlandı: günde bir kez 2 yıldız (lige sayılır). */
   recordStyle(): string[];
+  /** Sıradaki sandığı açar (içeriği uygular); sandık yoksa null. */
+  openChest(): { reason: ChestReason; reward: Reward } | null;
+  /** Günün hediyesini alır; bugün alındıysa null. */
+  claimGift(): { streak: number; stars: number; chest: boolean } | null;
   /** Biten haftanın lig sırasını kaydeder (kürsü çıkartmaları). */
   settleLeague(week: string, rank: number): string[];
   consumeNewStickers(): void;
@@ -151,6 +162,12 @@ function withStickers(d: ProfileData, extra: string[]): { data: ProfileData; ear
     data: { ...d, stickers: [...d.stickers, ...earned], newStickers: [...d.newStickers, ...earned] },
     earned,
   };
+}
+
+/** Güncellemede kazanılan sandıkları (görev, seviye, macera, lig...) bekleyenlere ekler. */
+function withChests(prev: ProfileData, next: ProfileData): ProfileData {
+  const won = chestsEarned(prev, next);
+  return won.length ? { ...next, chests: [...(next.chests ?? []), ...won] } : next;
 }
 
 export const useApp = create<AppState>()(
@@ -207,7 +224,7 @@ export const useApp = create<AppState>()(
         };
         const profile = get().profiles.find((p) => p.id === activeId);
         const { data: withS, earned } = withStickers(withQuest(profile, next), [`lesson:${lessonId}`]);
-        set({ data: { ...data, [activeId]: withS } });
+        set({ data: { ...data, [activeId]: withChests(d, withS) } });
         return earned;
       },
 
@@ -241,7 +258,7 @@ export const useApp = create<AppState>()(
         };
         const profile = get().profiles.find((p) => p.id === activeId);
         const { data: withS, earned } = withStickers(withQuest(profile, next), []);
-        set({ data: { ...data, [activeId]: withS } });
+        set({ data: { ...data, [activeId]: withChests(d, withS) } });
         return earned;
       },
 
@@ -258,7 +275,7 @@ export const useApp = create<AppState>()(
           days: { ...d.days, [k]: { ...t, drawings: t.drawings + 1, stars: (t.stars ?? 0) + stars } },
         };
         const { data: withS, earned } = withStickers(next, []);
-        set({ data: { ...get().data, [profileId]: withS } });
+        set({ data: { ...get().data, [profileId]: withChests(d, withS) } });
         return earned;
       },
 
@@ -301,7 +318,7 @@ export const useApp = create<AppState>()(
           days: { ...d.days, [k]: { ...t, drawings: t.drawings + 1, stars: (t.stars ?? 0) + 2 } },
         };
         const { data: withS, earned } = withStickers(next, []);
-        set({ data: { ...data, [activeId]: withS } });
+        set({ data: { ...data, [activeId]: withChests(d, withS) } });
         return earned;
       },
 
@@ -311,8 +328,49 @@ export const useApp = create<AppState>()(
         const d = { ...emptyData(), ...data[activeId] };
         if (d.leagues?.[week]) return [];
         const { data: withS, earned } = withStickers({ ...d, leagues: { ...d.leagues, [week]: rank } }, []);
-        set({ data: { ...data, [activeId]: withS } });
+        set({ data: { ...data, [activeId]: withChests(d, withS) } });
         return earned;
+      },
+
+      openChest() {
+        const { activeId, data } = get();
+        if (!activeId) return null;
+        const d = { ...emptyData(), ...data[activeId] };
+        const [reason, ...rest] = d.chests ?? [];
+        if (!reason) return null;
+        const reward = pickReward(d);
+        const k = dayKey();
+        const t = today(d);
+        // Her sandık 2 yıldız verir; yıldız ödülüyse onlar da eklenir.
+        const stars = 2 + (reward.kind === 'stars' ? reward.n : 0);
+        const next: ProfileData = {
+          ...d,
+          chests: rest,
+          owned: reward.kind === 'item' ? [...(d.owned ?? []), rareKey(reward.item)] : d.owned,
+          days: { ...d.days, [k]: { ...t, stars: (t.stars ?? 0) + stars } },
+        };
+        set({ data: { ...data, [activeId]: withChests(d, next) } });
+        return { reason, reward };
+      },
+
+      claimGift() {
+        const { activeId, data } = get();
+        if (!activeId) return null;
+        const d = { ...emptyData(), ...data[activeId] };
+        const st = giftStatus(d.gift);
+        if (!st.available) return null;
+        const k = dayKey();
+        const t = today(d);
+        const stars = GIFT_DAYS[st.streak - 1] ?? 1;
+        const chest = st.streak === 7;
+        const next: ProfileData = {
+          ...d,
+          gift: { last: k, streak: st.streak },
+          chests: chest ? [...(d.chests ?? []), 'gift'] : d.chests,
+          days: { ...d.days, [k]: { ...t, stars: (t.stars ?? 0) + stars } },
+        };
+        set({ data: { ...data, [activeId]: withChests(d, next) } });
+        return { streak: st.streak, stars, chest };
       },
 
       consumeNewStickers() {

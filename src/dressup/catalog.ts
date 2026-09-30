@@ -30,6 +30,8 @@ export interface DollState {
   bg: string;
   /** Sonradan eklenen alanlar (eski kayıtlarda olmayabilir). */
   pet?: string;
+  /** Sırt: çanta, pelerin, kanatlar... */
+  back?: string;
   topPattern?: string;
   bottomPattern?: string;
   dressPattern?: string;
@@ -44,6 +46,8 @@ export interface Item {
   title: string;
   /** Stil görevleri için etiketler. */
   tags?: string[];
+  /** Nadir: yalnızca hazine sandığından çıkar (src/lib/rewards.ts RARE). */
+  rare?: boolean;
 }
 
 export const HAIRS: Item[] = [
@@ -129,6 +133,7 @@ export const DRESSES: Item[] = [
   { id: 'astronot', title: 'Astronot', tags: ['uzay'] },
   { id: 'sovalye', title: 'Şövalye', tags: ['masal'] },
   { id: 'kahraman', title: 'Süper kahraman', tags: ['parti', 'spor', 'uzay'] },
+  { id: 'gokkusagi', title: 'Gökkuşağı elbise', tags: ['parti', 'masal'], rare: true },
 ];
 
 export const SHOES: Item[] = [
@@ -141,6 +146,7 @@ export const SHOES: Item[] = [
   { id: 'kovboy', title: 'Kovboy çizmesi', tags: ['doga'] },
   { id: 'paten', title: 'Paten', tags: ['spor', 'parti'] },
   { id: 'terlik', title: 'Tavşan terlik', tags: ['kis'] },
+  { id: 'isikli', title: 'Işıklı ayakkabı', tags: ['parti', 'spor'], rare: true },
 ];
 
 export const HATS: Item[] = [
@@ -161,6 +167,7 @@ export const HATS: Item[] = [
   { id: 'sihirbaz', title: 'Sihirbaz şapkası', tags: ['masal'] },
   { id: 'korsan', title: 'Korsan şapkası', tags: ['masal'] },
   { id: 'sef', title: 'Aşçı şapkası', tags: ['okul'] },
+  { id: 'yildiztac', title: 'Yıldız taç', tags: ['parti', 'masal'], rare: true },
 ];
 
 export const HANDS: Item[] = [
@@ -188,6 +195,18 @@ export const PETS: Item[] = [
   { id: 'kus', title: 'Kuş', tags: ['doga'] },
   { id: 'kaplumbaga', title: 'Kaplumbağa', tags: ['yaz'] },
   { id: 'dino', title: 'Oyuncak dino', tags: ['uzay'] },
+  { id: 'ejderha', title: 'Bebek ejderha', tags: ['masal'], rare: true },
+  { id: 'unicorn', title: 'Unicorn', tags: ['masal', 'parti'], rare: true },
+  { id: 'panda', title: 'Panda', tags: ['doga'], rare: true },
+];
+
+export const BACKS: Item[] = [
+  { id: '', title: 'Yok' },
+  { id: 'canta', title: 'Sırt çantası', tags: ['okul', 'doga'] },
+  { id: 'pelerin', title: 'Pelerin', tags: ['masal', 'parti'] },
+  { id: 'kanat', title: 'Peri kanatları', tags: ['masal', 'parti'], rare: true },
+  { id: 'jetpack', title: 'Jetpack', tags: ['uzay'], rare: true },
+  { id: 'ejderhakanat', title: 'Ejderha kanatları', tags: ['masal'], rare: true },
 ];
 
 export const BGS: Item[] = [
@@ -203,6 +222,7 @@ export const BGS: Item[] = [
   { id: 'sato', title: 'Şato', tags: ['masal'] },
   { id: 'gece', title: 'Yıldızlı gece', tags: ['uzay'] },
   { id: 'uzay', title: 'Uzay', tags: ['uzay'] },
+  { id: 'gokkusagi', title: 'Gökkuşağı diyarı', tags: ['parti', 'masal'], rare: true },
 ];
 
 export const PATTERNS: Item[] = [
@@ -266,6 +286,7 @@ const EXTRAS: [keyof DollState, Item[]][] = [
   ['hand', HANDS],
   ['shoes', SHOES],
   ['pet', PETS],
+  ['back', BACKS],
   ['bg', BGS],
 ];
 
@@ -280,7 +301,9 @@ export function themeMatches(d: DollState, t: Theme): string[] {
   return out;
 }
 
-const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
+const pickAny = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
+/** Rastgele seçimde nadir eşyalar çıkmaz (onlar sandık ödülü). */
+const pick = <T,>(list: T[]) => pickAny(list.filter((x) => !(x as Item).rare));
 const pickPattern = () => (Math.random() < 0.55 ? 'duz' : pick(PATTERNS).id);
 
 /** "Şaşırt beni": görünüm (ten, saç tipi) aynı kalır, kıyafet ve eşyalar rastgele. */
@@ -305,6 +328,7 @@ export function randomOutfit(d: DollState): DollState {
     hatColor: pick(CLOTH_COLORS),
     hand: Math.random() < 0.6 ? pick(HANDS.filter((x) => x.id)).id : '',
     pet: Math.random() < 0.4 ? pick(PETS.filter((x) => x.id)).id : '',
+    back: Math.random() < 0.25 ? pick(BACKS.filter((x) => x.id)).id : '',
     bg: pick(BGS).id,
   };
 }

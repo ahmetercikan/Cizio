@@ -1,5 +1,6 @@
 import { ArrowRight, Check, Flame, Heart, MapPin, Play, Sparkles, Star, Target, Trophy } from 'lucide-react';
 import { AvatarArt } from '../components/Avatars';
+import { GiftCard, LevelBadge } from '../components/Rewards';
 import { chapterStates } from '../lib/adventure';
 import { daysLeft, standings } from '../lib/league';
 import { useSettleLeague } from './League';
@@ -14,7 +15,7 @@ import { CardRow, LessonCard } from '../components/LessonCard';
 import { Mascot } from '../components/Mascot';
 import { Modal } from '../components/ui';
 import { getLesson, lessons, lessonsByPath, paths } from '../lessons';
-import { recommendLesson, totalStars } from '../lib/recommend';
+import { recommendLesson } from '../lib/recommend';
 import { speak } from '../lib/speech';
 import { streakOf } from '../lib/util';
 import { getSticker } from '../stickers';
@@ -58,7 +59,7 @@ export default function Playground() {
         </div>
         <div className="chips">
           <span className="chip" title="Üst üste çizdiğin gün"><Flame size={20} color="#ffb13b" fill="#ff8a3d" /> {streakOf(data.days)}</span>
-          <span className="chip" title="Toplam yıldız"><Star size={20} color="#f0a500" fill="#ffd43b" /> {totalStars(data)}</span>
+          <LevelBadge />
         </div>
       </header>
 
@@ -199,6 +200,7 @@ function DailyRow() {
   const qLesson = getLesson(quest.lessonId);
   return (
     <div className="daily-row rise">
+      <GiftCard />
       {sp && spLesson && (
         <Link to={`/ders/${spLesson.id}`} className="special-card">
           <span className="special-card__emoji">{sp.emoji}</span>

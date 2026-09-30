@@ -13,6 +13,7 @@ import {
   Pat, PatLimb, PatternDef, Pet, shoe2, SLEEVE2, top2,
 } from './extras';
 import { ARM_L, ARM_R, BODICE, INK, LEG_L, LEG_R, Limb, o, shade, SW, TOP, TORSO } from './ink';
+import { backFront, backLayer, rareBg, rareDress, rareHat, rarePet, rareShoe } from './rare';
 
 // ------------------------------------------------------------------------------------------------
 // Arka planlar
@@ -105,7 +106,7 @@ function Background({ id }: { id: string }) {
         </g>
       );
     default:
-      return bg2(id) ?? <rect width="300" height="440" fill="#fffdf8" />;
+      return bg2(id) ?? rareBg(id) ?? <rect width="300" height="440" fill="#fffdf8" />;
   }
 }
 
@@ -410,7 +411,7 @@ function DressLegs({ id, c, pat }: { id: string; c: string; pat?: string }) {
 }
 
 function DressBody({ id, c, pat }: { id: string; c: string; pat?: string }) {
-  const extra = dressBody2(id, c, pat);
+  const extra = dressBody2(id, c, pat) ?? rareDress(id);
   if (extra) return <>{extra}</>;
   const f = { fill: c, ...o };
   switch (id) {
@@ -465,7 +466,7 @@ function dressSleeve(id: string) {
 
 function Shoe({ id, c }: { id: string; c: string }) {
   const f = { fill: c, ...o };
-  const extra = shoe2(id, c);
+  const extra = shoe2(id, c) ?? rareShoe(id);
   if (extra) return <>{extra}</>;
   switch (id) {
     case 'bot':
@@ -577,7 +578,7 @@ function Hat({ id, c }: { id: string; c: string }) {
         </g>
       );
     default:
-      return <>{hat2(id, c)}</>;
+      return <>{hat2(id, c) ?? rareHat(id)}</>;
   }
 }
 
@@ -664,6 +665,7 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
   const hand = (x: number) => <circle cx={x} cy="300" r="11" fill={skin} {...o} />;
   const body: ReactNode = (
     <>
+      {backLayer(d.back)}
       <HairBack style={d.hair} c={d.hairColor} />
       {dressed && <DressBack id={d.dress} c={d.dressColor} />}
       <Limb d={LEG_L} c={skin} w={20} />
@@ -672,6 +674,7 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
       <Shoe id={d.shoes} c={d.shoesColor} />
       <g transform="translate(300 0) scale(-1 1)"><Shoe id={d.shoes} c={d.shoesColor} /></g>
       <Pet id={d.pet} />
+      {rarePet(d.pet)}
       <rect x="140" y="166" width="20" height="24" fill={skin} {...o} />
       <path d={TORSO} fill={skin} {...o} />
       {dressed ? (
@@ -682,6 +685,7 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
       ) : (
         <TopWear id={d.top} c={d.topColor} clip={clip} pat={topPat} />
       )}
+      {backFront(d.back)}
       {/* Kollar gövdenin dışında kalacak şekilde kırpılır: omuzda gövdenin kenarından temizce çıkar. */}
       <g clipPath={`url(#${armsClip})`}>
         <Limb d={ARM_L} c={skin} w={20} />
@@ -742,4 +746,5 @@ export const REGIONS: Record<string, string> = {
   hat: '56 -14 200 150',
   hand: '146 40 146 290',
   pet: '4 296 130 124',
+  back: '0 120 300 300',
 };

@@ -10,7 +10,7 @@ import { useId, useRef, useState } from 'react';
 import { AppShell } from '../components/AppShell';
 import { useToast } from '../components/ui';
 import {
-  BGS, BOTTOMS, CLOTH_COLORS, DRESSES, FACES, GLASSES, HAIR_COLORS, HAIRS, HANDS, HATS, PATTERNS, PETS, PRESETS, SHOES, SKINS, THEME_GOAL, TOPS,
+  BACKS, BGS, BOTTOMS, CLOTH_COLORS, DRESSES, FACES, GLASSES, HAIR_COLORS, HAIRS, HANDS, HATS, PATTERNS, PETS, PRESETS, SHOES, SKINS, THEME_GOAL, TOPS,
   randomOutfit, themeMatches, todayTheme, type DollState, type Gender, type Item,
 } from '../dressup/catalog';
 import { Doll, REGIONS } from '../dressup/Doll';
@@ -20,6 +20,7 @@ import { saveArtwork } from '../lib/gallery';
 import { sfx } from '../lib/sfx';
 import { dayKey, uid } from '../lib/util';
 import { useApp, useProfile, useProfileData } from '../store/useApp';
+import { ownsRare } from '../lib/rewards';
 
 type ColorKey = 'hairColor' | 'topColor' | 'bottomColor' | 'dressColor' | 'shoesColor' | 'hatColor';
 type PatternKey = 'topPattern' | 'bottomPattern' | 'dressPattern';
@@ -47,9 +48,17 @@ const CATS: Category[] = [
   { id: 'sapka', label: 'Şapka', key: 'hat', items: HATS, region: 'hat', color: 'hatColor', colors: CLOTH_COLORS, wear: true },
   { id: 'gozluk', label: 'Gözlük', key: 'glasses', items: GLASSES, region: 'face', wear: true },
   { id: 'elde', label: 'Elde', key: 'hand', items: HANDS, region: 'hand' },
+  { id: 'sirt', label: 'Sırt', key: 'back', items: BACKS, region: 'back', wear: true },
   { id: 'dost', label: 'Dost', key: 'pet', items: PETS, region: 'pet' },
   { id: 'fon', label: 'Yer', key: 'bg', items: BGS, region: 'full' },
 ];
+
+const LockMark = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22"><rect x="5" y="10" width="14" height="11" rx="3" fill="#ffc83d" stroke="#3a2b27" strokeWidth="2" /><path d="M8,10 V7 a4,4 0 0,1 8,0 V10" fill="none" stroke="#3a2b27" strokeWidth="2" /></svg>
+);
+const SparkMark = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12,2 l2.6,6.4 l6.4,2.6 l-6.4,2.6 l-2.6,6.4 l-2.6,-6.4 l-6.4,-2.6 l6.4,-2.6 Z" fill="#ffc83d" stroke="#3a2b27" strokeWidth="1.6" strokeLinejoin="round" /></svg>
+);
 
 /** Desen seçim düğmesi: mevcut giysi renginde küçük bir kumaş parçası. */
 function PatternSwatch({ kind, color }: { kind: string; color: string }) {
@@ -256,11 +265,22 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
             {cat.items.map((it) => {
               const preview = wear(d, cat.key, it.id);
               const on = (d[cat.key] ?? '') === it.id && (cat.key !== 'top' && cat.key !== 'bottom' ? true : !d.dress);
+              const locked = !!it.rare && !ownsRare(data, cat.key, it.id);
               return (
-                <button key={it.id || 'none'} type="button" className={`item-btn ${on ? 'on' : ''}`} title={it.title}
-                  onClick={() => { if (cat.wear && it.id) sfx.wear(); else sfx.select(); update(wear(d, cat.key, it.id)); }}>
+                <button key={it.id || 'none'} type="button" className={`item-btn ${on ? 'on' : ''} ${it.rare ? 'rare' : ''} ${locked ? 'locked' : ''}`} title={it.title}
+                  onClick={() => {
+                    if (locked) {
+                      sfx.soft();
+                      showToast('Bu nadir eşya hazine sandığından çıkar! Görevleri yap, sandık kazan.');
+                      return;
+                    }
+                    if (cat.wear && it.id) sfx.wear();
+                    else sfx.select();
+                    update(wear(d, cat.key, it.id));
+                  }}>
                   <Doll d={preview} bg={cat.id === 'fon'} viewBox={REGIONS[cat.region]} className="item-btn__art" title={it.title} />
-                  <span>{it.title}</span>
+                  <span>{locked ? 'Sandıktan çıkar' : it.title}</span>
+                  {it.rare && <span className="item-btn__rare" aria-hidden="true">{locked ? <LockMark /> : <SparkMark />}</span>}
                 </button>
               );
             })}

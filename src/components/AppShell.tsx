@@ -5,6 +5,7 @@ import { useProfile } from '../store/useApp';
 import { AvatarArt } from './Avatars';
 import { Doodles } from './Doodles';
 import { Mascot } from './Mascot';
+import { ChestButton } from './Rewards';
 
 const ITEMS = [
   { to: '/', label: 'Bugün', Icon: Sun },
@@ -26,6 +27,7 @@ export function AppShell({ children, flow = 0 }: { children: ReactNode; flow?: n
           <span>Çizio</span>
         </Link>
         <span className="appbar__spacer" />
+        <ChestButton />
         <Link to="/ebeveyn" className="round-btn round-btn--soft" aria-label="Ebeveyn bölümü" title="Ebeveyn bölümü">
           <Settings size={22} />
         </Link>

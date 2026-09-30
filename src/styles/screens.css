@@ -2636,3 +2636,146 @@
 
 .pattern-btn svg { width: 38px; height: 38px; }
 .pattern-btn.on { border-color: var(--coral); background: var(--coral-soft); }
+
+/* Giydir sekmeleri: kaydırma yok, hepsi ekranda (çocuk gizli sekmeyi fark etmeyebilir) */
+.cat-tabs { flex-wrap: wrap; overflow: visible; }
+
+@media (max-width: 820px) {
+  .cat-tabs { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+  .cat-tab { flex-direction: column; justify-content: center; gap: 2px; padding: 6px 2px; border-radius: 14px; font-size: 12px; }
+  .cat-tab__icon { width: 34px; height: 34px; }
+}
+
+/* =====================================================================
+   Ödüller: sandık, seviye, günün hediyesi, nadir eşyalar
+   ===================================================================== */
+
+@keyframes chest-shake {
+  0%, 60%, 100% { transform: rotate(0); }
+  66% { transform: rotate(-6deg); }
+  74% { transform: rotate(6deg); }
+  82% { transform: rotate(-4deg); }
+  90% { transform: rotate(3deg); }
+}
+
+@keyframes chest-open { 0% { transform: scale(1); } 40% { transform: scale(1.12, 0.9); } 100% { transform: scale(1.05); } }
+@keyframes rays-spin { to { transform: rotate(360deg); } }
+@keyframes prize-pop { 0% { transform: translateY(40px) scale(0.3); opacity: 0; } 70% { transform: translateY(-14px) scale(1.08); opacity: 1; } 100% { transform: none; } }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+
+.shake { animation: chest-shake 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
+
+/* Üst çubuktaki sandık düğmesi */
+.chest-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 48px;
+  margin-right: 6px;
+  animation: bob 1.4s ease-in-out infinite;
+}
+
+.chest-btn__art { width: 50px; height: 46px; }
+.chest-btn__count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--coral);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 0 0 3px #fff;
+}
+
+/* Sandık penceresi */
+.reward-modal { width: min(460px, 94vw); }
+.reward { display: grid; justify-items: center; gap: 10px; text-align: center; }
+.reward__why { margin: 0; padding: 6px 14px; border-radius: 999px; background: var(--sun-soft); color: #9a6a00; font-weight: 800; font-size: 14px; }
+.reward .title-lg { margin: 0; }
+.reward__chest { width: 220px; }
+.reward__chest svg { width: 100%; height: auto; }
+.reward__chest.opening { animation: chest-open 0.65s ease-in-out both; }
+.reward__tap { margin: 0; color: var(--muted); font-weight: 800; }
+
+.reward__open { position: relative; width: 260px; height: 220px; }
+.reward__chest-open { position: absolute; left: 30px; bottom: 0; width: 200px; }
+.reward__chest-open .chest__rays { transform-origin: 100px 70px; animation: rays-spin 8s linear infinite; }
+.reward__prize { position: absolute; left: 50%; top: 0; width: 150px; margin-left: -75px; animation: prize-pop 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.reward__item { width: 150px; height: 150px; border-radius: 26px; overflow: hidden; background: #fff; border: 4px solid var(--sun); box-shadow: 0 10px 30px rgba(232, 162, 0, 0.35); }
+.reward__item svg { width: 100%; height: 100%; }
+.reward__stars { width: 140px; height: 140px; }
+.reward__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 4px; }
+
+/* Seviye rozeti */
+.level {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--line-2);
+}
+
+.level__star { width: 42px; height: 42px; flex: none; }
+.level__text { display: grid; gap: 2px; min-width: 120px; }
+.level__text b { font-family: var(--display); font-weight: 600; font-size: 15px; line-height: 1.1; }
+.level__text small { color: var(--muted); font-weight: 800; font-size: 11px; }
+.level__bar { display: block; height: 7px; border-radius: 99px; background: var(--cream-2); overflow: hidden; }
+.level__bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--sun), var(--coral)); }
+
+/* Günün hediyesi */
+.gift-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px 12px 12px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #fff1c7, #ffe1d8);
+  border: 3px solid var(--sun);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: 0 4px 0 var(--sun-dark);
+}
+
+.gift-card.done { box-shadow: none; opacity: 0.95; }
+.gift-card__art { flex: none; width: 76px; height: 76px; }
+.gift-card__text { display: grid; gap: 3px; }
+.gift-card__label { font-size: 12px; font-weight: 800; color: #9a6a00; text-transform: uppercase; letter-spacing: 0.05em; }
+.gift-card b { font-family: var(--display); font-size: 21px; font-weight: 600; }
+.gift-card__days { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.gift-card__days i { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid var(--line-2); }
+.gift-card__days i.on { background: var(--coral); border-color: var(--coral-dark); }
+.gift-card__days i.big { width: 20px; height: 20px; border-radius: 6px; background: #c9793b; border-color: var(--ink); }
+.gift-card__days small { margin-left: 4px; font-weight: 800; font-size: 12px; color: var(--muted); }
+
+/* Sonuç ekranı sandık notu */
+.chest-note { display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 18px; background: var(--sun-soft); border: 2px solid var(--sun); text-align: left; }
+.chest-note__art { width: 58px; height: 52px; flex: none; }
+.chest-note span { display: grid; }
+.chest-note b { font-family: var(--display); font-weight: 600; font-size: 17px; }
+.chest-note small { color: var(--muted); font-weight: 700; }
+
+/* Giydir: nadir eşyalar */
+.item-btn { position: relative; }
+.item-btn.rare { background: linear-gradient(160deg, #fff7d6, #ffffff 60%); box-shadow: 0 0 0 2px var(--sun), var(--shadow-card); }
+.item-btn.locked .item-btn__art { filter: grayscale(1) brightness(0.55); opacity: 0.55; }
+.item-btn.locked span:not(.item-btn__rare) { color: #9a6a00; }
+.item-btn__rare { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; }
+
+/* Telefon: seçenekler karakterin hemen altında; stil görevi ve kombin dolabı en sonda */
+@media (max-width: 820px) {
+  .studio { gap: 12px; }
+  .studio__stage { width: min(210px, 52vw); }
+  .studio__actions { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .studio-btn { flex-direction: column; gap: 2px; padding: 8px 4px; font-size: 12px; border-radius: 14px; }
+  .studio__right .style-quest { order: 90; }
+  .studio__right .looks { order: 95; }
+}
