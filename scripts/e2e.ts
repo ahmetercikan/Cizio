@@ -157,7 +157,7 @@ async function run(viewport: { width: number; height: number }, tag: string, ful
     await shot(page, `${tag}-screen-celebrate`);
 
     // --- diğer ekranlar ---
-    for (const [route, name] of [['', 'today'], ['ogren', 'lessons'], ['yol/hayvanlar', 'course'], ['dergi', 'gallery'], ['ciz', 'studio'], ['ebeveyn', 'gate'], ['meydan/speed/kedi', 'challenge']] as const) {
+    for (const [route, name] of [['', 'worlds'], ['atolye', 'today'], ['english', 'english'], ['english/kelimeler/animals', 'english-words'], ['english/oyna/find', 'english-find'], ['english/hikaye/hide', 'english-story'], ['ogren', 'lessons'], ['yol/hayvanlar', 'course'], ['dergi', 'gallery'], ['ciz', 'studio'], ['ebeveyn', 'gate'], ['meydan/speed/kedi', 'challenge']] as const) {
       await page.goto(`${BASE}#/${route}`);
       await sleep(1400);
       await shot(page, `${tag}-${name}`);

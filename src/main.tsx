@@ -7,6 +7,7 @@ import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import './styles/theme.css';
 import './styles/screens.css';
+import './styles/english.css';
 
 // Çevrimdışı çalışma ve "Ana ekrana ekle" için servis çalışanı; yeni sürüm gelince kendini günceller.
 // Android/iOS uygulamasında dosyalar zaten pakette; servis çalışanı yalnızca web'de.

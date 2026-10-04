@@ -74,7 +74,7 @@ export default function FreeDraw() {
   return (
     <div className={`player desk player--tools player--palette ${settings.leftHanded ? 'player--left' : ''}`}>
       <header className="player__top">
-        <button className="round-btn round-btn--light" aria-label="Geri" onClick={() => nav('/')}>
+        <button className="round-btn round-btn--light" aria-label="Geri" onClick={() => nav('/atolye')}>
           <ArrowLeft size={26} strokeWidth={2.6} />
         </button>
         <div className="player__title"><b>Atölye</b></div>

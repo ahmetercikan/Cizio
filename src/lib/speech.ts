@@ -15,6 +15,7 @@ import { lineKey } from '../voice/hash';
 // Web Speech (yedek yol)
 // ------------------------------------------------------------------------------------------------
 let voices: SpeechSynthesisVoice[] = [];
+let enVoices: SpeechSynthesisVoice[] = [];
 const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 const audioOk = typeof window !== 'undefined' && typeof Audio !== 'undefined' && typeof fetch !== 'undefined';
 
@@ -23,7 +24,9 @@ const PREFERRED = [/natural/i, /google/i, /yelda/i, /emel/i, /filiz/i, /seda/i, 
 
 function loadVoices() {
   if (!supported) return;
-  voices = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith('tr'));
+  const all = speechSynthesis.getVoices();
+  voices = all.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith('tr'));
+  enVoices = all.filter((v) => /^en[-_](us|gb)/i.test(v.lang));
 }
 if (supported) {
   loadVoices();
@@ -33,6 +36,18 @@ if (supported) {
 export function turkishVoices(): SpeechSynthesisVoice[] {
   if (!voices.length) loadVoices();
   return voices;
+}
+
+// İngilizce (English Club): doğal, çocuğa uygun sesler önce.
+const PREFERRED_EN = [/google us english/i, /aria|jenny|ana.*natural/i, /natural/i, /samantha/i, /google uk english female/i, /zira/i];
+
+function pickEnglish(): SpeechSynthesisVoice | undefined {
+  if (!enVoices.length) loadVoices();
+  for (const re of PREFERRED_EN) {
+    const v = enVoices.find((x) => re.test(x.name));
+    if (v) return v;
+  }
+  return enVoices.find((v) => /en[-_]us/i.test(v.lang)) ?? enVoices[0];
 }
 
 function pickVoice(uri?: string): SpeechSynthesisVoice | undefined {
@@ -52,17 +67,20 @@ export interface SpeakOptions {
   rate?: number;
   voiceURI?: string;
   onEnd?: () => void;
+  /** 'en': İngilizce cümle (English Club); varsayılan Türkçe. */
+  lang?: 'tr' | 'en';
 }
 
 function speakSynth(text: string, opts: SpeakOptions) {
   if (!supported) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'tr-TR';
-  const v = pickVoice(opts.voiceURI);
+  const en = opts.lang === 'en';
+  u.lang = en ? 'en-US' : 'tr-TR';
+  const v = en ? pickEnglish() : pickVoice(opts.voiceURI);
   if (v) u.voice = v;
   u.rate = opts.rate ?? 0.95;
-  u.pitch = 1.1;
+  u.pitch = en ? 1.05 : 1.1;
   if (opts.onEnd) u.onend = opts.onEnd;
   speechSynthesis.speak(u);
 }

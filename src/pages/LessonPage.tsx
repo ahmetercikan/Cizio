@@ -66,7 +66,7 @@ export default function LessonPage() {
     return (
       <div className="bg onb__center">
         <h1 className="title-lg">Bu ders bulunamadı</h1>
-        <Link to="/" className="pill">Ana sayfa</Link>
+        <Link to="/atolye" className="pill">Ana sayfa</Link>
       </div>
     );
   return <Player key={lesson.id} lesson={lesson} />;
@@ -257,7 +257,7 @@ function Player({ lesson }: { lesson: Lesson }) {
 
   const exit = () => {
     stopSpeaking();
-    nav('/');
+    nav('/atolye');
   };
 
   // ---------- düzen ----------

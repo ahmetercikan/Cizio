@@ -63,7 +63,7 @@ export default function Journal() {
               <div>
                 <p className="title-md">Galerin henüz boş.</p>
                 <p className="sub">Bir ders bitirince çizimin burada sergilenecek.</p>
-                <Link to="/" className="pill pill--sm" style={{ marginTop: 12 }}>Çizmeye başla</Link>
+                <Link to="/atolye" className="pill pill--sm" style={{ marginTop: 12 }}>Çizmeye başla</Link>
               </div>
             </div>
           )}

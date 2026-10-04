@@ -22,6 +22,13 @@ export const STYLE =
   'You are Çizio, a warm, cheerful and patient art teacher talking to a 7-year-old child: smiling, gentle, ' +
   'lively and encouraging intonation, relaxed medium pace, clear articulation. Say only the sentence, nothing else.';
 
+/** English Club cümleleri: yavaş, net Amerikan İngilizcesi (İngilizceye yeni başlayan çocuk için). */
+export const STYLE_EN_ID = 'cizio-en-v1';
+export const STYLE_EN =
+  'Read the following English sentence aloud in clear, natural American English. You are Chizio, a warm, cheerful and ' +
+  'patient teacher talking to a 6-year-old child who is just starting to learn English: smiling, encouraging intonation, ' +
+  'slow and very clear articulation, short natural pauses. Say only the sentence, nothing else.';
+
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 
 export function apiKey(): string {
@@ -262,10 +269,14 @@ export const BATCH_RULES =
 /** Birden çok cümleyi tek istekte üretir ve dosyalara böler. Bölme tutmazsa false döner. */
 export async function geminiTtsBatch(
   items: { text: string; file: string }[],
-  opts: { key: string; model: string; voice: string },
+  opts: { key: string; model: string; voice: string; lang?: 'en' },
 ): Promise<boolean> {
-  const style = STYLE.replace('the following Turkish sentence', 'Turkish sentences').replace('Say only the sentence, nothing else.', '');
-  const prompt = `${style}\n${BATCH_RULES}\n\n${items.map((it) => it.text).join('\n\n—\n\n')}`;
+  const en = opts.lang === 'en';
+  const style = en
+    ? STYLE_EN.replace('the following English sentence', 'English sentences').replace('Say only the sentence, nothing else.', '')
+    : STYLE.replace('the following Turkish sentence', 'Turkish sentences').replace('Say only the sentence, nothing else.', '');
+  const rules = en ? BATCH_RULES.replace('Turkish', 'English') : BATCH_RULES;
+  const prompt = `${style}\n${rules}\n\n${items.map((it) => it.text).join('\n\n—\n\n')}`;
   const { pcm, rate } = await requestPcm(prompt, opts);
   const pieces = splitBySilence(pcm, rate, items.map((i) => i.text));
   if (!pieces) return false;
@@ -280,9 +291,9 @@ export async function geminiTtsBatch(
 export async function geminiTts(
   text: string,
   file: string,
-  opts: { key: string; model: string; voice: string; tone?: string },
+  opts: { key: string; model: string; voice: string; tone?: string; lang?: 'en' },
 ): Promise<void> {
-  const prompt = `${STYLE}${opts.tone ? ` For this sentence specifically: ${opts.tone}` : ''}
+  const prompt = `${opts.lang === 'en' ? STYLE_EN : STYLE}${opts.tone ? ` For this sentence specifically: ${opts.tone}` : ''}
 
 ${text}`;
   const { pcm, rate } = await requestPcm(prompt, opts);

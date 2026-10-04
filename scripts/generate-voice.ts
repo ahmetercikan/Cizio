@@ -29,7 +29,8 @@ import { allFeedbackTexts } from '../src/engine/scoring';
 import type { Lesson } from '../src/lessons/types';
 import { lineKey, normalizeLine } from '../src/voice/hash';
 import { LESSON_LINES, STATIC_LINES, TONED_LINES } from '../src/voice/lines';
-import { apiKey, DailyQuotaError, FreeTierError, geminiTts, geminiTtsBatch, RateLimitError, STYLE_ID, ttsModels } from './tts-gemini';
+import { englishLines } from '../src/english/data';
+import { apiKey, DailyQuotaError, FreeTierError, geminiTts, geminiTtsBatch, RateLimitError, STYLE_EN_ID, STYLE_ID, ttsModels } from './tts-gemini';
 
 const RATE = '-6%';
 const PITCH = '+3Hz';
@@ -82,24 +83,28 @@ for (const f of readdirSync('src/lessons/data').filter((f) => f.endsWith('.ts'))
   lessons.push((await import(pathToFileURL(join('src', 'lessons', 'data', f)).href)).default);
 }
 
-const raw: { text: string; tone?: string }[] = [];
+type Lang = 'en' | undefined;
+const raw: { text: string; tone?: string; lang?: Lang }[] = [];
 for (const l of lessons) for (const s of l.steps) raw.push({ text: s.say });
 for (const t of STATIC_LINES) raw.push({ text: t });
 for (const l of lessons) for (const t of LESSON_LINES) raw.push({ text: t(l) });
 const parts = [...new Set(lessons.flatMap((l) => l.steps.flatMap((s) => s.shapes.map((sh) => sh.part ?? ''))))].filter(Boolean);
 for (const t of allFeedbackTexts(parts)) raw.push({ text: t });
 for (const t of TONED_LINES) raw.push(t);
+// English Club: İngilizce cümleler yalnızca Gemini ile (Edge sesi Türkçe).
+if (provider === 'gemini') for (const t of englishLines()) raw.push({ text: t, lang: 'en' });
 
-const lines = new Map<string, { text: string; tone?: string }>();
+const lines = new Map<string, { text: string; tone?: string; lang?: Lang }>();
 for (const r of raw) {
   const text = normalizeLine(r.text ?? '');
   if (!text) continue;
   const k = lineKey(text);
   const prev = lines.get(k);
   if (prev !== undefined && prev.text !== text) throw new Error(`Anahtar çakışması (${k}): "${prev.text}" / "${text}"`);
-  lines.set(k, { text, tone: r.tone ?? prev?.tone });
+  lines.set(k, { text, tone: r.tone ?? prev?.tone, lang: r.lang ?? prev?.lang });
 }
 const tagOf = (k: string) => {
+  if (lines.get(k)?.lang === 'en') return lineKey(`${BASE_TAG}|en|${STYLE_EN_ID}`);
   const tone = lines.get(k)?.tone;
   return tone && provider === 'gemini' ? lineKey(`${BASE_TAG}|${tone}`) : BASE_TAG;
 };
@@ -194,11 +199,11 @@ function done(k: string) {
 }
 
 async function single(k: string) {
-  const { text, tone } = lines.get(k)!;
+  const { text, tone, lang } = lines.get(k)!;
   const tmp = join(OUT, `${k}.part.mp3`);
   for (let attempt = 1; ; attempt++) {
     try {
-      if (provider === 'gemini') await withModel((model) => geminiTts(text, tmp, { key, model, voice, tone }));
+      if (provider === 'gemini') await withModel((model) => geminiTts(text, tmp, { key, model, voice, tone, lang }));
       else await edgeTts(text, tmp);
       renameSync(tmp, mp3(k));
       done(k);
@@ -220,7 +225,7 @@ async function batch(keys: string[]): Promise<void> {
   const items = keys.map((k) => ({ text: lines.get(k)!.text, file: join(OUT, `${k}.part.mp3`) }));
   let ok = false;
   try {
-    ok = await withModel((model) => geminiTtsBatch(items, { key, model, voice }));
+    ok = await withModel((model) => geminiTtsBatch(items, { key, model, voice, lang: lines.get(keys[0])!.lang }));
   } catch (e) {
     if (e instanceof DailyQuotaError) throw e;
     console.log(`  toplu istek hatası (${(e as Error).message.slice(0, 80)}), bölünüyor...`);
@@ -259,10 +264,14 @@ if (provider === 'gemini') {
     }
     return out;
   };
-  const ordered = flag('--single') ? [] : [...interleave(plain.filter((k) => !existsSync(mp3(k)))), ...interleave(plain.filter((k) => existsSync(mp3(k))))];
-  for (let i = 0; i < ordered.length; i += BATCH) {
-    const group = ordered.slice(i, i + BATCH);
-    jobs.push(() => batch(group));
+  // Türkçe ve İngilizce cümleler ayrı gruplanır (her istek tek dilde, kendi okuma tarzıyla).
+  for (const lang of [undefined, 'en'] as Lang[]) {
+    const sub = plain.filter((k) => lines.get(k)!.lang === lang);
+    const ordered = flag('--single') ? [] : [...interleave(sub.filter((k) => !existsSync(mp3(k)))), ...interleave(sub.filter((k) => existsSync(mp3(k))))];
+    for (let i = 0; i < ordered.length; i += BATCH) {
+      const group = ordered.slice(i, i + BATCH);
+      jobs.push(() => batch(group));
+    }
   }
 } else {
   for (const k of todo) jobs.push(() => single(k));
@@ -291,7 +300,11 @@ for (const f of readdirSync(OUT)) if (f.endsWith('.part.mp3')) unlinkSync(join(O
 // --- Doğrulama (--verify): yeni dosyalar Whisper ile yazıya dökülür, uyuşmayanlar tek tek yeniden üretilir ------
 /** scripts/voice-verify.py'yi çalıştırır; beklenen cümleyle uyuşmayan anahtarları döner. */
 function verify(keys: string[]): string[] {
-  const r = spawnSync('python', ['scripts/voice-verify.py', '--only', keys.join(','), '--min', String(VERIFY_MIN)], {
+  // Yeni cümleler henüz manifest'te değil: beklenen metin ve dil ayrı bir dosyayla verilir.
+  const input = join('.render', 'voice-verify-input.json');
+  mkdirSync('.render', { recursive: true });
+  writeFileSync(input, JSON.stringify(Object.fromEntries(keys.map((k) => [k, { text: lines.get(k)!.text, lang: lines.get(k)!.lang ?? 'tr' }]))), 'utf8');
+  const r = spawnSync('python', ['scripts/voice-verify.py', '--only', keys.join(','), '--min', String(VERIFY_MIN), '--lines', input], {
     encoding: 'utf8',
     env: { ...process.env, OPENBLAS_NUM_THREADS: '1', OMP_NUM_THREADS: '1', PYTHONIOENCODING: 'utf-8' },
     windowsHide: true,
@@ -362,6 +375,8 @@ const manifest = {
   // Ses değişince dosya URL'leri de değişsin (tarayıcı / service worker önbelleği için).
   version: lineKey(`${BASE_TAG}|${entries.map(([k]) => state[k]).join('')}`),
   lines: Object.fromEntries(entries.map(([k, v]) => [k, v.text])) as Record<string, string>,
+  // İngilizce cümlelerin anahtarları (Whisper doğrulaması dili buna göre seçer).
+  en: entries.filter(([, v]) => v.lang === 'en').map(([k]) => k),
 };
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 

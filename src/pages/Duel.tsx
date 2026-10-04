@@ -175,7 +175,7 @@ export default function Duel() {
       <div className="bg duel-setup">
         <Doodles variant={3} />
         <header className="duel-setup__top">
-          <button className="round-btn round-btn--light" aria-label="Geri" onClick={() => nav('/')}><ArrowLeft size={26} strokeWidth={2.6} /></button>
+          <button className="round-btn round-btn--light" aria-label="Geri" onClick={() => nav('/atolye')}><ArrowLeft size={26} strokeWidth={2.6} /></button>
         </header>
         <div className="duel-setup__body rise">
           <div className="duel-setup__title">
@@ -238,7 +238,7 @@ export default function Duel() {
   // ---------------------------------------------------------------- sonuç
   if (phase === 'reveal' && results.length === 2) {
     return <Reveal lesson={lesson} players={order} results={results}
-      onRematch={rematch} onSetup={() => { recorded.current = false; setPhase('setup'); }} onHome={() => nav('/')} />;
+      onRematch={rematch} onSetup={() => { recorded.current = false; setPhase('setup'); }} onHome={() => nav('/atolye')} />;
   }
 
   // ---------------------------------------------------------------- sıra perdesi

@@ -40,8 +40,15 @@ ORDINALS = {"1": "birinci", "2": "ikinci", "3": "üçüncü", "4": "dördüncü"
 NUMBERS = {"1": "bir", "2": "iki", "3": "üç", "4": "dört", "5": "beş", "6": "altı", "7": "yedi", "8": "sekiz", "9": "dokuz", "10": "on"}
 
 
-def norm(s: str) -> str:
+NUMBERS_EN = {"1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten"}
+
+
+def norm(s: str, lang: str = "tr") -> str:
     s = unicodedata.normalize("NFC", s).lower().replace("â", "a").replace("î", "i").replace("û", "u")
+    if lang == "en":  # English Club cümleleri
+        s = re.sub(r"\b(\d+)\b", lambda m: NUMBERS_EN.get(m.group(1), m.group(0)), s)
+        s = re.sub(r"[^\w\s]", " ", s)
+        return re.sub(r"\s+", " ", s).strip()
     # Whisper sayıları rakamla yazar ("4. tahta", "2 minik diş"); beklenen metin sözcükle yazar.
     s = re.sub(r"\b(\d+)\.(?=\s)", lambda m: ORDINALS.get(m.group(1), m.group(0)), s)
     s = re.sub(r"\b(\d+)\b", lambda m: NUMBERS.get(m.group(1), m.group(0)), s)
@@ -49,9 +56,11 @@ def norm(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-def score(text: str, heard: str) -> float:
-    a, b = norm(text), norm(heard)
+def score(text: str, heard: str, lang: str = "tr") -> float:
+    a, b = norm(text, lang), norm(heard, lang)
     sim = SequenceMatcher(None, a, b).ratio()
+    if lang == "en":
+        return sim
     for exp_re, head, tail in TEMPLATES:
         m = re.match(exp_re, a)
         if not m:
@@ -78,14 +87,22 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")  # Windows konsolunda Türkçe karakterler için
     threshold = float(opt("--min", "0.85"))
     manifest = json.loads((VOICE / "manifest.json").read_text(encoding="utf-8"))
-    lines = manifest["lines"]
+    lines = dict(manifest["lines"])
+    en_keys = set(manifest.get("en", []))
+    # --lines: üreticinin verdiği beklenen metinler (yeni cümleler henüz manifest'te değil)
+    if opt("--lines"):
+        for k, v in json.loads(Path(opt("--lines")).read_text(encoding="utf-8")).items():
+            lines[k] = v["text"]
+            if v.get("lang") == "en":
+                en_keys.add(k)
+    lang_of = lambda k: "en" if k in en_keys else "tr"  # noqa: E731
     only = opt("--only")
     keys = only.split(",") if only else list(lines.keys())
     prev = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}  # önceki sonuçlarla birleştirilir
 
     if "--report" in sys.argv:
         for k, r in prev.items():
-            r["sim"] = round(score(r["text"], r.get("heard", "")), 3)
+            r["sim"] = round(score(r["text"], r.get("heard", ""), lang_of(k)), 3)
         OUT.write_text(json.dumps(prev, ensure_ascii=False, indent=1), encoding="utf-8")
         report(prev, [k for k in keys if k in prev], threshold)
         return
@@ -105,11 +122,11 @@ def main():
             results[k] = {"text": text, "heard": "", "sim": 0.0, "missing": True}
             continue
         try:
-            segments, _ = model.transcribe(str(f), language="tr", beam_size=2, vad_filter=False, condition_on_previous_text=False)
+            segments, _ = model.transcribe(str(f), language=lang_of(k), beam_size=2, vad_filter=False, condition_on_previous_text=False)
             heard = " ".join(s.text.strip() for s in segments)
         except Exception as e:  # noqa: BLE001
             heard = f"<hata: {e}>"
-        results[k] = {"text": text, "heard": heard, "sim": round(score(text, heard), 3)}
+        results[k] = {"text": text, "heard": heard, "sim": round(score(text, heard, lang_of(k)), 3)}
         if n % 25 == 0 or n == len(keys):
             print(f"  {n}/{len(keys)} ({time.time() - t0:.0f} sn)", flush=True)
     OUT.parent.mkdir(exist_ok=True)

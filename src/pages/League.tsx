@@ -77,7 +77,7 @@ export default function League() {
       </ol>
 
       <div className="league-actions rise">
-        <Link to="/" className="pill">Yıldız kazan</Link>
+        <Link to="/atolye" className="pill">Yıldız kazan</Link>
         <p className="sub">Derslerde ve meydan okumalarda kazandığın yıldızlar bu haftanın puanına eklenir. Lig her pazartesi yeniden başlar.</p>
       </div>
     </AppShell>

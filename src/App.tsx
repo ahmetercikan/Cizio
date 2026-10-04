@@ -7,6 +7,7 @@ import Adventure from './pages/Adventure';
 import Challenge from './pages/Challenge';
 import DressUp from './pages/DressUp';
 import Duel from './pages/Duel';
+import EnglishHome, { EnglishGames, EnglishPlay, EnglishStories, EnglishStoryPage, EnglishTime, EnglishTopic, EnglishWords } from './pages/English';
 import FreeDraw from './pages/FreeDraw';
 import Journal from './pages/Journal';
 import League from './pages/League';
@@ -17,6 +18,7 @@ import Parent from './pages/Parent';
 import Playground from './pages/Playground';
 import Profiles from './pages/Profiles';
 import Shop from './pages/Shop';
+import Worlds from './pages/Worlds';
 import { useApp } from './store/useApp';
 
 /** Profil yoksa karşılama akışına yönlendirir. */
@@ -45,7 +47,16 @@ export default function App() {
       <Routes>
         <Route path="/hosgeldin" element={<Onboarding />} />
         <Route path="/profiller" element={<Profiles />} />
-        <Route path="/" element={<NeedsProfile><Playground /></NeedsProfile>} />
+        <Route path="/" element={<NeedsProfile><Worlds /></NeedsProfile>} />
+        <Route path="/atolye" element={<NeedsProfile><Playground /></NeedsProfile>} />
+        <Route path="/english" element={<NeedsProfile><EnglishHome /></NeedsProfile>} />
+        <Route path="/english/zaman" element={<NeedsProfile><EnglishTime /></NeedsProfile>} />
+        <Route path="/english/kelimeler" element={<NeedsProfile><EnglishWords /></NeedsProfile>} />
+        <Route path="/english/kelimeler/:id" element={<NeedsProfile><EnglishTopic /></NeedsProfile>} />
+        <Route path="/english/oyunlar" element={<NeedsProfile><EnglishGames /></NeedsProfile>} />
+        <Route path="/english/oyna/:game" element={<NeedsProfile><EnglishPlay /></NeedsProfile>} />
+        <Route path="/english/hikayeler" element={<NeedsProfile><EnglishStories /></NeedsProfile>} />
+        <Route path="/english/hikaye/:id" element={<NeedsProfile><EnglishStoryPage /></NeedsProfile>} />
         <Route path="/ogren" element={<NeedsProfile><Learn /></NeedsProfile>} />
         <Route path="/yol/:id" element={<NeedsProfile><CoursePage /></NeedsProfile>} />
         <Route path="/dergi" element={<NeedsProfile><Journal /></NeedsProfile>} />

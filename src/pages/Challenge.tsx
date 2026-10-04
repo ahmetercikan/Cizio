@@ -40,7 +40,7 @@ export default function Challenge() {
   const nav = useNavigate();
   const def = CHALLENGES.find((c) => c.id === kind);
   const lesson = useMemo(() => (lessonId && getLesson(lessonId)) || randomLesson(), [lessonId]);
-  if (!def) return <Link to="/">Ana sayfa</Link>;
+  if (!def) return <Link to="/atolye">Ana sayfa</Link>;
   return <ChallengeRun key={`${def.id}-${lesson.id}`} kind={def.id} lesson={lesson} onAnother={() => nav(`/meydan/${def.id}/${randomLesson(lesson.id).id}`, { replace: true })} />;
 }
 
@@ -146,7 +146,7 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
   return (
     <div className={`player desk ${settings.leftHanded ? 'player--left' : ''} ${phase === 'draw' ? 'player--tools player--palette' : ''}`}>
       <header className="player__top">
-        <button className="round-btn round-btn--light" aria-label="Geri" onClick={() => nav('/')}>
+        <button className="round-btn round-btn--light" aria-label="Geri" onClick={() => nav('/atolye')}>
           <ArrowLeft size={26} strokeWidth={2.6} />
         </button>
         <div className="player__title">
@@ -242,7 +242,7 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
             <div className="celebrate__actions">
               <button className="pill" onClick={onAnother}>Yeni meydan okuma <Shuffle size={20} /></button>
               <button className="pill pill--ghost pill--sm" onClick={() => { setResult(null); setPhase('intro'); }}><RotateCcw size={18} /> Tekrar</button>
-              <button className="pill pill--ghost pill--sm" onClick={() => nav('/')}>Ana sayfa</button>
+              <button className="pill pill--ghost pill--sm" onClick={() => nav('/atolye')}>Ana sayfa</button>
             </div>
           </div>
         </div>

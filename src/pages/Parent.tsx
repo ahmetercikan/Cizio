@@ -1,7 +1,7 @@
 /**
  * Ebeveyn bölümü (basit çarpma sorusuyla korunur): profiller, ses, çizim ayarları, ilerleme ve yedekleme.
  */
-import { Download, Lock, Trash2, Upload } from 'lucide-react';
+import { Download, Lock, Trash2, Upload, Volume2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Confirm, Modal, TopBar, useToast } from '../components/ui';
@@ -13,6 +13,8 @@ import { addDays, dayKey, TR_DAYS } from '../lib/util';
 import { useApp } from '../store/useApp';
 import { AvatarArt, AVATARS } from '../components/Avatars';
 import { Doodles } from '../components/Doodles';
+import { AGES, ALL_WORDS, HOME_PHRASES, known, STORIES } from '../english/data';
+import { say as sayEn } from '../english/voice';
 
 function Gate({ onPass, onCancel }: { onPass: () => void; onCancel: () => void }) {
   const [q] = useState(() => [3 + Math.floor(Math.random() * 7), 3 + Math.floor(Math.random() * 7)] as const);
@@ -160,6 +162,48 @@ export default function Parent() {
               </div>
             );
           })}
+        </section>
+      )}
+
+      {active && data && (
+        <section className="paper-card settings-card" style={{ marginTop: 16 }}>
+          <h2 className="card-title">English Club — {active.name}</h2>
+          <p className="muted" style={{ fontWeight: 600 }}>
+            {data.english?.sessions.length ?? 0} gün English Time · {ALL_WORDS.filter((w) => data.english && known(data.english, w.id)).length} / {ALL_WORDS.length} kelime biliniyor · {data.english?.stories.length ?? 0} / {STORIES.length} hikâye
+          </p>
+          <div className="toggle-row">
+            <span>Yaş grubu</span>
+            <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {AGES.map((a) => (
+                <button key={a.id} className="btn-outline btn-outline--sm"
+                  style={data.english?.age === a.id ? { borderColor: '#3f7fe0', color: '#2a62bd' } : undefined} onClick={() => s.setEnglishAge(a.id)}>
+                  {a.label} · {a.years}
+                </button>
+              ))}
+            </span>
+          </div>
+          {data.english && ALL_WORDS.some((w) => known(data.english!, w.id)) && (
+            <p className="muted" style={{ fontWeight: 600, marginTop: 10 }}>
+              Bildiği kelimeler: {ALL_WORDS.filter((w) => known(data.english!, w.id)).map((w) => `${w.en} (${w.tr})`).join(', ')}
+            </p>
+          )}
+          <h3 style={{ margin: '16px 0 0', fontSize: 18 }}>Evde İngilizce</h3>
+          <ul className="en-parent-tips">
+            <li>Her gün 15–20 dakika yeter. Aynı saatte "English Time" yapmak alışkanlık kazandırır.</li>
+            <li>Hatayı düzeltmeyin, doğrusunu tekrar edin: çocuk "I goed" derse "Yes, you went to the park!" deyin.</li>
+            <li>"Bu ne demek?" diye çeviri istemeyin. Resimle, hareketle ve jestle anlatın.</li>
+            <li>Komut verin, birlikte yapın: "Jump!", "Clap your hands!", "Touch something blue!"</li>
+            <li>Birlikte okuyun ve soru sorun: "Where is the cat? What color is it?"</li>
+            <li>Ekranı pasif izlemeye çevirmeyin. Şarkıları ve diyalogları birlikte canlandırın.</li>
+          </ul>
+          <div className="en-parent-phrases">
+            {HOME_PHRASES.map((p) => (
+              <button key={p.en} className="en-parent-phrase" onClick={() => sayEn(p.en)}>
+                <Volume2 size={20} />
+                <span><b>{p.en}</b><small>{p.tr} · {p.when}</small></span>
+              </button>
+            ))}
+          </div>
         </section>
       )}
 

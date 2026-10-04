@@ -11,6 +11,7 @@ import { lessons as allLessons } from '../lessons';
 import { questDone, todayQuest, type ChallengeKind } from '../lib/daily';
 import { STATE_KEY } from '../lib/legacy';
 import type { DollState } from '../dressup/catalog';
+import { DAILY_GAME_CAP, emptyEnglish, GAME_STARS, SESSION_STARS, type Age, type EnglishData } from '../english/data';
 import { chestsEarned, earnedSum, giftStatus, GIFT_DAYS, pickReward, rareKey, walletOf, xpOf, type ChestReason, type GiftState, type Reward } from '../lib/rewards';
 
 export type DrawMode = 'screen' | 'paper';
@@ -80,6 +81,20 @@ export interface ProfileData {
   /** Dükkandan alınan avatar çerçeveleri ve takılı olan. */
   frames?: string[];
   frame?: string;
+  /** English Club ilerlemesi. */
+  english?: EnglishData;
+}
+
+export interface EnglishInput {
+  /** Gösterilen (dinlenen) kelimeler. */
+  seen?: string[];
+  /** İlk denemede bulunan kelimeler. */
+  got?: string[];
+  /** Bir oyun turu bitti (günlük üst sınıra kadar yıldız). */
+  game?: boolean;
+  /** Günün English Time'ı bitti (günde bir kez yıldız). */
+  session?: boolean;
+  story?: string;
 }
 
 export interface Settings {
@@ -135,6 +150,9 @@ interface AppState {
   buyChest(price: number): boolean;
   buyFrame(id: string, price: number): boolean;
   setFrame(id?: string): void;
+  setEnglishAge(age: Age): void;
+  /** English Club ilerlemesini kaydeder; kazanılan yıldız sayısını döner. */
+  recordEnglish(input: EnglishInput): number;
   /** Biten haftanın lig sırasını kaydeder (kürsü çıkartmaları). */
   settleLeague(week: string, rank: number): string[];
   consumeNewStickers(): void;
@@ -446,6 +464,44 @@ export const useApp = create<AppState>()(
         const d = { ...emptyData(), ...data[activeId] };
         const favorites = d.favorites.includes(lessonId) ? d.favorites.filter((x) => x !== lessonId) : [lessonId, ...d.favorites];
         set({ data: { ...data, [activeId]: { ...d, favorites } } });
+      },
+
+      setEnglishAge(age) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = { ...emptyData(), ...data[activeId] };
+        set({ data: { ...data, [activeId]: { ...d, english: { ...emptyEnglish(), ...d.english, age } } } });
+      },
+
+      recordEnglish({ seen = [], got = [], game, session, story }) {
+        const { activeId, data } = get();
+        if (!activeId) return 0;
+        const d = { ...emptyData(), ...data[activeId] };
+        const k = dayKey();
+        const prev = { ...emptyEnglish(), ...d.english };
+        const words = { ...prev.words };
+        for (const id of seen) words[id] = { seen: (words[id]?.seen ?? 0) + 1, got: words[id]?.got ?? 0 };
+        for (const id of got) words[id] = { seen: Math.max(1, words[id]?.seen ?? 0), got: (words[id]?.got ?? 0) + 1 };
+        let stars = 0;
+        let gameStars = prev.stars[k] ?? 0;
+        if (game) {
+          const g = Math.max(0, Math.min(GAME_STARS, DAILY_GAME_CAP - gameStars));
+          stars += g;
+          gameStars += g;
+        }
+        const sessions = session && !prev.sessions.includes(k) ? [...prev.sessions, k] : prev.sessions;
+        if (sessions !== prev.sessions) stars += SESSION_STARS;
+        const english: EnglishData = {
+          ...prev,
+          words,
+          sessions,
+          stories: story && !prev.stories.includes(story) ? [...prev.stories, story] : prev.stories,
+          stars: { ...prev.stars, [k]: gameStars },
+        };
+        const t = today(d);
+        const next: ProfileData = { ...d, english, days: stars ? { ...d.days, [k]: { ...t, stars: (t.stars ?? 0) + stars } } : d.days };
+        set({ data: { ...data, [activeId]: withChests(d, next) } });
+        return stars;
       },
 
       updateSettings(patch) {
