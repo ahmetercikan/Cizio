@@ -7,7 +7,7 @@ import { Mascot } from '../components/Mascot';
 import { Modal } from '../components/ui';
 import { WordArt } from '../english/Art';
 import {
-  AGES, ALL_WORDS, getStory, getTopic, HOME_PHRASES, isLine, known, pickByDay, seen, show, showText, STORIES, TOPICS, wordLine,
+  AGES, ALL_WORDS, getStory, getTopic, HOME_PHRASES, isLine, known, pickByDay, seen, show, showText, STORIES, TOPICS, UI, wordLine,
   type Age, type Word,
 } from '../english/data';
 import { ChizioSays } from '../english/games/ChizioSays';
@@ -43,7 +43,7 @@ function AgePicker({ value, onPick }: { value?: Age; onPick: (a: Age) => void })
 
 function AgeGate() {
   const setAge = useApp((s) => s.setEnglishAge);
-  useEffect(() => say("Hello! Welcome to the English Club!"), []);
+  useEffect(() => say(UI.welcome), []);
   return (
     <section className="en-gate rise">
       <Mascot size={130} mood="cheer" className="en-wave" />

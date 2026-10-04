@@ -22,12 +22,23 @@ export const STYLE =
   'You are Çizio, a warm, cheerful and patient art teacher talking to a 7-year-old child: smiling, gentle, ' +
   'lively and encouraging intonation, relaxed medium pace, clear articulation. Say only the sentence, nothing else.';
 
-/** English Club cümleleri: yavaş, net Amerikan İngilizcesi (İngilizceye yeni başlayan çocuk için). */
-export const STYLE_EN_ID = 'cizio-en-v1';
-export const STYLE_EN =
-  'Read the following English sentence aloud in clear, natural American English. You are Chizio, a warm, cheerful and ' +
-  'patient teacher talking to a 6-year-old child who is just starting to learn English: smiling, encouraging intonation, ' +
-  'slow and very clear articulation, short natural pauses. Say only the sentence, nothing else.';
+/**
+ * English Club cümleleri: yavaş, net Amerikan İngilizcesi (İngilizceye yeni başlayan çocuk için).
+ * v1'de talimat da İngilizce olduğu için model bazen talimatı seslendirdi; v2 talimatı "yönetmen notları",
+ * okunacak metni ayrı bir TRANSCRIPT başlığı altında verir.
+ */
+export const STYLE_EN_ID = 'cizio-en-v2';
+const EN_NOTES =
+  "### DIRECTOR'S NOTES (never read these notes aloud)\n" +
+  'Speaker: Chizio, a warm, cheerful and patient teacher talking to a 6-year-old child who is just starting to learn English.\n' +
+  'Accent: clear, natural American English.\n' +
+  'Pace: slow, very clear articulation, short natural pauses.\n' +
+  'Tone: smiling, encouraging.\n';
+const EN_BATCH_RULES =
+  'The transcript contains several sentences separated by "—". Read them in order, exactly as written. After EACH sentence ' +
+  'stay completely silent for two full seconds. Do not read the separators; do not add, skip or repeat anything.\n';
+const enPrompt = (transcript: string, batch = false) =>
+  `${EN_NOTES}${batch ? EN_BATCH_RULES : 'Read only the transcript below, nothing else.\n'}\n#### TRANSCRIPT\n${transcript}`;
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -271,12 +282,9 @@ export async function geminiTtsBatch(
   items: { text: string; file: string }[],
   opts: { key: string; model: string; voice: string; lang?: 'en' },
 ): Promise<boolean> {
-  const en = opts.lang === 'en';
-  const style = en
-    ? STYLE_EN.replace('the following English sentence', 'English sentences').replace('Say only the sentence, nothing else.', '')
-    : STYLE.replace('the following Turkish sentence', 'Turkish sentences').replace('Say only the sentence, nothing else.', '');
-  const rules = en ? BATCH_RULES.replace('Turkish', 'English') : BATCH_RULES;
-  const prompt = `${style}\n${rules}\n\n${items.map((it) => it.text).join('\n\n—\n\n')}`;
+  const transcript = items.map((it) => it.text).join('\n\n—\n\n');
+  const style = STYLE.replace('the following Turkish sentence', 'Turkish sentences').replace('Say only the sentence, nothing else.', '');
+  const prompt = opts.lang === 'en' ? enPrompt(transcript, true) : `${style}\n${BATCH_RULES}\n\n${transcript}`;
   const { pcm, rate } = await requestPcm(prompt, opts);
   const pieces = splitBySilence(pcm, rate, items.map((i) => i.text));
   if (!pieces) return false;
@@ -293,7 +301,10 @@ export async function geminiTts(
   file: string,
   opts: { key: string; model: string; voice: string; tone?: string; lang?: 'en' },
 ): Promise<void> {
-  const prompt = `${opts.lang === 'en' ? STYLE_EN : STYLE}${opts.tone ? ` For this sentence specifically: ${opts.tone}` : ''}
+  const prompt =
+    opts.lang === 'en'
+      ? enPrompt(text)
+      : `${STYLE}${opts.tone ? ` For this sentence specifically: ${opts.tone}` : ''}
 
 ${text}`;
   const { pcm, rate } = await requestPcm(prompt, opts);

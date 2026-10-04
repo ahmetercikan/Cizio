@@ -331,6 +331,7 @@ export const showText = (age: Age) => age !== 'mini';
 export const PRAISE = ['Great job!', 'Well done!', 'Yes! You got it!', 'Super!', 'Awesome!', 'Fantastic!'];
 export const TRY_AGAIN = "Let's try again!";
 export const UI = {
+  welcome: 'Hello! Welcome to the English Club!',
   hello: "Hello, friend! It's English time!",
   howAreYou: 'How are you today?',
   newWords: "New words! Listen and look.",
