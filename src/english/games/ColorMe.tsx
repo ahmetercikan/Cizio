@@ -13,13 +13,14 @@ import { say } from '../voice';
 const colorWord = (c: string) => getWord(`colors.${c}`)!;
 
 export function ColorMe({ age, page: fixed, onDone, onStep }: { age: Age; page?: PaintPage; onDone: (r: Result) => void; onStep?: (i: number, n: number) => void }) {
-  const page = useMemo(() => fixed ?? pick(PAINT_PAGES), [fixed]);
+  // Sayfa ve renk planı oyun başında bir kez seçilir (söylenen renk ile ekrandaki hep aynı kalsın).
+  const [page] = useState(() => fixed ?? pick(PAINT_PAGES));
   const { shapes, box } = useMemo(() => lessonCut(page.lesson), [page]);
-  const plan = useMemo(() => {
+  const [plan] = useState(() => {
     const targets = age === 'mini' ? page.targets.slice(0, 3) : page.targets;
     const colors = shuffle(PAINT_COLORS);
     return targets.map((t, i) => ({ t, color: colors[i % colors.length] }));
-  }, [page, age]);
+  });
   const [i, setI] = useState(0);
   const [sel, setSel] = useState<string | null>(null);
   const [painted, setPainted] = useState<Record<string, string>>({});

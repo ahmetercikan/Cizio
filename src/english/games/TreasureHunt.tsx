@@ -2,7 +2,7 @@
  * Treasure Hunt: dağınık şekiller arasında "Find the red star!" (5–6: "Find a star!", 8–9: "Find all the
  * blue hearts!"). Her turda 30 saniyelik kum saati; süre bitince ceza yok, sadece sonraki tura geçilir.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { sfx } from '../../lib/sfx';
 import { shapePath } from '../Art';
 import { COLORS, getWord, HUNT_COLORS, HUNT_SHAPES, huntLine, isLine, UI, wordLine, type Age, type ShapeId } from '../data';
@@ -53,7 +53,9 @@ function makeRound(age: Age): { color: string; shape: ShapeId; pieces: Piece[] }
 
 export function TreasureHunt({ age, rounds = 3, onDone, onStep }: { age: Age; rounds?: number; onDone: (r: Result) => void; onStep?: (i: number, n: number) => void }) {
   const [i, setI] = useState(0);
-  const round = useMemo(() => makeRound(age), [age, i]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Bütün turlar oyun başında bir kez kurulur (söylenen hedef ile ekrandaki şekiller hep aynı kalsın).
+  const [all] = useState(() => Array.from({ length: rounds }, () => makeRound(age)));
+  const round = all[i];
   const [found, setFound] = useState<number[]>([]);
   const [wobble, setWobble] = useState<number | null>(null);
   const [left, setLeft] = useState(ROUND_MS);

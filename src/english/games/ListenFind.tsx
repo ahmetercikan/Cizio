@@ -3,7 +3,7 @@
  * Yanlış resme dokunursa "yanlış" denmez: Çizio dokunulanın adını söyler ve soruyu tekrarlar (recasting).
  */
 import { Volume2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { sfx } from '../../lib/sfx';
 import { WordArt } from '../Art';
 import { askLine, isLine, optionCount, showText, topicOf, type Age, type Word } from '../data';
@@ -13,20 +13,23 @@ import { say } from '../voice';
 export function ListenFind({ targets, pool, age, onDone, onStep }: {
   targets: Word[]; pool: Word[]; age: Age; onDone: (r: Result) => void; onStep?: (i: number, n: number) => void;
 }) {
-  const rounds = useMemo(() => shuffle(targets), [targets]);
+  // Turlar ve seçenekler oyun başında bir kez kurulur: üst bileşen yeniden çizilse (yeni dizi gelse) bile
+  // değişmez — yoksa Çizio'nun söylediği kelime ile ekrandaki soru birbirini tutmaz.
+  const [rounds] = useState(() =>
+    shuffle(targets).map((target) => {
+      const n = optionCount(age);
+      const same = shuffle(pool.filter((w) => w.id !== target.id && topicOf(w.id).id === topicOf(target.id).id));
+      const other = shuffle(pool.filter((w) => w.id !== target.id && topicOf(w.id).id !== topicOf(target.id).id));
+      const distractors = [...same, ...other].filter((w, k, a) => a.findIndex((x) => x.id === w.id) === k).slice(0, n - 1);
+      return { target, options: shuffle([target, ...distractors]) };
+    }),
+  );
   const [i, setI] = useState(0);
   const [solved, setSolved] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
   const missed = useRef(new Set<string>());
-  const target = rounds[i];
-
-  const options = useMemo(() => {
-    if (!target) return [];
-    const n = optionCount(age);
-    const same = shuffle(pool.filter((w) => w.id !== target.id && topicOf(w.id).id === topicOf(target.id).id));
-    const other = shuffle(pool.filter((w) => w.id !== target.id && topicOf(w.id).id !== topicOf(target.id).id));
-    return shuffle([target, ...[...same, ...other].slice(0, n - 1)]);
-  }, [target, pool, age]);
+  const target = rounds[i]?.target;
+  const options = rounds[i]?.options ?? [];
 
   useEffect(() => {
     if (!target) return;
@@ -45,7 +48,7 @@ export function ListenFind({ targets, pool, age, onDone, onStep }: {
       sfx.success();
       say([praise(), isLine(target)], () => {
         if (i + 1 < rounds.length) setI(i + 1);
-        else onDone({ seen: rounds.map((r) => r.id), got: rounds.filter((r) => !missed.current.has(r.id)).map((r) => r.id) });
+        else onDone({ seen: rounds.map((r) => r.target.id), got: rounds.filter((r) => !missed.current.has(r.target.id)).map((r) => r.target.id) });
       });
     } else {
       missed.current.add(target.id);

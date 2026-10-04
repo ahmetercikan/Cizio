@@ -5,7 +5,7 @@
  * kıpırdadıysa da sorun değil ("It's a tricky game!").
  */
 import { Hand, Snowflake } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { sfx } from '../../lib/sfx';
 import { WordArt } from '../Art';
 import { COMMANDS, saysLine, show, showText, UI, type Age, type Command } from '../data';
@@ -15,11 +15,12 @@ import { say } from '../voice';
 const DO_MS = 4200;
 
 export function ChizioSays({ age, count, onDone, onStep }: { age: Age; count: number; onDone: (r: Result) => void; onStep?: (i: number, n: number) => void }) {
-  const rounds = useMemo(() => {
+  // Komutlar oyun başında bir kez seçilir (söylenen ve gösterilen hep aynı kalsın).
+  const [rounds] = useState(() => {
     const pool = shuffle(COMMANDS.filter((c) => age !== 'mini' || !c.id.match(/^(angry|surprised)$/)));
     // Hileli turlar yalnızca 8–9 yaşta; ilk tur hiçbir zaman hileli değil.
     return pool.slice(0, count).map((c, i) => ({ c, trick: age === 'star' && i > 0 && Math.random() < 0.3 }));
-  }, [age, count]);
+  });
   const [i, setI] = useState(0);
   const [phase, setPhase] = useState<'listen' | 'do' | 'ask' | 'done'>('listen');
   const timer = useRef<number>();

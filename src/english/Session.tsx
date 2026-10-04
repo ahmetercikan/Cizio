@@ -122,7 +122,8 @@ export function EnglishSession({ e, onClose }: { e: EnglishData & { age: Age }; 
 
   const onStep = (i: number, n: number) => setSub([i, n]);
   const info = STEP_INFO[step];
-  const findTargets = age === 'mini' ? plan.fresh : [...plan.fresh, ...plan.review.slice(0, 2)];
+  const findTargets = useMemo(() => (age === 'mini' ? plan.fresh : [...plan.fresh, ...plan.review.slice(0, 2)]), [plan, age]);
+  const findPool = useMemo(() => [...plan.topic.words, ...plan.review], [plan]);
 
   let body: React.ReactNode;
   if (intro) {
@@ -137,7 +138,7 @@ export function EnglishSession({ e, onClose }: { e: EnglishData & { age: Age }; 
       case 'hello': body = <Hello age={age} onDone={() => next()} />; break;
       case 'words': body = <Flashcards words={plan.fresh} age={age} onDone={next} onStep={onStep} />; break;
       case 'move': body = <ChizioSays age={age} count={age === 'mini' ? 3 : 4} onDone={next} onStep={onStep} />; break;
-      case 'find': body = <ListenFind targets={findTargets} pool={[...plan.topic.words, ...plan.review]} age={age} onDone={next} onStep={onStep} />; break;
+      case 'find': body = <ListenFind targets={findTargets} pool={findPool} age={age} onDone={next} onStep={onStep} />; break;
       case 'story': body = <StoryReader story={getStory(plan.story!.id)!} age={age} onDone={() => next()} onStep={onStep} />; break;
       case 'color': body = <ColorMe age={age} onDone={next} onStep={onStep} />; break;
       case 'home': body = <HomeHunt age={age} initial={plan.home} onDone={next} />; break;
