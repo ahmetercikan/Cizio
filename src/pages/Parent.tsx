@@ -169,7 +169,7 @@ export default function Parent() {
         <section className="paper-card settings-card" style={{ marginTop: 16 }}>
           <h2 className="card-title">English Club — {active.name}</h2>
           <p className="muted" style={{ fontWeight: 600 }}>
-            {data.english?.sessions.length ?? 0} gün English Time · {ALL_WORDS.filter((w) => data.english && known(data.english, w.id)).length} / {ALL_WORDS.length} kelime biliniyor · {data.english?.stories.length ?? 0} / {STORIES.length} hikâye
+            {data.english?.sessions.length ?? 0} gün English Time · {ALL_WORDS.filter((w) => data.english && known(data.english, w.id)).length} / {ALL_WORDS.length} kelime biliniyor · {data.english?.stories.length ?? 0} / {STORIES.length} hikaye
           </p>
           <div className="toggle-row">
             <span>Yaş grubu</span>

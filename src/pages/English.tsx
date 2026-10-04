@@ -117,7 +117,7 @@ export default function EnglishHome() {
           ))}
         </div>
         <Link to="/english/kelimeler" className="en-stat"><b>{learned}</b><small>öğrendiğin kelime</small></Link>
-        <Link to="/english/hikayeler" className="en-stat"><b>{e.stories.length}/{STORIES.length}</b><small>okunan hikâye</small></Link>
+        <Link to="/english/hikayeler" className="en-stat"><b>{e.stories.length}/{STORIES.length}</b><small>okunan hikaye</small></Link>
       </section>
 
       <section className="en-phrase rise">
@@ -137,7 +137,7 @@ export default function EnglishHome() {
       {ageOpen && (
         <Modal onClose={() => setAgeOpen(false)}>
           <h2 className="title-lg">Kaç yaşındasın?</h2>
-          <p className="sub">Oyunlar ve hikâyeler yaşına göre ayarlanır.</p>
+          <p className="sub">Oyunlar ve hikayeler yaşına göre ayarlanır.</p>
           <AgePicker value={e.age} onPick={(a) => { setAge(a); setAgeOpen(false); }} />
         </Modal>
       )}
@@ -327,7 +327,7 @@ export function EnglishTopic() {
 }
 
 // ------------------------------------------------------------------------------------------------
-// Hikâyeler
+// Hikayeler
 // ------------------------------------------------------------------------------------------------
 export function EnglishStories() {
   const e = useEnglish();
@@ -374,7 +374,7 @@ export function EnglishStoryPage() {
       ) : (
         <EndCard title="The end!" stars={stars}>
           <button className="pill pill--light" onClick={() => { setStars(null); setRound(round + 1); }}>Bir daha oku</button>
-          <button className="pill pill--teal pill--big" onClick={() => nav('/english/hikayeler')}>Diğer hikâyeler</button>
+          <button className="pill pill--teal pill--big" onClick={() => nav('/english/hikayeler')}>Diğer hikayeler</button>
         </EndCard>
       )}
     </PlayFrame>

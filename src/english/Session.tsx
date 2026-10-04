@@ -1,7 +1,7 @@
 /**
  * English Time: her gün aynı sırayla ilerleyen kısa rutin (çalışmalardaki "mikro rutin"):
  * merhaba + "How are you?" → 3 yeni kelime → hareket (Çizio Says) → dinle-bul (yeni + tekrar) →
- * hikâye ya da boyama (gün aşırı) → evde görev → hoşça kal. Toplam ~15 dakika.
+ * hikaye ya da boyama (gün aşırı) → evde görev → hoşça kal. Toplam ~15 dakika.
  */
 import { BookOpen, ChevronRight, Ear, Footprints, Hand, Home, Palette, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';

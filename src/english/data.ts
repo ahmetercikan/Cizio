@@ -4,7 +4,7 @@
  * Yaklaşım (ebeveynin paylaştığı iki çalışmadan): anlaşılır girdi (resim + ses, çeviri yok), düşük kaygı
  * (yanlış yok; çocuk bir şeye dokununca Çizio doğru biçimi tekrar eder — "recasting"), TPR (komutla hareket:
  * Çizio Says), görev temelli oyunlar (boyama, hazine avı), içerikle öğrenme (hayvanlar, dinozorlar, şekiller,
- * sanat), tekrarlı kalıplı hikâyeler ve soru sorarak okuma, her gün 15–20 dakikalık kısa bir rutin.
+ * sanat), tekrarlı kalıplı hikayeler ve soru sorarak okuma, her gün 15–20 dakikalık kısa bir rutin.
  *
  * Bu dosya React içermez: scripts/generate-voice.ts buradan İngilizce cümleleri toplar (EN_LINES).
  * Seslendirilen metinde maskotun adı "Chizio" yazılır (İngilizce ses "Ç"yi okuyamaz); ekranda show() ile
@@ -319,7 +319,7 @@ export const show = (t: string) => t.replace(/Chizio/g, 'Çizio');
 export type Age = 'mini' | 'junior' | 'star';
 export const AGES: { id: Age; label: string; years: string; note: string }[] = [
   { id: 'mini', label: 'Minik', years: '5–6 yaş', note: 'Dinle, hareket et, dokun. Yazı yok.' },
-  { id: 'junior', label: 'Kâşif', years: '7–8 yaş', note: 'Resimli hikâyeler, kelimeler yazıyla.' },
+  { id: 'junior', label: 'Kaşif', years: '7–8 yaş', note: 'Resimli hikayeler, kelimeler yazıyla.' },
   { id: 'star', label: 'Yıldız', years: '8–9 yaş', note: 'Daha uzun cümleler, kurallı oyunlar.' },
 ];
 export const optionCount = (age: Age) => (age === 'mini' ? 3 : age === 'junior' ? 4 : 6);
@@ -510,7 +510,7 @@ export const HOME_PHRASES: { en: string; tr: string; when: string }[] = [
 ];
 
 // ------------------------------------------------------------------------------------------------
-// Hikâyeler (tekrarlı kalıplar + soru sorarak okuma)
+// Hikayeler (tekrarlı kalıplar + soru sorarak okuma)
 // ------------------------------------------------------------------------------------------------
 export interface SceneItem {
   /** Ders kimliği ya da 'mascot'. */

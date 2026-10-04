@@ -36,7 +36,7 @@ export const WORLDS: Record<WorldId, { title: string; home: string; tabs: { to: 
       { to: '/english', label: 'Bugün', Icon: Sun },
       { to: '/english/kelimeler', label: 'Kelimeler', Icon: BookA },
       { to: '/english/oyunlar', label: 'Oyunlar', Icon: Gamepad2 },
-      { to: '/english/hikayeler', label: 'Hikâyeler', Icon: BookOpen },
+      { to: '/english/hikayeler', label: 'Hikayeler', Icon: BookOpen },
     ],
   },
 };

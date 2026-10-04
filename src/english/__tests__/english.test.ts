@@ -38,7 +38,7 @@ describe('English Club içeriği', () => {
     }
   });
 
-  it('hikâye sahneleri ve soruları tutarlı', () => {
+  it('hikaye sahneleri ve soruları tutarlı', () => {
     for (const s of STORIES) {
       expect(s.pages.length).toBeGreaterThanOrEqual(5);
       for (const [i, p] of s.pages.entries()) {

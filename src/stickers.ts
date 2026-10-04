@@ -30,7 +30,7 @@ const MILESTONES: Sticker[] = [
   { id: 'duel-wins-5', emoji: '🤺', title: 'Düello Ustası', hint: '5 düello kazan' },
   { id: 'league-podium', emoji: '🥉', title: 'Kürsüde', hint: 'Haftalık ligde ilk üçe gir' },
   { id: 'league-champion', emoji: '🏅', title: 'Lig Şampiyonu', hint: 'Haftalık ligi birinci bitir' },
-  { id: 'adventure-3', emoji: '🗺️', title: 'Kâşif', hint: 'Maceralarda 3 durağı tamamla' },
+  { id: 'adventure-3', emoji: '🗺️', title: 'Kaşif', hint: 'Maceralarda 3 durağı tamamla' },
   { id: 'adventure-all', emoji: '🏰', title: 'Macera Kahramanı', hint: 'Maceralardaki tüm durakları tamamla' },
   { id: 'style-first', emoji: '👗', title: 'Stil İkonu', hint: 'Günün stil görevini tamamla' },
   { id: 'style-5', emoji: '🕶️', title: 'Moda Tasarımcısı', hint: '5 günün stil görevini tamamla' },

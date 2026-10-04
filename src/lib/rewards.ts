@@ -14,7 +14,7 @@ import { addDays, dayKey } from './util';
 // ------------------------------------------------------------------------------------------------
 // Seviyeler
 // ------------------------------------------------------------------------------------------------
-export const LEVEL_NAMES = ['Minik Kalem', 'Çırak Ressam', 'Renk Kâşifi', 'Çizgi Ustası', 'Renk Sihirbazı', 'Sanatçı', 'Büyük Ressam', 'Efsane Ressam'];
+export const LEVEL_NAMES = ['Minik Kalem', 'Çırak Ressam', 'Renk Kaşifi', 'Çizgi Ustası', 'Renk Sihirbazı', 'Sanatçı', 'Büyük Ressam', 'Efsane Ressam'];
 
 /** Günlük etkinliklere yazılmış (kazanılmış) yıldızların toplamı. */
 export const earnedSum = (d: ProfileData) => Object.values(d.days).reduce((a, x) => a + (x.stars ?? 0), 0);

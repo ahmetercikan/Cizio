@@ -360,7 +360,7 @@
 .en-home__hint { margin: 0; }
 .en-home__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 
-/* Hikâyeler */
+/* Hikayeler */
 .en-story { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 1000px; }
 .en-story__stage { position: relative; width: min(100%, calc((100dvh - 330px) * 1.66)); min-width: min(100%, 320px); }
 .en-scene { display: block; width: 100%; height: auto; border-radius: 28px; box-shadow: 0 6px 0 rgba(42, 98, 189, 0.2); }

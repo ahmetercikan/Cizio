@@ -1,5 +1,5 @@
 /**
- * Hikâye okuyucu: sahneler ders çizimlerinden kurulur. Sayfalar tekrarlı kalıplarla ilerler ve bazı sayfalarda
+ * Hikaye okuyucu: sahneler ders çizimlerinden kurulur. Sayfalar tekrarlı kalıplarla ilerler ve bazı sayfalarda
  * çocuğa soru sorulur (soru sorarak okuma): "Where is the owl?" → dokun, "Who is hiding?" → aç, "How many?"
  * → say, "What color is the sun?" → boya. Yanlış cevapta "Let's try again!" — puan yok.
  */
@@ -148,7 +148,7 @@ export function StoryReader({ story, age, onDone, onStep }: { story: Story; age:
       </div>
       <div className="en-story__nav">
         <button className="round-btn round-btn--light" aria-label="Önceki sayfa" disabled={p === 0} onClick={() => setP(p - 1)}><ChevronLeft size={30} /></button>
-        <button className={`round-btn en-next ${solved ? 'is-ready' : ''}`} aria-label={last ? 'Hikâyeyi bitir' : 'Sonraki sayfa'} disabled={!solved}
+        <button className={`round-btn en-next ${solved ? 'is-ready' : ''}`} aria-label={last ? 'Hikayeyi bitir' : 'Sonraki sayfa'} disabled={!solved}
           onClick={() => (last ? onDone() : setP(p + 1))}>
           <ChevronRight size={34} strokeWidth={3} />
         </button>

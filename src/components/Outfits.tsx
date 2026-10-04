@@ -98,7 +98,7 @@ export const OUTFITS: Outfit[] = [
   },
   {
     id: 'kasif',
-    title: 'Kâşif şapkası',
+    title: 'Kaşif şapkası',
     art: (
       <g>
         <ellipse cx="70" cy="16" rx="42" ry="8" fill="#d9b77a" {...s} />
