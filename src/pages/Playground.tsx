@@ -169,7 +169,7 @@ function FeatureRow() {
           <span className="feature-card__label"><MapPin size={15} /> Çizio'nun maceraları</span>
           <b>{next ? next.place : 'Tüm duraklar tamam!'}</b>
           <span className="feature-card__bar"><i style={{ width: `${(done / Math.max(1, chapters.length)) * 100}%` }} /></span>
-          <small>{done} / {chapters.length} durak · {next ? `${next.done}/${next.total} ders` : 'Macera kahramanısın'}</small>
+          <small>{done} / {chapters.length} durak · {next ? `${Math.min(next.done, next.goal)}/${next.goal} ders` : 'Macera kahramanısın'}</small>
         </span>
       </Link>
       <Link to="/lig" className="feature-card feature-card--league">

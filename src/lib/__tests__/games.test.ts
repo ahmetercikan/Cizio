@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { lessonsByPath } from '../../lessons';
 import { milestoneStickers } from '../../stickers';
 import { emptyData, type Profile, type ProfileData } from '../../store/useApp';
-import { chapterStates, CHAPTERS, unlockedOutfits } from '../adventure';
+import { CHAPTER_GOAL, chapterStates, CHAPTERS, unlockedOutfits } from '../adventure';
 import { daysLeft, lastWeekResult, RIVALS, standings, weekStars } from '../league';
 import { addDays, dayKey, weekKey, weekStart } from '../util';
 
@@ -80,10 +80,11 @@ describe('maceralar', () => {
     for (const c of CHAPTERS) expect(lessonsByPath(c.path).length).toBeGreaterThan(0);
   });
 
-  it('yolun bütün dersleri bitince durak tamamlanır ve kıyafet açılır', () => {
+  it('yolun gereken sayıda dersi bitince durak tamamlanır ve kıyafet açılır', () => {
     const d = emptyData();
     const tem = lessonsByPath('temeller');
-    for (const l of tem.slice(0, -1)) d.lessons[l.id] = { bestStars: 2, completions: 1, lastAt: 0 };
+    const goal = Math.min(tem.length, CHAPTER_GOAL);
+    for (const l of tem.slice(0, goal - 1)) d.lessons[l.id] = { bestStars: 2, completions: 1, lastAt: 0 };
     expect(chapterStates(d).find((c) => c.path === 'temeller')!.complete).toBe(false);
     expect(unlockedOutfits(d)).toEqual([]);
     d.lessons[tem[tem.length - 1].id] = { bestStars: 1, completions: 1, lastAt: 0 };

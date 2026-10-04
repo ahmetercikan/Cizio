@@ -308,8 +308,8 @@ export function AdventureMap({ chapters, here, onLocked }: { chapters: ChapterSt
                 <span className={`adv-node__label adv-node__label--${side}`}>
                   <b>{c.place}</b>
                   <small>{path?.title}</small>
-                  <span className="adv-node__bar"><i style={{ width: `${(c.done / Math.max(1, c.total)) * 100}%` }} /></span>
-                  <small>{c.done} / {c.total} ders</small>
+                  <span className="adv-node__bar"><i style={{ width: `${(Math.min(c.done, c.goal) / Math.max(1, c.goal)) * 100}%` }} /></span>
+                  <small>{Math.min(c.done, c.goal)} / {c.goal} ders{c.total > c.goal ? ` · yolda ${c.total} ders` : ''}</small>
                   <span className={`adv-node__prize ${c.complete ? 'won' : ''}`} title={getOutfit(c.outfit)?.title}>
                     <Mascot size={24} outfit={c.outfit} />
                   </span>
