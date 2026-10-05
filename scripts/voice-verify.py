@@ -48,6 +48,7 @@ def norm(s: str, lang: str = "tr") -> str:
     if lang == "en":  # English Club cümleleri
         s = re.sub(r"\b(\d+)\b", lambda m: NUMBERS_EN.get(m.group(1), m.group(0)), s)
         s = re.sub(r"[^\w\s]", " ", s)
+        s = re.sub(r"\bb\b", "bee", s)  # Whisper "Bee." kelimesini harf olarak yazar
         return re.sub(r"\s+", " ", s).strip()
     # Whisper sayıları rakamla yazar ("4. tahta", "2 minik diş"); beklenen metin sözcükle yazar.
     s = re.sub(r"\b(\d+)\.(?=\s)", lambda m: ORDINALS.get(m.group(1), m.group(0)), s)

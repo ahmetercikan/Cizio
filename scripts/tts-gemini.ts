@@ -163,10 +163,17 @@ async function requestPcm(prompt: string, opts: { key: string; model: string; vo
   });
   if (r.status === 429) {
     const t = await r.text();
-    if (/FreeTier/i.test(t)) throw new FreeTierError(`${opts.model}: ücretsiz katman günlük kotası doldu (hesapta faturalandırma yok)`);
-    if (/PerDay/i.test(t)) throw new DailyQuotaError(`${opts.model}: günlük kota doldu`);
-    const m = t.match(/"retryDelay":s*"(d+(?:.d+)?)s"/);
-    throw new RateLimitError(m ? Number(m[1]) * 1000 + 500 : 30_000, `429 kota: ${t.slice(0, 200)}`);
+    // Hangi kota aşıldı? Yanıttaki ihlal kimlikleri: "...PerMinute..." (birazdan yeniden dene) ya da "...PerDay..."
+    // (bugünlük bitti). Önceden her ücretsiz katman 429'u günlük sayılıyordu: dakikalık sınıra takılan model o gün
+    // tamamen bırakılıyor, üretim birkaç dakikada "tüm modellerin kotası doldu" diye duruyordu.
+    const ids = [...t.matchAll(/"quotaId":\s*"([^"]+)"/g)].map((m) => m[1]);
+    const delay = t.match(/"retryDelay":\s*"(\d+(?:\.\d+)?)s"/);
+    const delayMs = delay ? Number(delay[1]) * 1000 + 500 : 30_000;
+    if (ids.some((id) => /PerDay/i.test(id)) || delayMs > 3_600_000) {
+      if (ids.some((id) => /FreeTier/i.test(id))) throw new FreeTierError(`${opts.model}: ücretsiz katman günlük kotası doldu (${ids.join(", ")}; ${Math.round(delayMs / 60000)} dk)`);
+      throw new DailyQuotaError(`${opts.model}: günlük kota doldu (${ids.join(", ")}; ${Math.round(delayMs / 60000)} dk)`);
+    }
+    throw new RateLimitError(delayMs, `429 kota (${ids.join(', ') || 'dakikalık'})`);
   }
   if (!r.ok) throw new Error(`Gemini ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const j = (await r.json()) as { candidates?: { content?: { parts?: { inlineData?: { data: string; mimeType: string } }[] } }[] };

@@ -183,7 +183,7 @@ async function withModel<T>(fn: (model: string) => Promise<T>): Promise<T> {
       if (e instanceof FreeTierError && flag('--paid')) throw e;
       if (e instanceof DailyQuotaError) {
         if (models[modelIdx] === m) {
-          console.log(`  ${m}: günlük kota doldu, sıradaki modele geçiliyor...`);
+          console.log(`  ${(e as Error).message} → sıradaki model...`);
           modelIdx++;
         }
         continue;
@@ -245,6 +245,7 @@ async function batch(keys: string[]): Promise<void> {
     });
     return;
   }
+  console.log(`  ${keys.length} cümlelik grup bölünemedi, ikiye ayrılıyor`);
   for (const it of items) if (existsSync(it.file)) unlinkSync(it.file);
   const mid = Math.ceil(keys.length / 2);
   await batch(keys.slice(0, mid));
