@@ -15,6 +15,7 @@
  *   --verify          üretilen dosyaları Whisper ile yazıya dökerek doğrula (python scripts/voice-verify.py);
  *                     yanlış cümle içerenleri tek tek yeniden üret. pip install faster-whisper gerekir.
  *   --lang en|tr      yalnızca o dildeki cümleleri üret (en: English Club)
+ *   --max N           en çok N cümle üret (yeni ayarı az kotayla denemek için)
  *   --single          toplu üretim yerine her cümleyi ayrı istekle üret (az sayıda kalan cümle için)
  *   --keys a,b,c      / --redo dosya.txt: verilen anahtarları silip yeniden üret (ör. doğrulamada yanlış çıkanlar)
  * Sağlayıcı/ses verilmezse mevcut manifest'teki ayarlar kullanılır.
@@ -135,6 +136,8 @@ const todo = [...lines.keys()].filter(
 );
 // Dosyası hiç olmayanlar önce (kota biterse en azından her cümlenin bir sesi olsun).
 todo.sort((a, b) => Number(existsSync(mp3(a))) - Number(existsSync(mp3(b))));
+// --max N: en çok N cümle üret (ör. yeni bir okuma tarzını tek istekle denemek için).
+if (opt('--max')) todo.splice(Number(opt('--max')));
 const skipped = lines.size - todo.length;
 const failed: [string, string, string][] = [];
 const generatedKeys: string[] = [];
