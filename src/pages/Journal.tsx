@@ -1,7 +1,8 @@
 /** Galerim: çocuğun çizimleri (panoya iğnelenmiş kâğıtlar gibi), çıkartma albümü ve istatistikler. */
-import { Calendar, Download, Flame, Star, Trash2, Trophy, X } from 'lucide-react';
+import { BookOpen, Calendar, Download, Flame, Gamepad2, Sparkles, Star, Trash2, Trophy, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { AliveStage } from '../components/AliveStage';
 import { AppShell } from '../components/AppShell';
 import { Mascot } from '../components/Mascot';
 import { Confirm, Modal, Stars, useToast } from '../components/ui';
@@ -10,6 +11,7 @@ import { deleteArtwork, listArtworks, type Artwork } from '../lib/gallery';
 import { totalStars } from '../lib/recommend';
 import { saveFile } from '../lib/files';
 import { formatDate, streakOf } from '../lib/util';
+import { playable } from './DrawGame';
 import { allStickers } from '../stickers';
 import { useProfile, useProfileData } from '../store/useApp';
 
@@ -22,6 +24,8 @@ export default function Journal() {
   const [items, setItems] = useState<Artwork[] | null>(null);
   const [open, setOpen] = useState<Artwork | null>(null);
   const [del, setDel] = useState<Artwork | null>(null);
+  const [alive, setAlive] = useState<Artwork | null>(null);
+  const nav = useNavigate();
   const [toast, showToast] = useToast();
 
   const reload = () => listArtworks(profile.id).then(setItems);
@@ -67,6 +71,12 @@ export default function Journal() {
               </div>
             </div>
           )}
+          {items && items.length >= 2 && (
+            <Link to="/hikaye" className="story-banner rise">
+              <BookOpen size={30} />
+              <span><b>Hikaye kitabım</b><small>Çizimlerinden bir masal yap, Çizio sana okusun!</small></span>
+            </Link>
+          )}
           <div className="board">
             {(items ?? []).map((a, i) => (
               <button key={a.id} className="pinned" style={{ ['--r' as string]: `${((i * 37) % 7) - 3}deg` }} onClick={() => setOpen(a)}>
@@ -105,6 +115,10 @@ export default function Journal() {
             </div>
             <img src={urls.get(open.id)} alt="Çizim" className="art-view__img" />
             {open.stars ? <Stars value={open.stars} size={30} dim="rgba(29,23,64,0.12)" /> : null}
+            <div className="art-view__magic">
+              <button className="pill pill--teal pill--sm" onClick={() => { setAlive(open); setOpen(null); }}><Sparkles size={20} /> Canlandır</button>
+              {playable(open) && <button className="pill pill--yellow pill--sm" onClick={() => nav(`/oyun/${open.id}`)}><Gamepad2 size={20} /> Oyna</button>}
+            </div>
             <div className="modal-actions">
               <button className="btn-outline" onClick={() => void saveFile(open.blob, `cizio-${open.id}.${open.kind === 'paper' ? 'jpg' : 'png'}`)}><Download size={20} /> Kaydet / Paylaş</button>
               <button className="btn-outline" style={{ color: 'var(--red)' }} onClick={() => setDel(open)}><Trash2 size={20} /> Sil</button>
@@ -112,6 +126,7 @@ export default function Journal() {
           </div>
         </Modal>
       )}
+      {alive && <AliveStage art={alive} onClose={() => setAlive(null)} onPlay={playable(alive) ? () => nav(`/oyun/${alive.id}`) : undefined} />}
       {del && (
         <Confirm title="Bu resmi silelim mi?" text="Silinen resim geri gelmez." yes="Sil" danger onNo={() => setDel(null)}
           onYes={async () => { await deleteArtwork(del.id); setDel(null); setOpen(null); void reload(); }} />

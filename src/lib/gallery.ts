@@ -1,5 +1,6 @@
 /** Çizim galerisi: resimler IndexedDB'de (cihazda) saklanır. */
 import { createStore, del, entries, get, set, setMany, values } from 'idb-keyval';
+import type { DrawAction } from '../engine/types';
 import { DB, DB_MIGRATED_FLAG, OLD_DB } from './legacy';
 
 const store = createStore(DB, 'art');
@@ -30,6 +31,8 @@ export interface Artwork {
   stars?: number;
   createdAt: number;
   blob: Blob;
+  /** Ekranda çizilen resimlerin kalem/boya kaydı: canlanan çizim ve oyun için parçalara ayrılır. */
+  actions?: DrawAction[];
 }
 
 export async function saveArtwork(a: Artwork) {

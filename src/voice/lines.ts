@@ -9,6 +9,8 @@
  */
 import type { Lesson } from '../lessons/types';
 import { CHALLENGE_LINES, CHALLENGES } from '../lib/daily';
+import { ALIVE_LINE, GAME_END_LINES, GAME_LINES } from '../art/lines';
+import { STORY_VOICE_LINES } from '../story/data';
 
 export const STATIC_LINES: string[] = [
   // Karşılama / ebeveyn ekranı ses testi
@@ -44,6 +46,11 @@ export const STATIC_LINES: string[] = [
   // Mini meydan okumalar ve günün görevi (src/lib/daily.ts)
   ...CHALLENGES.map((c) => c.intro),
   ...Object.values(CHALLENGE_LINES),
+  // Canlanan çizim, Çizdiğinle oyna, Hikaye kitabım
+  ALIVE_LINE,
+  ...new Set(Object.values(GAME_LINES)),
+  ...GAME_END_LINES,
+  ...STORY_VOICE_LINES,
 ];
 
 /** Her ders için üretilecek kalıp cümleler. */

@@ -114,10 +114,40 @@ function Friends() {
   );
 }
 
-export function ChallengeArt({ kind }: { kind: ChallengeKind | 'duel' | 'friends' }) {
+/** Çizdiğinle oyna: kâğıttan fırlayan araba ve yıldızlar. */
+function Play() {
+  return (
+    <>
+      <rect x="14" y="20" width="56" height="62" rx="5" fill="#fff" stroke={INK} strokeWidth={3} transform="rotate(-8 42 51)" />
+      <path d="M28,58 Q40,40 56,52" {...line} stroke="#14a89a" strokeWidth={2.6} transform="rotate(-8 42 51)" />
+      <path d="M52,86 L58,70 Q62,62 72,62 H88 Q96,62 100,70 L106,86 Z" fill="#ff6b4a" stroke={INK} strokeWidth={3} strokeLinejoin="round" />
+      <path d="M64,70 H76 V62 M82,62 V70 H96" {...line} strokeWidth={2.4} />
+      <circle cx="64" cy="88" r="8" fill="#fff" stroke={INK} strokeWidth={3} />
+      <circle cx="96" cy="88" r="8" fill="#fff" stroke={INK} strokeWidth={3} />
+      <path d="M38,96 H50 M34,104 H46" {...line} stroke="#de4d2d" strokeWidth={2.6} />
+      <path d="M96,22 l3,7 7,1 -5,5 1,7 -6,-3 -6,3 1,-7 -5,-5 7,-1 Z" fill="#ffc83d" stroke={INK} strokeWidth={2.2} strokeLinejoin="round" />
+    </>
+  );
+}
+
+/** Hikaye kitabı: açık kitap ve içinden çıkan çizimler. */
+function Story() {
+  return (
+    <>
+      <path d="M60,40 Q40,30 16,34 V92 Q40,88 60,98 Z" fill="#fff" stroke={INK} strokeWidth={3} strokeLinejoin="round" />
+      <path d="M60,40 Q80,30 104,34 V92 Q80,88 60,98 Z" fill="#fff6e0" stroke={INK} strokeWidth={3} strokeLinejoin="round" />
+      <path d="M26,50 Q36,46 48,50 M26,60 Q36,56 48,60 M26,70 Q36,66 44,70" {...line} strokeWidth={2.2} stroke="#8c766e" />
+      <circle cx="82" cy="60" r="11" fill="#ffc83d" stroke={INK} strokeWidth={2.6} />
+      <path d="M72,82 Q82,72 94,82" fill="#7fcf63" stroke={INK} strokeWidth={2.6} strokeLinejoin="round" />
+      <path d="M48,22 l2,5 5,1 -4,3 1,5 -4,-2 -4,2 1,-5 -4,-3 5,-1 Z M76,14 l2,5 5,1 -4,3 1,5 -4,-2 -4,2 1,-5 -4,-3 5,-1 Z" fill="#ff8fb1" stroke={INK} strokeWidth={1.8} strokeLinejoin="round" />
+    </>
+  );
+}
+
+export function ChallengeArt({ kind }: { kind: ChallengeKind | 'duel' | 'friends' | 'play' | 'story' }) {
   return (
     <svg viewBox="0 0 120 120" width="100%" height="100%" aria-hidden="true">
-      {kind === 'friends' ? <Friends /> : kind === 'duel' ? <Duel /> : kind === 'speed' ? <Stopwatch /> : kind === 'memory' ? <Memory /> : <OneLine />}
+      {kind === 'play' ? <Play /> : kind === 'story' ? <Story /> : kind === 'friends' ? <Friends /> : kind === 'duel' ? <Duel /> : kind === 'speed' ? <Stopwatch /> : kind === 'memory' ? <Memory /> : <OneLine />}
     </svg>
   );
 }

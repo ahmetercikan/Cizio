@@ -35,12 +35,24 @@ export interface LessonProgress {
   bestScaffold?: Scaffold | 'paper';
 }
 
+export interface StoryBookData {
+  id: string;
+  theme: string;
+  arts: string[];
+  createdAt: number;
+}
+
+/** Günde ödül veren "Çizdiğinle oyna" turu sayısı. */
+export const GAME_ROUNDS_PER_DAY = 5;
+
 export interface DayActivity {
   lessons: number;
   minutes: number;
   drawings: number;
   /** O gün kazanılan yıldızlar (haftalık lig için). */
   stars?: number;
+  /** O gün ödül alınan "Çizdiğinle oyna" turları. */
+  games?: number;
 }
 
 export interface ProfileData {
@@ -84,6 +96,8 @@ export interface ProfileData {
   frame?: string;
   /** English Club ilerlemesi. */
   english?: EnglishData;
+  /** Hikaye kitaplarım: çizimlerden kurulan masallar (resimler galeride, burada yalnızca kimlikleri). */
+  books?: StoryBookData[];
   /** Çevrimiçi kimlik (ebeveyn bölümünden açılır; yoksa çevrimiçi kapalı). */
   online?: OnlineIdentity;
 }
@@ -138,6 +152,10 @@ interface AppState {
   recordChallenge(kind: ChallengeKind, lessonId: string, stars: number, percent: number): string[];
   /** Düello sonucu (oyuncu cihazdaki bir profilse). */
   recordDuel(profileId: string, stars: number, won: boolean): string[];
+  /** "Çizdiğinle oyna" turu: toplanan yıldızlara göre ödül (tur başına en çok 3, günde en çok 5 tur). Döner: verilen ödül. */
+  recordGame(collected: number): number;
+  addBook(b: StoryBookData): void;
+  removeBook(id: string): void;
   setOutfit(outfit?: string): void;
   setDoll(d: DollState): void;
   saveLook(d: DollState): void;
@@ -324,6 +342,33 @@ export const useApp = create<AppState>()(
         const { data: withS, earned } = withStickers(next, []);
         set({ data: { ...get().data, [profileId]: withChests(d, withS) } });
         return earned;
+      },
+
+      recordGame(collected) {
+        const { activeId, data } = get();
+        if (!activeId) return 0;
+        const d = { ...emptyData(), ...data[activeId] };
+        const k = dayKey();
+        const t = today(d);
+        const reward = (t.games ?? 0) >= GAME_ROUNDS_PER_DAY || collected <= 0 ? 0 : Math.min(3, Math.ceil(collected / 8));
+        if (!reward) return 0;
+        const next: ProfileData = { ...d, days: { ...d.days, [k]: { ...t, games: (t.games ?? 0) + 1, stars: (t.stars ?? 0) + reward } } };
+        set({ data: { ...data, [activeId]: withChests(d, next) } });
+        return reward;
+      },
+
+      addBook(b) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = data[activeId] ?? emptyData();
+        set({ data: { ...data, [activeId]: { ...d, books: [b, ...(d.books ?? [])] } } });
+      },
+
+      removeBook(id) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = data[activeId] ?? emptyData();
+        set({ data: { ...data, [activeId]: { ...d, books: (d.books ?? []).filter((x) => x.id !== id) } } });
       },
 
       setOutfit(outfit) {

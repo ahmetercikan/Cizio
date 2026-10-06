@@ -9,6 +9,7 @@ import './styles/theme.css';
 import './styles/screens.css';
 import './styles/english.css';
 import './styles/online.css';
+import './styles/magic.css';
 
 // Çevrimdışı çalışma ve "Ana ekrana ekle" için servis çalışanı; yeni sürüm gelince kendini günceller.
 // Android/iOS uygulamasında dosyalar zaten pakette; servis çalışanı yalnızca web'de.

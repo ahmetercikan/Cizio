@@ -79,7 +79,7 @@ export default function Coop() {
     remote.current = false;
     if (coop.state === 'done' && !saved.current && profile) {
       saved.current = true;
-      void doc.toBlob().then((blob) => saveArtwork({ id: uid(), profileId: profile.id, lessonId: lesson.id, kind: 'free', createdAt: Date.now(), blob }));
+      void doc.toBlob().then((blob) => saveArtwork({ id: uid(), profileId: profile.id, lessonId: lesson.id, kind: 'free', createdAt: Date.now(), blob, actions: [...doc.actions] }));
       recordDrawing('free');
       sfx.fanfare();
     }

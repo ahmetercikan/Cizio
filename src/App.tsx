@@ -6,6 +6,7 @@ import { setNaturalVoice, unlockAudio } from './lib/speech';
 import Adventure from './pages/Adventure';
 import Challenge from './pages/Challenge';
 import Coop from './pages/Coop';
+import DrawGame, { DrawGamePicker } from './pages/DrawGame';
 import DressUp from './pages/DressUp';
 import Duel from './pages/Duel';
 import EnglishHome, { EnglishGames, EnglishPlay, EnglishStories, EnglishStoryPage, EnglishTime, EnglishTopic, EnglishWords } from './pages/English';
@@ -21,6 +22,7 @@ import Parent from './pages/Parent';
 import Playground from './pages/Playground';
 import Profiles from './pages/Profiles';
 import Shop from './pages/Shop';
+import StoryShelf, { StoryReader } from './pages/StoryBook';
 import Worlds from './pages/Worlds';
 import { OnlineSync } from './online/OnlineHost';
 import { useApp } from './store/useApp';
@@ -73,6 +75,10 @@ export default function App() {
         <Route path="/dukkan" element={<NeedsProfile><Shop /></NeedsProfile>} />
         <Route path="/meydan/:kind" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/meydan/:kind/:lessonId" element={<NeedsProfile><Challenge /></NeedsProfile>} />
+        <Route path="/oyun" element={<NeedsProfile><DrawGamePicker /></NeedsProfile>} />
+        <Route path="/oyun/:id" element={<NeedsProfile><DrawGame /></NeedsProfile>} />
+        <Route path="/hikaye" element={<NeedsProfile><StoryShelf /></NeedsProfile>} />
+        <Route path="/hikaye/:id" element={<NeedsProfile><StoryReader /></NeedsProfile>} />
         <Route path="/arkadaslar" element={<NeedsProfile><Friends /></NeedsProfile>} />
         <Route path="/canli/:id" element={<NeedsProfile><LiveDuel /></NeedsProfile>} />
         <Route path="/birlikte/:id" element={<NeedsProfile><Coop /></NeedsProfile>} />

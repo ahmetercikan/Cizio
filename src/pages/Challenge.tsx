@@ -127,7 +127,7 @@ function ChallengeRun({ kind, lesson, onAnother, sendTo, answerId }: { kind: Cha
     const stars = res.stars;
     const percent = Math.round(res.score * 100);
     const blob = await doc.toBlob();
-    if (profile) await saveArtwork({ id: uid(), profileId: profile.id, lessonId: lesson.id, kind: 'free', stars, createdAt: Date.now(), blob });
+    if (profile) await saveArtwork({ id: uid(), profileId: profile.id, lessonId: lesson.id, kind: 'free', stars, createdAt: Date.now(), blob, actions: [...doc.actions] });
     const before = useApp.getState();
     const questBefore = profile ? before.data[profile.id]?.quests?.length ?? 0 : 0;
     const prevRecord = profile ? before.data[profile.id]?.records?.[kind] : undefined;

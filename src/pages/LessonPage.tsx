@@ -7,11 +7,12 @@
  * Altta yatay zaman çubuğu (ileri/geri sarma, hız), ortada ⟲ ⏸ ⟳ düğmeleri.
  */
 import confetti from 'canvas-confetti';
-import { ArrowLeft, ArrowRight, Check, Hand, Heart, Monitor, NotebookPen, Pause, Play, RotateCcw, RotateCw, Settings2, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Gamepad2, Hand, Heart, Monitor, NotebookPen, Pause, Play, RotateCcw, RotateCw, Settings2, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { withShading } from '../art/shading';
 import { buildTimeline, fmtTime, frameAt, type Timeline } from '../art/timeline';
+import { AliveStage } from '../components/AliveStage';
 import { CameraCapture } from '../components/CameraCapture';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import { PencilPalette, ToolCapsule, useToolState } from '../components/DrawTools';
@@ -24,6 +25,7 @@ import { LiveSketch, SketchImg } from '../components/Sketch';
 import { Confirm, Stars, useSize, useToast } from '../components/ui';
 import { DrawingDoc } from '../engine/drawingDoc';
 import { feedbackText, scoreFreehand, scoreStep, type ScoreResult } from '../engine/scoring';
+import type { DrawAction } from '../engine/types';
 import { getLesson, lessonsByPath, paths } from '../lessons';
 import type { Lesson } from '../lessons/types';
 import { listArtworks, saveArtwork } from '../lib/gallery';
@@ -96,7 +98,8 @@ function Player({ lesson }: { lesson: Lesson }) {
   const [stepStars, setStepStars] = useState<number[]>([]);
   const [selfStars, setSelfStars] = useState(0);
   const [compare, setCompare] = useState(true);
-  const [final, setFinal] = useState<{ stars: number; image?: string; prev?: string; earned: string[] } | null>(null);
+  const [final, setFinal] = useState<{ stars: number; image?: string; prev?: string; earned: string[]; art?: { id: string; blob: Blob; actions?: DrawAction[]; lessonId: string } } | null>(null);
+  const [alive, setAlive] = useState(false);
   const [leave, setLeave] = useState(false);
   const [toast, showToast] = useToast();
 
@@ -231,17 +234,18 @@ function Player({ lesson }: { lesson: Lesson }) {
     setPhase('turn');
   };
 
-  const finish = async (stars: number, blob?: Blob) => {
+  const finish = async (stars: number, blob?: Blob, actions?: DrawAction[]) => {
     const minutes = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
     const earned = completeLesson({ lessonId: lesson.id, stars, scaffold: mode === 'paper' ? 'paper' : scaffold, minutes });
     let prev: string | undefined;
+    const art = blob ? { id: uid(), blob, actions, lessonId: lesson.id } : undefined;
     if (profile) {
       const older = (await listArtworks(profile.id)).find((a) => a.lessonId === lesson.id);
       if (older) prev = URL.createObjectURL(older.blob);
-      if (blob)
-        await saveArtwork({ id: uid(), profileId: profile.id, lessonId: lesson.id, kind: mode === 'paper' ? 'paper' : 'screen', stars, createdAt: Date.now(), blob });
+      if (art)
+        await saveArtwork({ ...art, profileId: profile.id, kind: mode === 'paper' ? 'paper' : 'screen', stars, createdAt: Date.now() });
     }
-    setFinal({ stars, image: blob ? URL.createObjectURL(blob) : undefined, prev, earned });
+    setFinal({ stars, image: blob ? URL.createObjectURL(blob) : undefined, prev, earned, art: profile ? art : undefined });
     setPhase('done');
     sfx.fanfare();
     void confetti({ particleCount: 160, spread: 100, origin: { y: 0.55 }, colors: ['#ffd43b', '#ffffff', '#a58bff', '#ff7eb6', '#2ecf8a'], disableForReducedMotion: true });
@@ -252,7 +256,7 @@ function Player({ lesson }: { lesson: Lesson }) {
     const stars = scaffold === 'free'
       ? scoreFreehand(lesson.steps.flatMap((s) => s.shapes), doc.strokes()).stars
       : Math.max(1, Math.round(stepStars.reduce((a, b) => a + b, 0) / Math.max(1, stepStars.length)));
-    await finish(stars, await doc.toBlob());
+    await finish(stars, await doc.toBlob(), [...doc.actions]);
   };
 
   const exit = () => {
@@ -528,6 +532,12 @@ function Player({ lesson }: { lesson: Lesson }) {
                 <span>Yeni çıkartma!</span>
               </div>
             )}
+            {final.art && (
+              <div className="celebrate__magic">
+                <button className="pill pill--teal" onClick={() => { stopSpeaking(); sfx.pop(); setAlive(true); }}><Sparkles size={22} /> Canlandır!</button>
+                <button className="pill pill--yellow" onClick={() => { stopSpeaking(); nav(`/oyun/${final.art!.id}`); }}><Gamepad2 size={22} /> Çizdiğinle oyna</button>
+              </div>
+            )}
             <div className="celebrate__actions">
               {nextLesson(lesson) && (
                 <button className="pill" onClick={() => nav(`/ders/${nextLesson(lesson)!.id}`, { replace: true })}>Sonraki ders <ArrowRight size={22} /></button>
@@ -539,6 +549,7 @@ function Player({ lesson }: { lesson: Lesson }) {
         </div>
       )}
 
+      {alive && final?.art && <AliveStage art={final.art} onClose={() => setAlive(false)} onPlay={() => nav(`/oyun/${final.art!.id}`)} />}
       {leave && (
         <Confirm title="Dersten çıkalım mı?" text="Bu dersteki çizimin kaydedilmeyecek." yes="Çık" no="Devam et" onNo={() => setLeave(false)} onYes={exit} />
       )}

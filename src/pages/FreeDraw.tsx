@@ -51,7 +51,7 @@ export default function FreeDraw() {
 
   const save = async () => {
     if (doc.isEmpty()) return showToast('Önce bir şeyler çiz!');
-    await saveArtwork({ id: uid(), profileId: profile.id, kind: 'free', createdAt: Date.now(), blob: await doc.toBlob() });
+    await saveArtwork({ id: uid(), profileId: profile.id, kind: 'free', createdAt: Date.now(), blob: await doc.toBlob(), actions: [...doc.actions] });
     const earned = recordDrawing('free');
     sfx.success();
     setSaved(true);

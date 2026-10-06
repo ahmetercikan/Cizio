@@ -136,6 +136,11 @@ export class DrawingDoc {
     return true;
   }
 
+  /** Ham katmanlar (canlanan çizim için): boya ve çizgi, RES x RES. */
+  get layers(): { fill: HTMLCanvasElement; line: HTMLCanvasElement } {
+    return { fill: this.fill.canvas, line: this.line.canvas };
+  }
+
   /** Katmanları hedef tuvale çizer (önce boya, sonra çizgi). */
   compose(ctx: CanvasRenderingContext2D) {
     ctx.drawImage(this.fill.canvas, 0, 0, ctx.canvas.width, ctx.canvas.height);

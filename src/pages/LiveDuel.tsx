@@ -130,7 +130,7 @@ export default function LiveDuel() {
     setPhase('sent');
     sentAt.current = Date.now();
     sfx.success();
-    if (profile && strokes.length) void saveArtwork({ id: uid(), profileId: profile.id, lessonId: lesson.id, kind: 'free', stars: r.stars, createdAt: Date.now(), blob: await doc.toBlob() });
+    if (profile && strokes.length) void saveArtwork({ id: uid(), profileId: profile.id, lessonId: lesson.id, kind: 'free', stars: r.stars, createdAt: Date.now(), blob: await doc.toBlob(), actions: [...doc.actions] });
     try {
       await (await online()).submitDuel(id, me, r);
     } catch {

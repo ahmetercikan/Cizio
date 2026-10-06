@@ -107,6 +107,22 @@ export default function Playground() {
               <em>Oyna <ArrowRight size={15} /></em>
             </span>
           </Link>
+          <Link to="/oyun" className="challenge-card challenge-card--play rise">
+            <span className="challenge-card__art"><ChallengeArt kind="play" /></span>
+            <span className="challenge-card__text">
+              <b>Çizdiğinle oyna</b>
+              <span>Resmin oyunun kahramanı olsun!</span>
+              <em>Oyna <ArrowRight size={15} /></em>
+            </span>
+          </Link>
+          <Link to="/hikaye" className="challenge-card challenge-card--story rise">
+            <span className="challenge-card__art"><ChallengeArt kind="story" /></span>
+            <span className="challenge-card__text">
+              <b>Hikaye kitabım</b>
+              <span>Çizimlerinden bir masal yap</span>
+              <em>Aç <ArrowRight size={15} /></em>
+            </span>
+          </Link>
           {ONLINE_AVAILABLE && (
             <Link to="/arkadaslar" className="challenge-card challenge-card--friends rise">
               <span className="challenge-card__art"><ChallengeArt kind="friends" /></span>
