@@ -131,6 +131,18 @@ export const OUTFITS: Outfit[] = [
       </g>
     ),
   },
+  {
+    id: 'baret',
+    title: 'Şantiye bareti',
+    art: (
+      <g>
+        <ellipse cx="70" cy="19" rx="38" ry="5" fill="#f2a516" {...s} />
+        <path d="M45,18 C45,-8 95,-8 95,18 Z" fill="#ffc83d" {...s} />
+        <path d="M64,-4 C64,4 64,10 64,17 H76 C76,10 76,4 76,-4 C72,-6 68,-6 64,-4 Z" fill="#f2a516" {...s} />
+        <path d="M52,6 C55,0 60,-3 63,-4" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" opacity={0.7} />
+      </g>
+    ),
+  },
 ];
 
 export const getOutfit = (id?: string) => OUTFITS.find((o) => o.id === id);

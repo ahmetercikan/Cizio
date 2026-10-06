@@ -4,44 +4,46 @@
 Çizio: Adım Adım Çizim Öğren
 
 ## Kısa açıklama (en fazla 80 karakter)
-Çizio ile adım adım çizmeyi öğren: kâğıtta ya da ekranda, sesli anlatımla!
+Adım adım çiz, karakterini giydir, oynayarak İngilizce öğren!
 
 ## Tam açıklama (en fazla 4000 karakter)
-Çizio, 7-9 yaş çocuklara adım adım çizim öğreten, sesli anlatımlı ve reklamsız bir çizim atölyesi.
+Çizio, 5-9 yaş çocuklar için sesli anlatımlı ve reklamsız bir öğrenme uygulaması. Uygulamayı açan çocuk üç dünyadan birini seçer: Çizim Atölyesi, Giydirme Stüdyosu ve English Club.
 
-✏️ ADIM ADIM, KALEMLE GÖSTEREREK
+✏️ ÇİZİM ATÖLYESİ: ADIM ADIM, KALEMLE GÖSTEREREK
 Her derste gerçekçi bir kalem, masadaki kâğıda çizimi adım adım çizer. Çocuk izler, sonra aynısını kendi kâğıdına ya da ekrana çizer. Çizio'nun sıcak sesi her adımı anlatır.
 
-🎨 GERÇEK BİR RESSAM GİBİ GÖLGELENDİRME
-Önce çizgiler, sonra ışık ve gölge: tarama, çapraz tarama ve parmakla dağıtma. Çocuklar kurşun kalemle hacim vermeyi öğrenir.
+🚜 98 DERS, 10 ÇİZİM YOLU
+Temeller, Hayvanlar, Sevimli Nesneler, Doğa, Karakterler, Deniz Canlıları, Dinozorlar ve Ejderhalar, Taşıtlar, İş Makineleri (kamyon, çöp kamyonu, kepçe, buldozer, vinç, beton mikseri, traktör, itfaiye...) ve Özel Günler.
 
-📄 KÂĞITTA YA DA EKRANDA
-• Kâğıt modu: Çizimini bitirince fotoğrafını çek; Çizio örnek çizimi fotoğrafın üstüne yerleştirir, çocuk karşılaştırır.
-• Ekran modu: Parmakla ya da kalemle çiz; her adımda yıldız ve "sağ kulak biraz eksik kaldı" gibi yol gösteren geri bildirim al.
-• Üç yardım seviyesi: İz sür → Noktalar → Kendin çiz.
+🎨 GERÇEK BİR RESSAM GİBİ
+• Kâğıt modu: Çizimini bitirince fotoğrafını çek; Çizio örnek çizimi fotoğrafın üstüne yerleştirir.
+• Ekran modu: Parmakla ya da kalemle çiz; her adımda yıldız ve yol gösteren geri bildirim al.
+• Kurşun kalemle gölgelendirme: tarama, çapraz tarama ve parmakla dağıtma.
+• Boyama kitabı, desenli boya kovası, pastel, keçeli kalem, sulu boya ve simli kalem.
 
-🦕 40 DERS, 9 ÇİZİM YOLU
-Temeller, Hayvanlar, Sevimli Nesneler, Doğa, Karakterler, Deniz Canlıları, Dinozorlar ve Ejderhalar, Taşıtlar ve Özel Günler (bayramlar, kardan adam, anneler günü kartı, doğum günü pastası).
+👗 GİYDİRME STÜDYOSU
+Kız ve erkek karakterlerden birini seç; saç, kıyafet, desen, şapka, gözlük ve evcil dost ile kendi tarzını yarat. Kendi çizdiğin hayvanlar bile karakterinin dostu olabilir.
 
-🌈 ZENGİN ÇİZİM ARAÇLARI
-Kurşun kalem, pastel boya, keçeli kalem, fırça, sulu boya, gökkuşağı ve simli kalem; desenli boya kovası (puantiyeli, kalpli, çizgili, kareli) ve damgalar. Boyama kitabı ile tüm çizimler boyama sayfasına dönüşür.
+🇬🇧 ENGLISH CLUB: OYNAYARAK İNGİLİZCE
+Çocukların dil öğrenme araştırmalarına dayanır: çeviri ve ezber yok, resim, ses ve hareket var.
+• Her gün 15 dakikalık "English Time" rutini
+• Çizio Says: "Jump!", "Touch your nose!" komutlarını bedeninle yap
+• Listen & Find, Color Me, Treasure Hunt ve evde nesne bulma oyunları
+• Soru sorarak okunan resimli hikâyeler
+• 16 konu, yaklaşık 150 kelime; yaşa göre (5-6, 7-8, 8-9) ayarlanır
+• Yanlış yok: Çizio doğrusunu sevgiyle tekrar eder
 
-🎯 HER GÜN YENİ BİR SÜRPRİZ
-• Günün görevi
-• Mini meydan okumalar: 60 saniyede çiz, hafızadan çiz, tek çizgiyle çiz
-• Bayramlarda ve özel günlerde temalı dersler
-
-⭐ MOTİVASYON
-Yıldızlar, çıkartma albümü, günlük seri ve çizimlerin sergilendiği Dergi.
+🗺️ MACERALAR VE ÖDÜLLER
+Çizio'nun macera haritası, günün görevi, haftalık lig, mini meydan okumalar, hazine sandıkları, yıldız dükkanı ve çıkartma albümü.
 
 👨‍👩‍👧 EBEVEYNLER İÇİN
 • Reklam yok, uygulama içi satın alma yok
 • Hiçbir kişisel veri toplanmaz; her şey cihazda kalır
 • Birden fazla çocuk profili
-• İlerleme grafiği ve yedekleme (ebeveyn bölümü korumalıdır)
+• İlerleme grafiği, evde İngilizce ipuçları ve yedekleme (ebeveyn bölümü korumalıdır)
 • İnternetsiz çalışır
 
-Çizio ile çocuğunuz her gün biraz daha iyi çizer!
+Çizio ile çocuğunuz her gün biraz daha iyi çizer, hayal eder ve öğrenir!
 
 ## Kategori
 Eğitim (Education) — Hedef kitle: 6-8 ve 9-12 yaş

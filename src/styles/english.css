@@ -535,3 +535,11 @@
 @media (max-width: 860px) {
   .world-art__bubble { font-size: 18px; padding: 4px 10px; top: 8%; right: 6%; }
 }
+
+/* Dar telefonlarda dünya adı kesilmesin: iki satıra bölünür */
+@media (max-width: 440px) {
+  .appbar { gap: 6px; padding-left: 14px; padding-right: 14px; }
+  .appbar__brand--world { font-size: 16px; gap: 6px; }
+  .appbar__brand--world > span:last-child { white-space: normal; line-height: 1.05; max-width: 92px; overflow: visible; }
+  .appbar__worlds { width: 34px; height: 34px; border-radius: 12px; }
+}

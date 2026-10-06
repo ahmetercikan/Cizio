@@ -251,6 +251,23 @@ export const TOPICS: Topic[] = [
     is: itIs,
   },
   {
+    id: 'machines', en: 'Big Machines', tr: 'İş Makineleri', color: '#f2a516',
+    words: [
+      w('machines', 'truck', 'kamyon', L('kamyon')),
+      w('machines', 'garbage truck', 'çöp kamyonu', L('cop-kamyonu')),
+      w('machines', 'digger', 'kepçe', L('kepce')),
+      w('machines', 'bulldozer', 'buldozer', L('dozer')),
+      w('machines', 'tractor', 'traktör', L('traktor')),
+      w('machines', 'cement mixer', 'beton mikseri', L('beton-mikseri')),
+      w('machines', 'crane', 'vinç', L('vinc')),
+      w('machines', 'road roller', 'yol silindiri', L('silindir')),
+      w('machines', 'fire truck', 'itfaiye aracı', L('itfaiye')),
+      w('machines', 'forklift', 'forklift', L('forklift')),
+    ],
+    ask: where,
+    is: itIs,
+  },
+  {
     id: 'things', en: 'My Things', tr: 'Eşyalarım', color: '#e9487d',
     words: [
       w('things', 'balloon', 'balon', L('balon')),

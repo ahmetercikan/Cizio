@@ -24,6 +24,8 @@ export const CHAPTERS: Chapter[] = [
   { path: 'dinozor', place: 'Dino Adası', outfit: 'kasif' },
   { path: 'tasitlar', place: 'Hız Pisti', outfit: 'gozluk' },
   { path: 'ozel', place: 'Kutlama Meydanı', outfit: 'tac' },
+  // Sonradan eklenen yollar sona eklenir: araya girerse bitmiş durakları yeniden kilitler.
+  { path: 'ismakineleri', place: 'Şantiye', outfit: 'baret' },
 ].filter((c) => paths.some((p) => p.id === c.path)) as Chapter[];
 
 /** Bir durağı tamamlamak için gereken ders sayısı (yollar uzadıkça çocuk bekleyişte kalmasın). */

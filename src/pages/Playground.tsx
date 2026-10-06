@@ -126,7 +126,10 @@ export default function Playground() {
 
 function NewStickers({ ids, onOpen }: { ids: string[]; onOpen: () => void }) {
   const [open, setOpen] = useState(true);
-  useEffect(onOpen, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // onOpen bir değer döndürebilir (ör. anlatım kapalıyken false); efekt yalnızca bir temizleme fonksiyonu döndürmeli.
+  useEffect(() => {
+    onOpen();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!open) return null;
   return (
     <Modal onClose={() => setOpen(false)}>

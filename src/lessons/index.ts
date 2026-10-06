@@ -12,6 +12,7 @@ export const paths: LearningPath[] = [
   { id: 'deniz', title: 'Deniz Canlıları', emoji: '🐙', color: '#1fb5d6', description: 'Ahtapotlar, yunuslar ve deniz yıldızları' },
   { id: 'dinozor', title: 'Dinozorlar ve Ejderhalar', emoji: '🦕', color: '#5cc36b', description: 'Sevimli dinozorlar ve dost ejderhalar' },
   { id: 'tasitlar', title: 'Taşıtlar', emoji: '🚀', color: '#ff6b4a', description: 'Roketler, uçaklar ve tekneler' },
+  { id: 'ismakineleri', title: 'İş Makineleri', emoji: '🚜', color: '#f2a516', description: 'Kamyonlar, kepçeler, dozerler ve vinçler' },
   { id: 'ozel', title: 'Özel Günler', emoji: '🎉', color: '#e8457c', description: 'Bayramlar, kutlamalar ve mevsimler' },
 ];
 
