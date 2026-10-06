@@ -90,10 +90,34 @@ function Duel() {
   );
 }
 
-export function ChallengeArt({ kind }: { kind: ChallengeKind | 'duel' }) {
+/** Arkadaşlar: iki yuvarlak yüz, ortada paylaşılan kâğıt ve kalp. */
+function Friends() {
+  const face = (cx: number, fill: string) => (
+    <>
+      <circle cx={cx} cy="46" r="20" fill={fill} stroke={INK} strokeWidth={3} />
+      <circle cx={cx - 7} cy="44" r="2.6" fill={INK} />
+      <circle cx={cx + 7} cy="44" r="2.6" fill={INK} />
+      <path d={`M${cx - 7},53 Q${cx},59 ${cx + 7},53`} {...line} strokeWidth={2.6} />
+      <path d={`M${cx - 22},104 Q${cx - 22},70 ${cx},70 Q${cx + 22},70 ${cx + 22},104`} fill={fill} stroke={INK} strokeWidth={3} strokeLinejoin="round" />
+    </>
+  );
+  return (
+    <>
+      {face(32, '#ffc89a')}
+      {face(88, '#c8e6a0')}
+      <g transform="rotate(-6 60 86)">
+        <rect x="40" y="72" width="40" height="32" rx="4" fill="#fff" stroke={INK} strokeWidth={3} />
+        <path d="M60,96 C50,89 49,82 54,80 C57,79 59,81 60,83 C61,81 63,79 66,80 C71,82 70,89 60,96 Z" fill="#ff6b8a" stroke={INK} strokeWidth={2.2} strokeLinejoin="round" />
+      </g>
+      <path d="M60,14 V22 M48,18 L52,24 M72,18 L68,24" {...line} stroke="#e8a200" />
+    </>
+  );
+}
+
+export function ChallengeArt({ kind }: { kind: ChallengeKind | 'duel' | 'friends' }) {
   return (
     <svg viewBox="0 0 120 120" width="100%" height="100%" aria-hidden="true">
-      {kind === 'duel' ? <Duel /> : kind === 'speed' ? <Stopwatch /> : kind === 'memory' ? <Memory /> : <OneLine />}
+      {kind === 'friends' ? <Friends /> : kind === 'duel' ? <Duel /> : kind === 'speed' ? <Stopwatch /> : kind === 'memory' ? <Memory /> : <OneLine />}
     </svg>
   );
 }

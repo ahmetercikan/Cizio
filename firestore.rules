@@ -1,0 +1,139 @@
+rules_version = '2';
+
+// Çizio çevrimiçi kuralları.
+// - Her cihaz anonim bir Firebase hesabıdır (request.auth.uid); her çocuk profili bir "oyuncu"dur (players/{pid}).
+// - Arkadaşlık iki tarafın ebeveyni tarafından onaylanır; meydan okuma, düello ve ortak boyama kayıtlarını
+//   yalnızca o iki arkadaşın cihazları okuyup yazabilir, her oyuncu yalnızca kendi sonucunu yazar.
+// - Serbest metin yok: yalnızca takma ad (20 karakter), avatar kimliği, sonuçlar, küçük çizim resmi, hazır tepkiler.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function player(pid) { return get(/databases/$(database)/documents/players/$(pid)); }
+    function ownerOf(pid) { return player(pid).data.owner; }
+    function pairOf(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
+    function friendship(pair) { return get(/databases/$(database)/documents/friendships/$(pair)); }
+    function isFriendPair(pair) {
+      return exists(/databases/$(database)/documents/friendships/$(pair)) && friendship(pair).data.status == 'accepted';
+    }
+    // Bu cihazın sahibi olduğu oyuncular (aynı cihazda iki kardeş de olabilir).
+    function myPids(d) {
+      return (d.owners[0] == uid() ? [d.members[0]] : []).concat(d.owners[1] == uid() ? [d.members[1]] : []);
+    }
+    function isMember(d) { return signedIn() && uid() in d.owners; }
+    // Yeni bir paylaşımlı kayıt (meydan okuma / düello / ortak boyama): onaylı arkadaşlık, doğru üyeler ve sahipler.
+    function validShared(d) {
+      return d.members.size() == 2
+        && d.pair == pairOf(d.members[0], d.members[1])
+        && isFriendPair(d.pair)
+        && d.members == friendship(d.pair).data.members
+        && d.owners == friendship(d.pair).data.owners
+        && d.from in d.members
+        && ownerOf(d.from) == uid();
+    }
+    // ---------------------------------------------------------------- oyuncular
+    match /players/{pid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.owner == uid()
+        && request.resource.data.keys().hasOnly(['owner', 'name', 'avatar', 'code', 'createdAt', 'lastSeen'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 20
+        && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 30
+        && request.resource.data.code is string && request.resource.data.code.size() == 6;
+      allow update: if signedIn()
+        && resource.data.owner == uid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'avatar', 'lastSeen'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 20
+        && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 30;
+      allow delete: if signedIn() && resource.data.owner == uid();
+    }
+
+    // ---------------------------------------------------------------- arkadaş kodları (kod → oyuncu)
+    match /codes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && code.size() == 6
+        && request.resource.data.keys().hasOnly(['pid', 'owner'])
+        && request.resource.data.owner == uid()
+        && getAfter(/databases/$(database)/documents/players/$(request.resource.data.pid)).data.owner == uid()
+        && getAfter(/databases/$(database)/documents/players/$(request.resource.data.pid)).data.code == code;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.owner == uid();
+    }
+
+    // ---------------------------------------------------------------- arkadaşlıklar
+    match /friendships/{pair} {
+      allow read: if isMember(resource.data);
+      // İstek: kodu giren ebeveyn kendi oyuncusu adına oluşturur; durum 'pending'.
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['members', 'owners', 'requestedBy', 'status', 'createdAt'])
+        && request.resource.data.status == 'pending'
+        && request.resource.data.members.size() == 2
+        && request.resource.data.members[0] < request.resource.data.members[1]
+        && pair == request.resource.data.members[0] + '_' + request.resource.data.members[1]
+        && request.resource.data.owners == [ownerOf(request.resource.data.members[0]), ownerOf(request.resource.data.members[1])]
+        && request.resource.data.requestedBy in request.resource.data.members
+        && ownerOf(request.resource.data.requestedBy) == uid();
+      // Onay: yalnızca isteği almayan tarafın ebeveyni, yalnızca durumu değiştirir.
+      allow update: if isMember(resource.data)
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && ownerOf(resource.data.members[0] == resource.data.requestedBy ? resource.data.members[1] : resource.data.members[0]) == uid();
+      // Reddetme ya da arkadaşlıktan çıkarma: iki taraf da silebilir.
+      allow delete: if isMember(resource.data);
+    }
+
+    // ---------------------------------------------------------------- sırayla meydan okuma
+    match /challenges/{id} {
+      allow read: if isMember(resource.data);
+      allow create: if signedIn()
+        && validShared(request.resource.data)
+        && request.resource.data.keys().hasOnly(['pair', 'members', 'owners', 'from', 'kind', 'lessonId', 'results', 'reactions', 'createdAt', 'updatedAt'])
+        && request.resource.data.kind in ['speed', 'memory', 'oneline']
+        && request.resource.data.results.keys().hasOnly([request.resource.data.from])
+        && request.resource.data.reactions.size() == 0;
+      allow update: if isMember(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['results', 'reactions', 'updatedAt'])
+        && request.resource.data.results.diff(resource.data.results).affectedKeys().hasOnly(myPids(resource.data))
+        && request.resource.data.reactions.diff(resource.data.reactions).affectedKeys().hasOnly(myPids(resource.data));
+      allow delete: if isMember(resource.data);
+    }
+
+    // ---------------------------------------------------------------- canlı düello
+    match /duels/{id} {
+      allow read: if isMember(resource.data);
+      allow create: if signedIn()
+        && validShared(request.resource.data)
+        && request.resource.data.keys().hasOnly(['pair', 'members', 'owners', 'from', 'lessonId', 'mode', 'state', 'startAt', 'results', 'createdAt', 'updatedAt'])
+        && request.resource.data.state == 'invited'
+        && request.resource.data.results.size() == 0;
+      allow update: if isMember(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'startAt', 'results', 'updatedAt'])
+        && request.resource.data.results.diff(resource.data.results).affectedKeys().hasOnly(myPids(resource.data))
+        && request.resource.data.state in ['invited', 'countdown', 'done', 'declined', 'cancelled'];
+      allow delete: if isMember(resource.data);
+    }
+
+    // ---------------------------------------------------------------- birlikte boyama (sırayla)
+    match /coops/{id} {
+      allow read: if isMember(resource.data);
+      allow create: if signedIn()
+        && validShared(request.resource.data)
+        && request.resource.data.keys().hasOnly(['pair', 'members', 'owners', 'from', 'lessonId', 'state', 'turnOf', 'moves', 'createdAt', 'updatedAt'])
+        && request.resource.data.state == 'invited'
+        && request.resource.data.moves.size() == 0
+        && request.resource.data.turnOf in request.resource.data.members;
+      allow update: if isMember(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'turnOf', 'moves', 'updatedAt'])
+        && request.resource.data.turnOf in resource.data.members
+        && request.resource.data.moves.size() <= 400
+        // Hamle eklemek yalnızca sırası gelenin cihazından
+        && (request.resource.data.moves.size() == resource.data.moves.size() || resource.data.turnOf in myPids(resource.data));
+      allow delete: if isMember(resource.data);
+    }
+  }
+}

@@ -5,12 +5,15 @@ import { setSfxEnabled } from './lib/sfx';
 import { setNaturalVoice, unlockAudio } from './lib/speech';
 import Adventure from './pages/Adventure';
 import Challenge from './pages/Challenge';
+import Coop from './pages/Coop';
 import DressUp from './pages/DressUp';
 import Duel from './pages/Duel';
 import EnglishHome, { EnglishGames, EnglishPlay, EnglishStories, EnglishStoryPage, EnglishTime, EnglishTopic, EnglishWords } from './pages/English';
 import FreeDraw from './pages/FreeDraw';
+import Friends from './pages/Friends';
 import Journal from './pages/Journal';
 import League from './pages/League';
+import LiveDuel from './pages/LiveDuel';
 import Learn, { CoursePage } from './pages/Learn';
 import LessonPage from './pages/LessonPage';
 import Onboarding from './pages/Onboarding';
@@ -19,6 +22,7 @@ import Playground from './pages/Playground';
 import Profiles from './pages/Profiles';
 import Shop from './pages/Shop';
 import Worlds from './pages/Worlds';
+import { OnlineSync } from './online/OnlineHost';
 import { useApp } from './store/useApp';
 
 /** Profil yoksa karşılama akışına yönlendirir. */
@@ -69,10 +73,14 @@ export default function App() {
         <Route path="/dukkan" element={<NeedsProfile><Shop /></NeedsProfile>} />
         <Route path="/meydan/:kind" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/meydan/:kind/:lessonId" element={<NeedsProfile><Challenge /></NeedsProfile>} />
+        <Route path="/arkadaslar" element={<NeedsProfile><Friends /></NeedsProfile>} />
+        <Route path="/canli/:id" element={<NeedsProfile><LiveDuel /></NeedsProfile>} />
+        <Route path="/birlikte/:id" element={<NeedsProfile><Coop /></NeedsProfile>} />
         <Route path="/ebeveyn" element={<Parent />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </ErrorBoundary>
+      <OnlineSync />
     </HashRouter>
   );
 }

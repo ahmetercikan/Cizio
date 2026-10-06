@@ -1,6 +1,7 @@
 import { BookA, BookOpen, Brush, Gamepad2, Images, LayoutGrid, LibraryBig, Settings, Shirt, Store, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { FriendsButton } from '../online/OnlineHost';
 import { useApp, useProfile } from '../store/useApp';
 import { AvatarArt } from './Avatars';
 import { Doodles } from './Doodles';
@@ -65,6 +66,7 @@ export function AppBar({ world }: { world?: WorldId }) {
         </span>
       )}
       <span className="appbar__spacer" />
+      <FriendsButton />
       <ChestButton />
       <StarCounter />
       <Link to="/ebeveyn" className="round-btn round-btn--soft" aria-label="Ebeveyn bölümü" title="Ebeveyn bölümü">

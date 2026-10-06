@@ -13,6 +13,7 @@ import { addDays, dayKey, TR_DAYS } from '../lib/util';
 import { useApp } from '../store/useApp';
 import { AvatarArt, AVATARS } from '../components/Avatars';
 import { Doodles } from '../components/Doodles';
+import { ParentOnline } from '../online/ParentOnline';
 import { AGES, ALL_WORDS, HOME_PHRASES, known, STORIES } from '../english/data';
 import { say as sayEn } from '../english/voice';
 
@@ -259,10 +260,12 @@ export default function Parent() {
         </label>
       </section>
 
+      {active && <ParentOnline profile={active} toast={showToast} />}
+
       <section className="paper-card settings-card" style={{ marginTop: 16 }}>
         <h2 className="card-title">Yedekleme</h2>
         <p className="muted" style={{ fontWeight: 600, marginBottom: 10 }}>
-          Tüm veriler yalnızca bu cihazda saklanır, hiçbir sunucuya gönderilmez. Başka bir cihaza taşımak için yedek alın.
+          Çizimler ve ilerleme yalnızca bu cihazda saklanır. (Çevrimiçi arkadaşlar açıksa yalnızca görünen ad, avatar ve arkadaşla oynanan oyunların sonuçları ile resimleri paylaşılır.) Başka bir cihaza taşımak için yedek alın.
         </p>
         <input ref={fileRef} type="file" accept="application/json" hidden onChange={(e) => { void importAll(e.target.files?.[0]); e.target.value = ''; }} />
         <div className="row" style={{ flexWrap: 'wrap' }}>

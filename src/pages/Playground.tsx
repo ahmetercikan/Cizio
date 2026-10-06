@@ -19,6 +19,8 @@ import { getLesson, lessons, lessonsByPath, paths } from '../lessons';
 import { recommendLesson } from '../lib/recommend';
 import { speak } from '../lib/speech';
 import { streakOf } from '../lib/util';
+import { ONLINE_AVAILABLE } from '../online';
+import { useOnlineView } from '../online/OnlineHost';
 import { getSticker } from '../stickers';
 import { useApp, useProfile, useProfileData } from '../store/useApp';
 
@@ -34,6 +36,7 @@ export default function Playground() {
   const data = useProfileData();
   const settings = useApp((s) => s.settings);
   const consume = useApp((s) => s.consumeNewStickers);
+  const friends = useOnlineView();
   const [pending] = useState(() => data.newStickers.filter((id) => !id.startsWith('lesson:') && id !== 'first-lesson'));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const today = useMemo(() => recommendLesson(profile, data), [profile.id]);
@@ -104,6 +107,16 @@ export default function Playground() {
               <em>Oyna <ArrowRight size={15} /></em>
             </span>
           </Link>
+          {ONLINE_AVAILABLE && (
+            <Link to="/arkadaslar" className="challenge-card challenge-card--friends rise">
+              <span className="challenge-card__art"><ChallengeArt kind="friends" /></span>
+              <span className="challenge-card__text">
+                <b>Arkadaşlarım</b>
+                <span>{!friends ? 'Arkadaşlarınla uzaktan oyna' : friends.badge > 0 ? `${friends.badge} oyunda sıra sende!` : 'Meydan oku, düello, birlikte boya'}</span>
+                <em>Aç <ArrowRight size={15} /></em>
+              </span>
+            </Link>
+          )}
         </div>
       </section>
 

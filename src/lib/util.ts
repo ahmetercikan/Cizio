@@ -46,3 +46,34 @@ export function hashStr(s: string): number {
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
 }
+
+/** Türkçe tamlayan eki: "Ali'nin", "Zeynep'in", "Alya'nın", "Umut'un", "Gül'ün". */
+export function genitive(name: string): string {
+  const n = name.trim();
+  const vowels = n.toLocaleLowerCase('tr').match(/[aeıioöuü]/g);
+  const last = vowels?.[vowels.length - 1] ?? 'e';
+  const v = 'aı'.includes(last) ? 'ı' : 'ei'.includes(last) ? 'i' : 'ou'.includes(last) ? 'u' : 'ü';
+  const endsWithVowel = /[aeıioöuü]$/i.test(n.toLocaleLowerCase('tr'));
+  return `${n}'${endsWithVowel ? 'n' : ''}${v}n`;
+}
+
+/** Türkçe yönelme eki: "Ali'ye", "Zeynep'e", "Alya'ya", "Yusuf'a". */
+export function dative(name: string): string {
+  const n = name.trim();
+  const low = n.toLocaleLowerCase('tr');
+  const vowels = low.match(/[aeıioöuü]/g);
+  const last = vowels?.[vowels.length - 1] ?? 'e';
+  const v = 'aıou'.includes(last) ? 'a' : 'e';
+  return `${n}'${/[aeıioöuü]$/.test(low) ? 'y' : ''}${v}`;
+}
+
+/** Türkçe bulunma eki: "Ali'de", "Zeynep'te", "Alya'da", "Yusuf'ta". */
+export function locative(name: string): string {
+  const n = name.trim();
+  const low = n.toLocaleLowerCase('tr');
+  const vowels = low.match(/[aeıioöuü]/g);
+  const last = vowels?.[vowels.length - 1] ?? 'e';
+  const v = 'aıou'.includes(last) ? 'a' : 'e';
+  const hard = /[fstkçşhp]$/.test(low);
+  return `${n}'${hard ? 't' : 'd'}${v}`;
+}

@@ -11,6 +11,7 @@ import { lessons as allLessons } from '../lessons';
 import { questDone, todayQuest, type ChallengeKind } from '../lib/daily';
 import { STATE_KEY } from '../lib/legacy';
 import type { DollState } from '../dressup/catalog';
+import type { OnlineIdentity } from '../online/types';
 import { DAILY_GAME_CAP, emptyEnglish, GAME_STARS, SESSION_STARS, type Age, type EnglishData } from '../english/data';
 import { chestsEarned, earnedSum, giftStatus, GIFT_DAYS, pickReward, rareKey, walletOf, xpOf, type ChestReason, type GiftState, type Reward } from '../lib/rewards';
 
@@ -83,6 +84,8 @@ export interface ProfileData {
   frame?: string;
   /** English Club ilerlemesi. */
   english?: EnglishData;
+  /** Çevrimiçi kimlik (ebeveyn bölümünden açılır; yoksa çevrimiçi kapalı). */
+  online?: OnlineIdentity;
 }
 
 export interface EnglishInput {
@@ -151,6 +154,8 @@ interface AppState {
   buyFrame(id: string, price: number): boolean;
   setFrame(id?: string): void;
   setEnglishAge(age: Age): void;
+  /** Bir profilin çevrimiçi kimliğini kaydeder ya da (undefined) siler. */
+  setOnline(profileId: string, online: OnlineIdentity | undefined): void;
   /** English Club ilerlemesini kaydeder; kazanılan yıldız sayısını döner. */
   recordEnglish(input: EnglishInput): number;
   /** Biten haftanın lig sırasını kaydeder (kürsü çıkartmaları). */
@@ -464,6 +469,12 @@ export const useApp = create<AppState>()(
         const d = { ...emptyData(), ...data[activeId] };
         const favorites = d.favorites.includes(lessonId) ? d.favorites.filter((x) => x !== lessonId) : [lessonId, ...d.favorites];
         set({ data: { ...data, [activeId]: { ...d, favorites } } });
+      },
+
+      setOnline(profileId, online) {
+        const { data } = get();
+        const d = { ...emptyData(), ...data[profileId] };
+        set({ data: { ...data, [profileId]: { ...d, online } } });
       },
 
       setEnglishAge(age) {

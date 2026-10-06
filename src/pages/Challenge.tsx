@@ -8,7 +8,9 @@
 import confetti from 'canvas-confetti';
 import { ArrowLeft, Check, Play, RotateCcw, Shuffle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { AnswerCompare, SendToFriend } from '../online/ChallengeOnline';
+import { smallImage } from '../online/image';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import { PencilPalette, ToolCapsule, useToolState } from '../components/DrawTools';
 import { Doodles } from '../components/Doodles';
@@ -37,16 +39,21 @@ function randomLesson(except?: string): Lesson {
 
 export default function Challenge() {
   const { kind, lessonId } = useParams();
+  const [params] = useSearchParams();
   const nav = useNavigate();
+  // Çevrimiçi: ?arkadas=<pid> sonucu o arkadaşa gönderir; ?yanit=<id> arkadaşın meydan okumasına cevaptır.
+  const sendTo = params.get('arkadas') ?? undefined;
+  const answerId = params.get('yanit') ?? undefined;
   const def = CHALLENGES.find((c) => c.id === kind);
   const lesson = useMemo(() => (lessonId && getLesson(lessonId)) || randomLesson(), [lessonId]);
   if (!def) return <Link to="/atolye">Ana sayfa</Link>;
-  return <ChallengeRun key={`${def.id}-${lesson.id}`} kind={def.id} lesson={lesson} onAnother={() => nav(`/meydan/${def.id}/${randomLesson(lesson.id).id}`, { replace: true })} />;
+  return <ChallengeRun key={`${def.id}-${lesson.id}-${answerId ?? ''}`} kind={def.id} lesson={lesson} sendTo={sendTo} answerId={answerId}
+    onAnother={() => nav(`/meydan/${def.id}/${randomLesson(lesson.id).id}${sendTo ? `?arkadas=${sendTo}` : ''}`, { replace: true })} />;
 }
 
 type Phase = 'intro' | 'show' | 'draw' | 'result';
 
-function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson: Lesson; onAnother: () => void }) {
+function ChallengeRun({ kind, lesson, onAnother, sendTo, answerId }: { kind: ChallengeKind; lesson: Lesson; onAnother: () => void; sendTo?: string; answerId?: string }) {
   const nav = useNavigate();
   const def = CHALLENGES.find((c) => c.id === kind)!;
   const settings = useApp((s) => s.settings);
@@ -61,6 +68,11 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
   const [wrapRef, box] = useSize<HTMLDivElement>();
   const S = Math.floor(Math.min(box.w, box.h) * 0.94);
   const finishing = useRef(false);
+  // Arkadaşa gidecek küçük resim: sonuç ekranında bir kez üretilir (çizim "Tekrar"a kadar sayfada kalır).
+  const smallImg = useRef<Promise<string> | null>(null);
+  const getImage = () => (smallImg.current ??= smallImage(doc));
+  // Arkadaşa otomatik gönderim yalnızca ilk turda; "Tekrar" sonrası gönderim düğmeyle yapılır.
+  const [retried, setRetried] = useState(false);
 
   const say = (t: string) => settings.narration && speak(t, { rate: settings.rate, voiceURI: settings.voiceURI });
   useEffect(() => () => stopSpeaking(), []);
@@ -122,6 +134,7 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
     const earned = recordChallenge(kind, lesson.id, stars, percent);
     const after = profile ? useApp.getState().data[profile.id] : undefined;
     const quest = !!after && (after.quests?.length ?? 0) > questBefore;
+    smallImg.current = null;
     setResult({ stars, percent, record: prevRecord !== undefined && percent > prevRecord, image: URL.createObjectURL(blob), earned, quest });
     setPhase('result');
     sfx.fanfare();
@@ -201,7 +214,7 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
             {kind === 'oneline' && 'Kalemini kâğıttan hiç kaldırmadan, tek bir çizgiyle çiz. Kaldırırsan baştan başlarsın!'}
           </p>
           <div className="row-gap" style={{ gap: 10 }}>
-            <button className="btn-outline" onClick={onAnother}><Shuffle size={18} /> Başka resim</button>
+            {!answerId && <button className="btn-outline" onClick={onAnother}><Shuffle size={18} /> Başka resim</button>}
             <button className="pill" style={{ flex: 1, minWidth: 0 }} onClick={start}><Play size={20} fill="currentColor" /> Başla</button>
           </div>
         </div>
@@ -239,9 +252,18 @@ function ChallengeRun({ kind, lesson, onAnother }: { kind: ChallengeKind; lesson
                 <span>Yeni çıkartma!</span>
               </div>
             )}
+            {answerId ? (
+              <AnswerCompare challengeId={answerId} result={result} getImage={getImage} myName={profile?.name ?? ''} myAvatar={profile?.avatar ?? 'kedi'} />
+            ) : (
+              <SendToFriend kind={kind} lessonId={lesson.id} result={result} getImage={getImage} auto={retried ? undefined : sendTo} />
+            )}
             <div className="celebrate__actions">
-              <button className="pill" onClick={onAnother}>Yeni meydan okuma <Shuffle size={20} /></button>
-              <button className="pill pill--ghost pill--sm" onClick={() => { setResult(null); setPhase('intro'); }}><RotateCcw size={18} /> Tekrar</button>
+              {answerId ? (
+                <button className="pill" onClick={() => nav('/arkadaslar')}>Arkadaşlarım</button>
+              ) : (
+                <button className="pill" onClick={onAnother}>Yeni meydan okuma <Shuffle size={20} /></button>
+              )}
+              {!answerId && <button className="pill pill--ghost pill--sm" onClick={() => { setResult(null); setRetried(true); setPhase('intro'); }}><RotateCcw size={18} /> Tekrar</button>}
               <button className="pill pill--ghost pill--sm" onClick={() => nav('/atolye')}>Ana sayfa</button>
             </div>
           </div>

@@ -32,7 +32,8 @@ export default defineConfig({
       workbox: {
         // Ses dosyaları (public/voice) kuruluma dahil edilmez; çalındıkça önbelleğe alınır.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        globIgnores: ['**/node_modules/**/*', 'voice/**/*'],
+        // Çevrimiçi istemci (Firebase, ~650 KB) yalnızca çevrimiçi özelliği açanlara, ilk kullanımda iner.
+        globIgnores: ['**/node_modules/**/*', 'voice/**/*', 'assets/client-*.js'],
         runtimeCaching: [
           {
             // Manifest güncellenebilir: önce ağ, çevrimdışıysa önbellek.
@@ -50,6 +51,11 @@ export default defineConfig({
             },
           },
           {
+            urlPattern: ({ url }) => /\/assets\/client-[\w-]+\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'online-client', expiration: { maxEntries: 3 }, cacheableResponse: { statuses: [200] } },
+          },
+          {
             // Önceden üretilmiş ders eskizleri (scripts/build-thumbs.ts): görüldükçe önbelleğe alınır.
             urlPattern: ({ url }) => url.pathname.includes('/thumbs/'),
             handler: 'CacheFirst',
@@ -61,5 +67,7 @@ export default defineConfig({
   ],
   test: {
     environment: 'node',
+    // Firestore kural testleri emulator ister: npm run test:rules
+    exclude: ['**/node_modules/**', '**/dist/**', 'rules-tests/**'],
   },
 });

@@ -15,3 +15,4 @@ android/keystore.properties
 
 # Mağaza paketleri (büyük ikili dosyalar)
 store/release/
+*.tsbuildinfo

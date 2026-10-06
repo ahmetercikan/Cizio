@@ -20,7 +20,7 @@ import { useApp, useProfile } from '../store/useApp';
 let sessionDoc: DrawingDoc | null = null;
 
 /** Ders çizimini boyama sayfasına çevirir: şekiller koyu kontur olur, boya kovası içlerini doldurur. */
-function coloringPage(lesson: Lesson): StrokeAction[] {
+export function coloringPage(lesson: Lesson): StrokeAction[] {
   return lesson.steps
     .flatMap((s) => s.shapes)
     .filter((s) => !s.guide)

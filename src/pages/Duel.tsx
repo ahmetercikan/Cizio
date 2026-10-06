@@ -237,8 +237,15 @@ export default function Duel() {
 
   // ---------------------------------------------------------------- sonuç
   if (phase === 'reveal' && results.length === 2) {
-    return <Reveal lesson={lesson} players={order} results={results}
-      onRematch={rematch} onSetup={() => { recorded.current = false; setPhase('setup'); }} onHome={() => nav('/atolye')} />;
+    return (
+      <Reveal lesson={lesson} players={order} results={results} actions={
+        <>
+          <button className="pill" onClick={rematch}><RotateCcw size={20} /> Rövanş</button>
+          <button className="pill pill--ghost pill--sm" onClick={() => { recorded.current = false; setPhase('setup'); }}><Users size={18} /> Oyuncuları değiştir</button>
+          <button className="pill pill--ghost pill--sm" onClick={() => nav('/atolye')}><Home size={18} /> Ana sayfa</button>
+        </>
+      } />
+    );
   }
 
   // ---------------------------------------------------------------- sıra perdesi
@@ -300,7 +307,7 @@ export default function Duel() {
  * Kâğıt ve çizim alanı. Ayrı bileşen: çizim ekranı açıldığında bağlanır, böylece boyutu doğru ölçülür
  * (useSize yalnızca ilk bağlanmada gözlemler; kurulum ekranında bu alan yoktur).
  */
-function DuelStage({ showExample, lesson, doc, ts, disabled, palmRejection }: {
+export function DuelStage({ showExample, lesson, doc, ts, disabled, palmRejection }: {
   showExample: boolean;
   lesson: Lesson;
   doc: DrawingDoc;
@@ -330,13 +337,12 @@ function DuelStage({ showExample, lesson, doc, ts, disabled, palmRejection }: {
 // ------------------------------------------------------------------------------------------------
 // Sonuç: yüzdeler sayarak yükselir, sonra kazanan açıklanır
 // ------------------------------------------------------------------------------------------------
-function Reveal({ lesson, players, results, onRematch, onSetup, onHome }: {
+export function Reveal({ lesson, players, results, actions }: {
   lesson: Lesson;
-  players: Player[];
-  results: Result[];
-  onRematch: () => void;
-  onSetup: () => void;
-  onHome: () => void;
+  players: { key: string; name: string; avatar: string }[];
+  results: { percent: number; image: string }[];
+  /** Sonuç açıklandıktan sonra gösterilecek düğmeler. */
+  actions: React.ReactNode;
 }) {
   const [k, setK] = useState(0); // 0..1 sayaç ilerlemesi
   const done = k >= 1;
@@ -388,13 +394,7 @@ function Reveal({ lesson, players, results, onRematch, onSetup, onHome }: {
           <figcaption><b>Örnek</b></figcaption>
         </figure>
       </div>
-      {done && (
-        <div className="celebrate__actions rise">
-          <button className="pill" onClick={onRematch}><RotateCcw size={20} /> Rövanş</button>
-          <button className="pill pill--ghost pill--sm" onClick={onSetup}><Users size={18} /> Oyuncuları değiştir</button>
-          <button className="pill pill--ghost pill--sm" onClick={onHome}><Home size={18} /> Ana sayfa</button>
-        </div>
-      )}
+      {done && <div className="celebrate__actions rise">{actions}</div>}
     </div>
   );
 }

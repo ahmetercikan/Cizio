@@ -19,11 +19,13 @@
 <body>
 <main>
   <h1>Çizio — Gizlilik Politikası</h1>
-  <p class="muted">Son güncelleme: 28 Eylül 2026</p>
+  <p class="muted">Son güncelleme: 6 Ekim 2026</p>
 
   <div class="card">
-    <strong>Kısaca:</strong> Çizio hiçbir kişisel veri toplamaz, hiçbir sunucuya veri göndermez, reklam ve analiz
-    araçları içermez. Çocuğunuzun adı, çizimleri, fotoğrafları ve ilerlemesi yalnızca kullandığınız cihazda saklanır.
+    <strong>Kısaca:</strong> Çizio reklam ve analiz araçları içermez. Çocuğunuzun adı, çizimleri, fotoğrafları ve ilerlemesi
+    yalnızca kullandığınız cihazda saklanır. Tek istisna, ebeveynin isteğe bağlı olarak açabildiği <strong>çevrimiçi
+    arkadaşlar</strong> özelliğidir: açıksa yalnızca görünen ad, avatar ve ebeveynin onayladığı arkadaşlarla oynanan oyunların
+    sonuçları ve o oyunlarda çizilen küçük resimler paylaşılır. Bu özellik varsayılan olarak kapalıdır.
   </div>
 
   <h2>Uygulama nedir?</h2>
@@ -33,26 +35,52 @@
   <ul>
     <li><strong>Profil bilgileri</strong> (çocuğun girdiği ad ve seçtiği avatar), <strong>ilerleme</strong> (tamamlanan dersler, yıldızlar, çıkartmalar) ve <strong>ayarlar</strong> yalnızca cihazın kendi depolama alanında tutulur.</li>
     <li><strong>Çizimler ve fotoğraflar</strong> yalnızca cihazda saklanır. Kâğıt modunda çekilen fotoğraf, örnek çizimle karşılaştırmak için yalnızca cihazda işlenir; hiçbir yere yüklenmez.</li>
-    <li>Bu bilgiler geliştiriciye ya da üçüncü taraflara <strong>gönderilmez, satılmaz, paylaşılmaz</strong>.</li>
+    <li>Çevrimiçi arkadaşlar kapalıyken bu bilgiler geliştiriciye ya da üçüncü taraflara <strong>gönderilmez</strong>. Hiçbir koşulda <strong>satılmaz</strong> ve reklam için kullanılmaz.</li>
+  </ul>
+
+  <h2>Çevrimiçi arkadaşlar (isteğe bağlı, varsayılan olarak kapalı)</h2>
+  <p>Ebeveyn, kilitli "Ebeveyn bölümü"nden her çocuk profili için çevrimiçi özellikleri ayrı ayrı açabilir. Açıldığında çocuk, ebeveynin
+    eklediği ve karşı tarafın ebeveyninin de onayladığı arkadaşlarıyla sırayla meydan okuma, canlı düello ve birlikte boyama oynayabilir.</p>
+  <ul>
+    <li><strong>Arkadaş ekleme:</strong> Yalnızca ebeveynler arasında paylaşılan 6 karakterli bir arkadaş koduyla yapılır ve iki tarafın
+      ebeveyninin onayını gerektirir. Arama, rastgele eşleşme ya da yabancılarla iletişim yoktur.</li>
+    <li><strong>İletişim yok:</strong> Mesajlaşma, sesli ya da görüntülü görüşme yoktur. Çocuklar yalnızca hazır tepkiler (alkış, yıldız, kalp gibi) gönderebilir.</li>
+    <li><strong>Sunucuda tutulanlar:</strong> görünen ad (profilde girilen takma ad, en çok 20 karakter), avatar seçimi, arkadaş kodu,
+      uygulamanın en son ne zaman açık olduğu (arkadaşlara "şu an uygulamada" göstermek için), arkadaşlıklar, oyun sonuçları
+      (benzerlik yüzdesi ve yıldız), oyunlarda çizilen küçük boyutlu resimler, hazır tepkiler ve birlikte boyamadaki boyama hamleleri.</li>
+    <li><strong>İstenmeyenler:</strong> E-posta, telefon numarası, gerçek ad-soyad, doğum tarihi, konum, fotoğraf, kişiler ya da reklam kimliği istenmez ve toplanmaz.
+      Kâğıt modunda çekilen fotoğraflar hiçbir zaman paylaşılmaz.</li>
+    <li><strong>Kimlik:</strong> Her cihaz için Firebase Authentication ile anonim bir hesap oluşturulur; kişisel bilgi içermez.</li>
+    <li><strong>Hizmet sağlayıcı:</strong> Veriler Google Firebase (Cloud Firestore) üzerinde saklanır ve aktarım sırasında şifrelenir. Google,
+      hizmeti sağlamak için cihazın IP adresi gibi teknik bilgileri işleyebilir
+      (<a href="https://firebase.google.com/support/privacy">Firebase gizlilik bilgileri</a>). Erişim kurallarıyla her oyun kaydını yalnızca
+      ilgili iki arkadaşın cihazları okuyabilir; görünen ad ve avatarı ise yalnızca arkadaş kodunu bilen biri görebilir.</li>
+    <li><strong>Saklama süresi:</strong> Canlı düello kayıtları 1 gün, meydan okuma ve birlikte boyama kayıtları 30 gün sonra silinir.</li>
+    <li><strong>Silme:</strong> Ebeveyn bölümündeki "Çevrimiçi özellikleri kapat" düğmesi o profilin arkadaş kodunu, arkadaşlıklarını,
+      oyun kayıtlarını ve paylaşılan resimlerini sunucudan siler. Bir arkadaşlıktan çıkarmak, o arkadaşla oynanan oyunları da siler.</li>
   </ul>
 
   <h2>Kamera izni</h2>
   <p>Kamera yalnızca, çocuk kâğıda yaptığı çizimin fotoğrafını çekmek istediğinde kullanılır. İzin vermek zorunlu değildir; fotoğraf galeriden de seçilebilir ya da bu adım atlanabilir.</p>
 
   <h2>Reklam, analiz ve üçüncü taraf hizmetler</h2>
-  <p>Çizio reklam göstermez, uygulama içi satın alma yoktur, analiz ya da izleme (tracking) araçları kullanılmaz ve üçüncü taraf SDK'larla veri paylaşılmaz.</p>
+  <p>Çizio reklam göstermez, uygulama içi satın alma yoktur, analiz ya da izleme (tracking) araçları kullanılmaz. Tek üçüncü taraf hizmet,
+    yalnızca çevrimiçi arkadaşlar açıldığında kullanılan Google Firebase'dir (yukarıya bakın); bu veriler reklam ya da analiz için kullanılmaz.</p>
 
   <h2>Ebeveyn denetimi</h2>
   <p>Ayarlar, profiller ve yedekleme "Ebeveyn bölümü"ndedir ve basit bir işlem sorusuyla korunur. Veriler, ebeveynin isteğiyle yedek dosyası olarak dışa aktarılabilir ya da profil silinerek tamamen kaldırılabilir. Uygulamayı kaldırmak da tüm verileri siler.</p>
 
   <h2>Çocukların gizliliği</h2>
-  <p>Çizio çocuklar için tasarlanmıştır ve Google Play Aileler politikasına, KVKK'ya ve COPPA ilkelerine uygun olarak çocuklardan kişisel veri toplamaz.</p>
+  <p>Çizio çocuklar için tasarlanmıştır ve Google Play Aileler politikasına, KVKK'ya ve COPPA ilkelerine uygun olarak tasarlanmıştır. Çevrimiçi özellikler yalnızca ebeveynin açık onayıyla etkinleşir ve en az veriyle çalışır; ebeveyn bunları istediği an kapatıp verileri silebilir.</p>
 
   <h2>İletişim</h2>
   <p>Sorularınız için: <a href="https://github.com/ahmetercikan/ciziktir/issues">github.com/ahmetercikan/ciziktir/issues</a></p>
 
   <h2 lang="en">English summary</h2>
-  <p lang="en">Çizio does not collect, transmit or share any personal data. Names, drawings, photos and progress are stored only on the device. The camera is used only to photograph the child's paper drawing, processed on-device. No ads, no analytics, no third-party SDKs that collect data.</p>
+  <p lang="en">Çizio has no ads and no analytics. Names, drawings, photos and progress are stored only on the device, and the camera is used only to photograph the child's paper drawing, processed on-device.
+    The optional "online friends" feature is off by default and can be enabled per child only from the locked parent area. When enabled, the app stores in Google Firebase (encrypted in transit) the child's nickname,
+    avatar, friend code, last-active time, parent-approved friendships, game results, small images drawn in those games, preset reactions and shared coloring moves. Friends are added only by exchanging a code between parents and require approval
+    on both sides; there is no chat, search or matchmaking. No email, phone number, real name, location, photos or advertising ID are collected. Live duel records are deleted after 1 day, other game records after 30 days, and turning the feature off deletes the child's online data.</p>
 </main>
 </body>
 </html>

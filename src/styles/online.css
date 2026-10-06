@@ -1,0 +1,302 @@
+/* Çevrimiçi arkadaşlar: arkadaşlar sayfası, canlı düello, birlikte boyama, ebeveyn bölümü */
+
+.spin { animation: spin 0.9s linear infinite; }
+
+.online-dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(43, 182, 115, 0.22);
+  vertical-align: 0;
+}
+
+/* Üst çubuk: arkadaşlar düğmesi ve rozet */
+.friends-btn { position: relative; color: var(--ink); }
+.friends-btn__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--coral);
+  color: #fff;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid #fff;
+}
+
+.challenge-card--friends { --tint: #e8f6d6; }
+
+/* Kapalıyken */
+.online-off {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 520px;
+  margin: 40px auto;
+  padding: 28px 22px;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+}
+.online-off .pill { text-decoration: none; }
+
+/* Sıra sende / bekleyen kartları */
+.online-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.online-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+}
+.online-card > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.online-card b { font-family: var(--display); font-weight: 600; font-size: 17px; line-height: 1.2; }
+.online-card small { color: var(--muted); font-weight: 700; font-size: 14px; }
+.online-card .pill { flex: none; }
+.online-card--hot { border-color: var(--coral); background: var(--coral-soft); animation: online-glow 1.6s ease-in-out infinite; }
+.online-card--wait { box-shadow: none; background: rgba(255, 255, 255, 0.7); cursor: default; }
+.online-card--wait[role='button'] { cursor: pointer; }
+.online-card__thumb { flex: none; width: 64px; height: 64px; border-radius: 14px; overflow: hidden; background: var(--sun-soft); }
+.online-card__thumb > * { width: 100%; height: 100%; }
+@keyframes online-glow { 50% { box-shadow: 0 0 0 6px rgba(255, 107, 74, 0.18), var(--shadow-card); } }
+
+/* Arkadaş kartları */
+.friend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.friend-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+}
+.friend-card__head { display: flex; align-items: center; gap: 12px; }
+.friend-card__head > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.friend-card__head b { font-family: var(--display); font-weight: 600; font-size: 22px; }
+.friend-card__head small { color: var(--muted); font-weight: 700; font-size: 14px; }
+.friend-card__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.friend-card__actions .pill { flex: 1 1 auto; padding: 0 14px; font-size: 16px; }
+
+/* Seçim pencereleri (meydan okuma türü, düello modu, kime) */
+.friend-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+.friend-pick__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border-radius: var(--radius);
+  background: #fff;
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 var(--line);
+  color: var(--ink);
+  text-align: center;
+}
+.friend-pick__item:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.friend-pick__item:disabled { opacity: 0.5; }
+.friend-pick__item b { font-family: var(--display); font-weight: 600; font-size: 18px; }
+.friend-pick__item small { color: var(--muted); font-weight: 700; font-size: 14px; }
+.friend-pick__item .online-dot { position: absolute; top: 12px; right: 12px; }
+.friend-pick__art { width: 84px; height: 84px; padding: 4px; border-radius: 18px; background: var(--sun-soft); }
+
+.coop-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin: 16px 0; }
+.coop-pick__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--radius);
+  background: #fff;
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 var(--line);
+  color: var(--ink);
+}
+.coop-pick__item > :first-child { width: 100%; aspect-ratio: 1; border-radius: 14px; overflow: hidden; }
+.coop-pick__item b { font-family: var(--display); font-weight: 600; font-size: 16px; }
+.coop-pick__item:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+
+/* Sonuçlar */
+.online-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.online-result {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  text-align: left;
+}
+.online-result small { grid-column: 1 / -1; padding: 2px 4px; color: var(--muted); font-weight: 800; font-size: 14px; }
+.online-result__pic { position: relative; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: #fff; border: 2px solid var(--line); }
+.online-result__pic--wide { grid-column: 1 / -1; aspect-ratio: 2 / 1; }
+.online-result__pic.win { border-color: var(--sun); box-shadow: 0 0 0 3px var(--sun-soft); }
+.online-result__pic img, .online-result__pic > :not(i) { width: 100%; height: 100%; object-fit: contain; display: block; }
+.online-result__pic i {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  font-style: normal;
+  font-weight: 800;
+  font-size: 13px;
+}
+.online-result__react { position: absolute; top: -10px; right: -8px; padding: 4px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-card); line-height: 0; }
+
+/* Karşılaştırma (meydan okuma cevabı) */
+.online-compare { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.online-compare__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 260px)); gap: 14px; justify-content: center; width: 100%; }
+.online-compare figure { margin: 0; padding: 8px; border-radius: var(--radius); background: #fff; border: 3px solid var(--line); box-shadow: var(--shadow-card); }
+.online-compare figure.win { border-color: var(--sun); box-shadow: 0 0 0 5px var(--sun-soft), var(--shadow-card); }
+.online-compare img, .online-compare__ph { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 14px; background: var(--sun-soft); }
+.online-compare figcaption { display: flex; align-items: center; justify-content: center; gap: 6px; padding-top: 8px; font-weight: 800; }
+.online-compare figcaption span { color: var(--teal-dark); font-family: var(--display); font-size: 20px; }
+.online-compare__their { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 800; color: var(--ink); }
+
+.reaction-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-weight: 800; color: var(--muted); }
+.reaction {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #fff;
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 var(--line);
+  transition: transform 0.15s;
+}
+.reaction:active { transform: scale(0.9); }
+.reaction.on { background: var(--sun-soft); border-color: var(--sun); transform: scale(1.08); }
+
+.online-send { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 8px; }
+.online-send__ok { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 800; color: var(--teal-dark); text-align: center; }
+.online-send__err { margin: 0; font-weight: 800; color: var(--red); }
+
+/* Gelen düello daveti */
+.online-invite { text-align: center; }
+.online-invite__art { display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--coral); }
+
+/* Canlı düello */
+.live-center { min-height: 100dvh; display: flex; flex-direction: column; padding: calc(var(--safe-top) + 16px) 20px 0; }
+.live-center__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 16px calc(var(--safe-bottom) + 24px);
+  text-align: center;
+  position: relative;
+}
+.live-wait { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.live-wait__vs, .live-vs-mini { font-family: var(--display); font-weight: 700; color: var(--coral); }
+.live-wait__vs { font-size: 34px; }
+.live-vs-mini { font-size: 16px; margin: 0 4px; }
+.live-wait__lesson {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 18px 12px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+.live-wait__lesson > :first-child { width: 120px; height: 120px; }
+.live-wait__lesson b { font-family: var(--display); font-weight: 600; font-size: 20px; }
+.live-wait__lesson span { color: var(--muted); font-weight: 700; font-size: 14px; }
+.live-count { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; padding: 16px; }
+.live-count__n { font-family: var(--display); font-weight: 700; font-size: clamp(90px, 22vw, 180px); line-height: 1; color: var(--coral); }
+.live-mine { margin: 0; padding: 8px; border-radius: var(--radius); background: #fff; border: 2px solid var(--line); box-shadow: var(--shadow-card); }
+.live-mine img { display: block; width: min(60vw, 260px); aspect-ratio: 1; object-fit: contain; }
+.live-mine figcaption { padding-top: 6px; font-weight: 800; }
+
+/* Birlikte boyama: sıra göstergesi */
+.coop-turn {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--safe-top) + 74px);
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  padding: 8px 16px;
+  border-radius: 18px;
+  background: #fff;
+  border: 2px solid var(--line);
+  box-shadow: var(--shadow-card);
+  font-weight: 800;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.coop-turn.mine { color: var(--teal-dark); border-color: var(--teal); background: var(--teal-soft); }
+
+/* Ebeveyn bölümü */
+.online-facts { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; color: var(--ink); font-weight: 600; }
+.online-code { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; padding: 12px 14px; border-radius: 16px; background: var(--sun-soft); }
+.online-code__label { font-weight: 800; color: var(--muted); }
+.online-code__value { font-family: var(--display); font-size: 30px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink); }
+.online-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.online-add .input {
+  flex: 1 1 200px;
+  min-height: 54px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.online-list { display: grid; gap: 4px; margin-top: 14px; }
+.btn-dark--sm { min-height: 42px; padding: 0 16px; font-size: 16px; border-radius: 14px; }
+
+@media (max-width: 640px) {
+  .online-compare__cards { gap: 8px; }
+  .online-card { flex-wrap: wrap; }
+  .online-card .pill { width: 100%; }
+  .coop-turn { top: calc(var(--safe-top) + 64px); font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .online-card--hot, .spin { animation: none; }
+}
+
+/* Oyun ekranı başlığı: iki oyuncu yan yana (.player__title sütun düzenini ezer) */
+.player__title.duel-title { flex-direction: row; justify-content: center; flex-wrap: wrap; }
+.player__title.duel-title b { padding: 3px 14px; font-size: clamp(16px, 2vw, 20px); }
