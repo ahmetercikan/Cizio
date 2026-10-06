@@ -49,6 +49,12 @@ export default defineConfig({
               cacheableResponse: { statuses: [200] },
             },
           },
+          {
+            // Önceden üretilmiş ders eskizleri (scripts/build-thumbs.ts): görüldükçe önbelleğe alınır.
+            urlPattern: ({ url }) => url.pathname.includes('/thumbs/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'thumbs', expiration: { maxEntries: 400 }, cacheableResponse: { statuses: [200] } },
+          },
         ],
       },
     }),

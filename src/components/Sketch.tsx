@@ -4,23 +4,126 @@
  *  - LiveSketch: zaman çizelgesine göre çizilen "video" — tamamlanan şekiller eskiz olarak,
  *    çizilmekte olan şekil ilerleyen kalem iziyle, üstünde gerçekçi kalem.
  */
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { GRAPHITE, lessonSketchUrl, lineMarkup, sketchDefs, type SketchMode } from '../art/sketch';
+import { hasThumb } from '../art/thumbs';
 import { frameAt, type ShapeSeg, type Timeline } from '../art/timeline';
 import type { Lesson, Shape } from '../lessons/types';
 import { PencilDefs, PencilSprite, StumpSprite } from './Pencil';
 
+// ------------------------------------------------------------------------------------------------
+// Önceden üretilmiş eskizler (scripts/build-thumbs.ts). Filtreli SVG'yi tarayıcı her kartta ana iş
+// parçacığında resme çevirdiği için düşük donanımlı telefonlarda sayfa geçişleri saniyelerce donuyordu.
+// Şimdi hazır WebP ve kâğıt dokusu bir Web Worker'da kenar boşluğuyla birleştirilir ve kodlanır
+// (src/art/thumbWorker.ts); sonuç her kart biçimi için bir kez üretilip saklanır.
+// ------------------------------------------------------------------------------------------------
+const OUT = 512;
+const thumbUrl = (name: string) => new URL(`thumbs/${name}.webp`, document.baseURI).href;
+const composites = new Map<string, string>();
+const pending = new Map<string, Promise<string>>();
+
+let worker: Worker | null | undefined;
+let reqId = 0;
+const waiting = new Map<number, { res: (b: Blob) => void; rej: (e: Error) => void }>();
+function getWorker(): Worker | null {
+  if (worker !== undefined) return worker;
+  try {
+    worker = typeof OffscreenCanvas === 'function' ? new Worker(new URL('../art/thumbWorker.ts', import.meta.url), { type: 'module' }) : null;
+    worker?.addEventListener('message', (e: MessageEvent<{ id: number; blob?: Blob; error?: string }>) => {
+      const w = waiting.get(e.data.id);
+      waiting.delete(e.data.id);
+      if (!w) return;
+      if (e.data.blob) w.res(e.data.blob);
+      else w.rej(new Error(e.data.error ?? 'thumb'));
+    });
+  } catch {
+    worker = null;
+  }
+  return worker;
+}
+
+/** Worker yoksa (eski tarayıcı) ana iş parçacığında birleştirir. */
+async function composeHere(art: string, paper: string | null, pad: number): Promise<Blob> {
+  const load = async (u: string) => {
+    const b = await (await fetch(u)).blob();
+    if (typeof createImageBitmap === 'function') return createImageBitmap(b);
+    const img = new Image();
+    img.src = URL.createObjectURL(b);
+    await img.decode();
+    return img;
+  };
+  const [a, bg] = await Promise.all([load(art), paper ? load(paper) : null]);
+  const c = document.createElement('canvas');
+  c.width = c.height = OUT;
+  const g = c.getContext('2d')!;
+  if (bg) g.drawImage(bg, 0, 0, OUT, OUT);
+  const k = OUT / (400 + pad * 2);
+  g.drawImage(a, pad * k, pad * k, 400 * k, 400 * k);
+  return new Promise((r, j) => c.toBlob((b) => (b ? r(b) : j(new Error('toBlob'))), 'image/webp', 0.9));
+}
+
+function compose(lessonId: string, mode: SketchMode, paper: boolean, pad: number): Promise<string> {
+  const key = `${lessonId}|${mode}|${paper ? 1 : 0}|${pad}`;
+  const done = composites.get(key);
+  if (done) return Promise.resolve(done);
+  let p = pending.get(key);
+  if (!p) {
+    const art = thumbUrl(`${lessonId}-${mode}`);
+    const bg = paper ? thumbUrl('paper') : null;
+    const w = getWorker();
+    const blob = w
+      ? new Promise<Blob>((res, rej) => {
+          const id = ++reqId;
+          waiting.set(id, { res, rej });
+          w.postMessage({ id, art, paper: bg, pad, size: OUT });
+        })
+      : composeHere(art, bg, pad);
+    p = blob.then((b) => {
+      const url = URL.createObjectURL(b);
+      composites.set(key, url);
+      pending.delete(key);
+      return url;
+    });
+    p.catch(() => pending.delete(key));
+    pending.set(key, p);
+  }
+  return p;
+}
+
+/** Hazırlanırken gösterilen boş resim (kâğıtlıysa kâğıt rengi). */
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const PAPER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1" fill="#f7f6f2"/></svg>');
+
 export const SketchImg = memo(function SketchImg({ lesson, mode = 'graphite', paper = false, pad = 16, upto, className, style }: {
   lesson: Lesson; mode?: SketchMode; paper?: boolean; pad?: number; upto?: number; className?: string; style?: React.CSSProperties;
 }) {
+  // Hazır resim yalnızca tam çizim için var (adım adım önizleme ve yeni/değişmiş dersler canlı SVG ile çizilir).
+  const pre = upto === undefined && hasThumb(lesson);
+  const key = `${lesson.id}|${mode}|${paper ? 1 : 0}|${pad}`;
+  const [src, setSrc] = useState(() => (pre ? (composites.get(key) ?? (paper ? PAPER : BLANK)) : null));
+  useEffect(() => {
+    if (!pre) return;
+    let alive = true;
+    const hit = composites.get(key);
+    if (hit) setSrc(hit);
+    else {
+      setSrc(paper ? PAPER : BLANK);
+      compose(lesson.id, mode, paper, pad)
+        .then((u) => alive && setSrc(u))
+        .catch(() => alive && setSrc(lessonSketchUrl(lesson, { mode, paper, pad })));
+    }
+    return () => {
+      alive = false;
+    };
+  }, [pre, key]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <img
       className={className}
       style={style}
-      src={lessonSketchUrl(lesson, { mode, paper, pad, upto })}
+      src={src ?? lessonSketchUrl(lesson, { mode, paper, pad, upto })}
       alt={lesson.title}
       draggable={false}
-      loading="lazy"
+      decoding="async"
     />
   );
 });

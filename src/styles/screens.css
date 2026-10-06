@@ -144,6 +144,8 @@
 }
 
 .card-row::-webkit-scrollbar { display: none; }
+/* Ekrana yaklaşmamış şerit: kartlar kurulmadan aynı yüksekliği tutar (kaydırırken zıplamasın). */
+.card-row--wait { min-height: calc(188px / 0.86 + 22px); }
 .card-row > * { scroll-snap-align: start; }
 
 /* Ders kartı */
@@ -2876,8 +2878,20 @@
 .adv-node__prize { position: absolute; top: 4px; right: 6px; filter: grayscale(0.9); opacity: 0.55; }
 .adv-node__prize.won { filter: none; opacity: 1; }
 
-.adv-node--here .adv-node__disc { animation: here-pulse 1.8s ease-in-out infinite; }
-@keyframes here-pulse { 50% { box-shadow: 0 5px 0 rgba(58, 43, 39, 0.22), 0 0 0 10px color-mix(in srgb, var(--pc) 30%, transparent); } }
+/* Nabız halkası: box-shadow canlandırmak her karede altındaki haritayı yeniden boyatıyordu (boşta %60 işlemci);
+   ayrı katmandaki halka yalnızca transform/opacity ile ekran kartında döner. */
+.adv-node--here .adv-node__disc { position: relative; overflow: visible; }
+.adv-node--here .adv-node__disc::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 8px solid color-mix(in srgb, var(--pc) 30%, transparent);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: here-pulse 1.8s ease-in-out infinite;
+}
+@keyframes here-pulse { 0%, 100% { transform: scale(0.92); opacity: 0; } 50% { transform: scale(1.08); opacity: 1; } }
 
 .adv-node__me { position: absolute; left: 50%; bottom: calc(100% - 6px); z-index: 3; transform: translateX(-50%); animation: me-hop 1.4s ease-in-out infinite; }
 @keyframes me-hop { 50% { transform: translate(-50%, -8px); } }

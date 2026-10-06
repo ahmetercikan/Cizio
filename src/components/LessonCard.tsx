@@ -1,5 +1,6 @@
 import { Heart, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import type { Lesson } from '../lessons/types';
 import { sfx } from '../lib/sfx';
 import { useApp, useProfileData } from '../store/useApp';
@@ -52,18 +53,38 @@ export function LessonCard({ lesson, size = 'md', isNew = false }: { lesson: Les
   );
 }
 
+/**
+ * Öğe ekrana yaklaştığında (bir kez) true olur. Uzun sayfalarda (Atölye'de 10 yol × ~10 ders) bütün kartları
+ * ve eskizlerini açılışta kurmak düşük donanımlı telefonlarda sayfa geçişini donduruyordu.
+ */
+function useNearViewport<T extends Element>(margin = '400px'): [React.RefObject<T>, boolean] {
+  const ref = useRef<T>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setNear(true);
+      return;
+    }
+    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setNear(true), { rootMargin: margin });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near, margin]);
+  return [ref, near];
+}
+
 export function CardRow({ title, icon, lessons, isNewIds }: { title: string; icon?: React.ReactNode; lessons: Lesson[]; isNewIds?: Set<string> }) {
+  const [ref, near] = useNearViewport<HTMLElement>();
   if (!lessons.length) return null;
   return (
-    <section className="row-section">
+    <section className="row-section" ref={ref}>
       <h2 className="row-section__title">
         {icon}
         {title}
       </h2>
-      <div className="card-row">
-        {lessons.map((l) => (
-          <LessonCard key={l.id} lesson={l} isNew={isNewIds?.has(l.id)} />
-        ))}
+      <div className={`card-row ${near ? '' : 'card-row--wait'}`}>
+        {near && lessons.map((l) => <LessonCard key={l.id} lesson={l} isNew={isNewIds?.has(l.id)} />)}
       </div>
     </section>
   );
