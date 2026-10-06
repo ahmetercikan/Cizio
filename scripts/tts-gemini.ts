@@ -133,6 +133,36 @@ export function cutTailArtifact(pcm: Buffer, sampleRate = 24000): { pcm: Buffer;
   return { pcm: Buffer.from(s.slice(0, cutTo).buffer), cutMs: Math.round(((s.length - cutTo) / sampleRate) * 1000) };
 }
 
+/**
+ * Baştaki tık: Gemini bazı isteklerde konuşmadan önce tek, çok kısa ve yüksek bir sıçrama üretir; kulakta
+ * "çıt" diye duyulur (her dosyada ~45 ms'de, ardından 200+ ms sessizlik). İlk ses 25 ms'den kısa sürüp
+ * ardından en az 100 ms sessizlik geliyorsa tıktır: atlanır. Döner: gerçek konuşmanın başı ve tıkın sonu.
+ */
+export function skipHeadClick(s: Int16Array, start: number, sampleRate: number, thr: number): { start: number; floor: number } {
+  let a = start;
+  let floor = 0;
+  for (let tries = 0; tries < 3 && a < s.length; tries++) {
+    const burstEnd = Math.min(s.length, a + Math.round(sampleRate * 0.025));
+    let last = a;
+    for (let i = a; i < burstEnd; i++) if (Math.abs(s[i]) >= thr) last = i;
+    const gapEnd = Math.min(s.length, last + 1 + Math.round(sampleRate * 0.1));
+    let quiet = true;
+    for (let i = last + 1; i < gapEnd; i++) {
+      if (Math.abs(s[i]) >= thr) {
+        quiet = false;
+        break;
+      }
+    }
+    if (!quiet || gapEnd >= s.length) break;
+    let next = gapEnd;
+    while (next < s.length && Math.abs(s[next]) < thr) next++;
+    if (next >= s.length) break;
+    floor = last + Math.round(sampleRate * 0.01); // tıkın biraz ötesi
+    a = next;
+  }
+  return { start: a, floor };
+}
+
 /** Baştaki/sondaki sessizliği kırpar (Gemini bazen uzun boşluk bırakır), 120 ms pay bırakır. */
 function trimSilence(raw: Buffer, sampleRate = 24000): Buffer {
   const pcm = cutTailArtifact(raw, sampleRate).pcm;
@@ -141,8 +171,9 @@ function trimSilence(raw: Buffer, sampleRate = 24000): Buffer {
   let a = 0, b = s.length - 1;
   while (a < s.length && Math.abs(s[a]) < thr) a++;
   while (b > a && Math.abs(s[b]) < thr) b--;
+  const head = skipHeadClick(s, a, sampleRate, thr);
   const pad = Math.round(sampleRate * 0.12);
-  a = Math.max(0, a - pad);
+  a = Math.max(0, head.floor, head.start - pad);
   b = Math.min(s.length - 1, b + pad);
   return Buffer.from(s.slice(a, b + 1).buffer);
 }
