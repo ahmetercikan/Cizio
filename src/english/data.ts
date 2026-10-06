@@ -409,8 +409,8 @@ export const COMMANDS: Command[] = [
   { id: 'yellow', en: 'Touch something yellow!', art: { k: 'color', c: COLORS.yellow }, real: true },
   { id: 'green', en: 'Touch something green!', art: { k: 'color', c: COLORS.green }, real: true },
 ];
-/** Seslendirilen komut: "Chizio says: jump!" ya da hileli turda yalnızca "Jump!". */
-export const saysLine = (c: Command) => `Chizio says: ${c.en.charAt(0).toLowerCase()}${c.en.slice(1)}`;
+/** Seslendirilen komut: "Chizio says, jump!" (iki nokta değil: Gemini "Ad: metin"i konuşmacı etiketi sanıp atlıyordu) ya da hileli turda yalnızca "Jump!". */
+export const saysLine = (c: Command) => `Chizio says, ${c.en.charAt(0).toLowerCase()}${c.en.slice(1)}`;
 
 // ------------------------------------------------------------------------------------------------
 // Color Me (görev: söylenen parçayı söylenen renge boya)
@@ -641,7 +641,7 @@ export const STORIES: Story[] = [
           { lesson: 'kedi', id: 'cat', x: 170, y: 400, s: 220, asleep: true }, { lesson: 'kopek', id: 'dog', x: 410, y: 400, s: 230, asleep: true },
           { lesson: 'ayi', id: 'bear', x: 640, y: 400, s: 230, asleep: true }, { lesson: 'baykus', id: 'owl', x: 860, y: 260, s: 220 },
         ],
-        act: { kind: 'tap', target: 'owl', ask: 'Who is not sleeping?', yes: 'The owl! The owl says: hoo, hoo!' },
+        act: { kind: 'tap', target: 'owl', ask: 'Who is not sleeping?', yes: 'The owl! The owl says, hoo, hoo!' },
       },
       { bg: 'night', say: ['Good night, owl.', 'Good night, Chizio.'], items: [{ lesson: 'baykus', x: 340, y: 300, s: 300 }, { lesson: 'mascot', x: 680, y: 330, s: 220 }] },
       { bg: 'night', say: ['Sweet dreams!', 'The end.'], items: [{ lesson: 'yildiz', x: 500, y: 300, s: 340 }] },

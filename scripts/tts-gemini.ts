@@ -235,6 +235,19 @@ export function splitBySilence(pcm: Buffer, rate: number, texts: string[]): Buff
   const wsum = weights.reduce((a, b) => a + b, 0);
   const total = speech(first, last + 1);
   const expected = weights.map((w) => (total * w) / wsum);
+
+  // En güvenilir işaret: modelden her cümleden sonra 2 sn susması istenir. Tam n-1 tane uzun (>= 1 sn) sessizlik
+  // varsa kesimler onlardır. Kısa sözcüklerde ("Red.", "Cat.") süre harf sayısıyla orantılı olmadığından aşağıdaki
+  // oran kontrolü doğru bölmeleri de reddediyordu; burada yalnızca kaba bir sınır uygulanır (kaymayı Whisper yakalar).
+  const long = cands.filter((r) => secs(r.len) >= 1.0);
+  if (long.length === n - 1) {
+    const b = [first, ...long.map((r) => Math.round((r.a + r.b) / 2)), last + 1];
+    const ok = texts.every((_, i) => {
+      const ratio = speech(b[i], b[i + 1]) / expected[i];
+      return ratio > 0.25 && ratio < 4;
+    });
+    if (ok) return b.slice(0, -1).map((a, i) => slice(a, b[i + 1]));
+  }
   const INF = 1e9;
   const cost = (i: number, a: number, b: number) => (speech(a, b) <= 0 ? INF : Math.abs(Math.log(speech(a, b) / expected[i])));
 

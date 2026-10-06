@@ -7,8 +7,11 @@
  * 2) Yedek: dosyası olmayan (ör. çocuğun adını içeren) cümleler ya da bir hata olursa tarayıcının
  *    Türkçe konuşma sentezi (Web Speech API) kullanılır.
  *
- * Mobil uygulamaya geçişte bu modül yerel ses/TTS eklentisiyle değiştirilebilir; arayüz aynı kalır.
+ * 3) Android/iOS uygulamasında WebView'de Web Speech yok: dosyası olmayan cümleler cihazın kendi metin okuma
+ *    motoruyla (Google TTS / Apple) okunur — yoksa uygulamada hiç ses çıkmazdı.
  */
+import { Capacitor } from '@capacitor/core';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import { lineKey } from '../voice/hash';
 
 // ------------------------------------------------------------------------------------------------
@@ -16,7 +19,11 @@ import { lineKey } from '../voice/hash';
 // ------------------------------------------------------------------------------------------------
 let voices: SpeechSynthesisVoice[] = [];
 let enVoices: SpeechSynthesisVoice[] = [];
-const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+const native = Capacitor.isNativePlatform();
+const supported = !native && typeof window !== 'undefined' && 'speechSynthesis' in window;
+/** Cihazın metin okuma motoru konuşuyor mu (yalnızca uygulamada). */
+let nativeActive = false;
+let nativeSeq = 0;
 const audioOk = typeof window !== 'undefined' && typeof Audio !== 'undefined' && typeof fetch !== 'undefined';
 
 // Doğal sesler önce: Edge "Online (Natural)", Google, Apple (Yelda) ...
@@ -71,7 +78,21 @@ export interface SpeakOptions {
   lang?: 'tr' | 'en';
 }
 
+function speakNative(text: string, opts: SpeakOptions) {
+  const my = ++nativeSeq;
+  const en = opts.lang === 'en';
+  nativeActive = true;
+  const done = () => {
+    if (my !== nativeSeq) return; // kesildi (yeni cümle ya da stopSpeaking)
+    nativeActive = false;
+    opts.onEnd?.();
+  };
+  TextToSpeech.speak({ text, lang: en ? 'en-US' : 'tr-TR', rate: Math.min(1.2, Math.max(0.7, (opts.rate ?? 0.95) * (en ? 0.95 : 1))), pitch: en ? 1.05 : 1.1 })
+    .then(done, done);
+}
+
 function speakSynth(text: string, opts: SpeakOptions) {
+  if (native) return speakNative(text, opts);
   if (!supported) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
@@ -244,13 +265,18 @@ export function speak(text: string, opts: SpeakOptions = {}) {
 export function stopSpeaking() {
   token++;
   audioActive = false;
+  if (native && nativeActive) {
+    nativeSeq++;
+    nativeActive = false;
+    void TextToSpeech.stop().catch(() => {});
+  }
   if (audio && !audio.paused) audio.pause();
   if (supported) speechSynthesis.cancel();
 }
 
 /** Şu an Çizio konuşuyor mu (doğal ses ya da Web Speech)? */
 export function isSpeaking(): boolean {
-  if (audioActive) return true;
+  if (audioActive || nativeActive) return true;
   return supported && speechSynthesis.speaking;
 }
 

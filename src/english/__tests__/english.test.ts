@@ -68,6 +68,8 @@ describe('English Club içeriği', () => {
     expect(lines.length).toBeGreaterThan(300);
     for (const l of lines) {
       expect(l, l).not.toMatch(/[çğışöüÇĞİŞÖÜ]/);
+      // "Ad: metin" biçimini Gemini konuşmacı etiketi sanıp okumuyor ("Chizio says: jump!" → "Jump!")
+      expect(l, l).not.toMatch(/:/);
       expect(l.length, l).toBeLessThanOrEqual(120);
     }
   });

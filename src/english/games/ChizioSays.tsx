@@ -1,5 +1,5 @@
 /**
- * Çizio Says (TPR): Çizio bir komut söyler ("Chizio says: jump!"), çocuk bedeniyle yapar; ekranda hareketi
+ * Çizio Says (TPR): Çizio bir komut söyler ("Chizio says, jump!"), çocuk bedeniyle yapar; ekranda hareketi
  * canlandırılmış resim gösterilir. Ölçme yok, puan yok — yalnızca hareket ve övgü.
  * 8–9 yaşta bazı turlar hilelidir: "Chizio says" denmeden verilen komutta kıpırdamamak gerekir. Çocuk
  * kıpırdadıysa da sorun değil ("It's a tricky game!").
