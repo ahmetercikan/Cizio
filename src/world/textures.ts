@@ -5,7 +5,8 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Mascot } from '../components/Mascot';
 import type { DollState } from '../dressup/catalog';
-import { Doll } from '../dressup/Doll';
+import { Doll, type DollLayer } from '../dressup/Doll';
+import { LessonArt } from '../english/Art';
 import { listArtworks } from '../lib/gallery';
 
 async function svgToCanvas(svg: string, w: number, h: number): Promise<HTMLCanvasElement> {
@@ -36,6 +37,49 @@ const withSize = (svg: string, w: number, h: number) =>
 export async function dollCanvas(d: DollState): Promise<HTMLCanvasElement> {
   const svg = renderToStaticMarkup(createElement(Doll, { d, bg: false }));
   return svgToCanvas(withSize(svg, 360, 528), 360, 528);
+}
+
+/** Kukla parçaları (viewBox 300x440 → 360x528 piksel; ölçek 1.2). */
+export interface DollParts {
+  base: HTMLCanvasElement;
+  armL: HTMLCanvasElement;
+  armR: HTMLCanvasElement;
+  legL: HTMLCanvasElement;
+  legR: HTMLCanvasElement;
+  pet: HTMLCanvasElement | null;
+  /** Bacakların kesildiği yükseklik (viewBox birimi): eteğin/elbisenin altından. */
+  splitY: number;
+}
+
+const SKIRTS: Record<string, number> = { etek: 362, uzunetek: 400, tutu: 346 };
+
+/** Giydir karakterini yürüyen bir kâğıt kuklaya ayırır: gövde, iki kol, iki bacak, evcil hayvan. */
+export async function dollParts(d: DollState): Promise<DollParts> {
+  const W = 360, H = 528, K = 1.2;
+  const layer = (l: DollLayer) => svgToCanvas(withSize(renderToStaticMarkup(createElement(Doll, { d, bg: false, layer: l })), W, H), W, H);
+  const [base, armL, armR, pet] = await Promise.all([layer('base'), layer('armL'), layer('armR'), d.pet ? layer('pet') : Promise.resolve(null)]);
+  const splitY = d.dress ? 372 : SKIRTS[d.bottom] ?? 318;
+  // Bacaklar: gövdeden kesilir (sol yarı / sağ yarı, kesim çizgisinin altı)
+  const cut = (x0: number, x1: number) => {
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const ctx = c.getContext('2d')!;
+    ctx.beginPath();
+    ctx.rect(x0 * K, splitY * K, (x1 - x0) * K, H - splitY * K);
+    ctx.clip();
+    ctx.drawImage(base, 0, 0);
+    return c;
+  };
+  const legL = cut(0, 150), legR = cut(150, 300);
+  base.getContext('2d')!.clearRect(0, splitY * K, W, H);
+  return { base, armL, armR, legL, legR, pet, splitY };
+}
+
+/** Ders çiziminin renkli hâli (adada dolaşan hayvanlar için). */
+export async function lessonCanvas(id: string, size = 256): Promise<HTMLCanvasElement> {
+  const svg = renderToStaticMarkup(createElement(LessonArt, { id }));
+  return svgToCanvas(withSize(svg, size, size), size, size);
 }
 
 export async function mascotCanvas(): Promise<HTMLCanvasElement> {

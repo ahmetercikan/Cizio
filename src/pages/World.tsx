@@ -131,9 +131,15 @@ function IslandPlay() {
     void (async () => {
       try {
         const [{ Island }, tex] = await Promise.all([import('../world/island'), import('../world/textures')]);
-        const [avatar, mascot, art] = await Promise.all([tex.dollCanvas(data.doll ?? PRESETS[0]), tex.mascotCanvas(), tex.artCanvases(profile.id)]);
+        const CRITTERS = ['kedi', 'kopek', 'tavsan', 'kurbaga', 'tilki', 'penguen', 'kelebek', 'yunus'];
+        const [parts, mascot, art, critters] = await Promise.all([
+          tex.dollParts(data.doll ?? PRESETS[0]),
+          tex.mascotCanvas(),
+          tex.artCanvases(profile.id),
+          Promise.all(CRITTERS.map(async (id) => ({ id, canvas: await tex.lessonCanvas(id) }))),
+        ]);
         if (!alive || !ref.current) return;
-        world.current = new Island(ref.current, { avatar, mascot, art, taken: island.stars, starSeed: hashStr(`${day}|${profile.id}|yildiz`) }, {
+        world.current = new Island(ref.current, { parts, mascot, art, critters, taken: island.stars, starSeed: hashStr(`${day}|${profile.id}|yildiz`) }, {
           onNear: setNear,
           onStar: (id) => {
             islandStar(id);
@@ -145,7 +151,8 @@ function IslandPlay() {
           },
           onActivityDone: (id) => actRef.current(id, true),
           onBusy: setBusy,
-          sound: { star: (i) => sfx.star(i % 6), step: () => {}, pop: () => sfx.pop(), dance: (b) => sfx.star(b % 6) },
+          onMessage: flash,
+          sound: { star: (i) => sfx.star(i % 6), step: () => {}, pop: () => sfx.pop(), dance: (b) => sfx.star(b % 6), note: (i) => sfx.note(i), kick: () => sfx.kick() },
         });
         setReady(true);
         if (import.meta.env.DEV) (window as unknown as { __island?: Island }).__island = world.current;
@@ -184,7 +191,7 @@ function IslandPlay() {
     } else if (id === 'home') {
       markDone('home');
       nav('/giydir');
-    } else markDone(id as QuestId);
+    } else if ((id as string) in QUESTS) markDone(id as QuestId);
   };
 
   const actRef = useRef(activity);

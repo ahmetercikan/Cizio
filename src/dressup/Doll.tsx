@@ -645,8 +645,16 @@ function HandItem({ id }: { id: string }) {
 // ------------------------------------------------------------------------------------------------
 // Karakter
 // ------------------------------------------------------------------------------------------------
-export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }: { d: DollState; bg?: boolean; viewBox?: string; className?: string; title?: string }) {
+/** Karakterin katmanı: hepsi, ya da 3B adadaki kukla için gövde / sol kol / sağ kol / evcil hayvan ayrı ayrı. */
+export type DollLayer = 'all' | 'base' | 'armL' | 'armR' | 'pet';
+
+export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title, layer = 'all' }: { d: DollState; bg?: boolean; viewBox?: string; className?: string; title?: string; layer?: DollLayer }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const all = layer === 'all';
+  const showBase = all || layer === 'base';
+  const showL = all || layer === 'armL';
+  const showR = all || layer === 'armR';
+  const showPet = all || layer === 'pet';
   const clip = `top${uid}`;
   const armsClip = `arms${uid}`;
   const skin = d.skin;
@@ -666,6 +674,7 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
   const hand = (x: number) => <circle cx={x} cy="300" r="11" fill={skin} {...o} />;
   const body: ReactNode = (
     <>
+      {showBase && <>
       {backLayer(d.back)}
       <HairBack style={d.hair} c={d.hairColor} />
       {dressed && <DressBack id={d.dress} c={d.dressColor} />}
@@ -674,12 +683,14 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
       {dressed ? <DressLegs id={d.dress} c={d.dressColor} pat={dressPat} /> : <BottomWear id={d.bottom} c={d.bottomColor} pat={bottomPat} />}
       <Shoe id={d.shoes} c={d.shoesColor} />
       <g transform="translate(300 0) scale(-1 1)"><Shoe id={d.shoes} c={d.shoesColor} /></g>
-      {isArtPet(d.pet) ? <ArtPet id={artIdOf(d.pet!)} /> : (
+      </>}
+      {showPet && (isArtPet(d.pet) ? <ArtPet id={artIdOf(d.pet!)} /> : (
         <>
           <Pet id={d.pet} />
           {rarePet(d.pet)}
         </>
-      )}
+      ))}
+      {showBase && <>
       <rect x="140" y="166" width="20" height="24" fill={skin} {...o} />
       <path d={TORSO} fill={skin} {...o} />
       {dressed ? (
@@ -691,28 +702,30 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
         <TopWear id={d.top} c={d.topColor} clip={clip} pat={topPat} />
       )}
       {backFront(d.back)}
+      </>}
       {/* Kollar gövdenin dışında kalacak şekilde kırpılır: omuzda gövdenin kenarından temizce çıkar. */}
       <g clipPath={`url(#${armsClip})`}>
-        <Limb d={ARM_L} c={skin} w={20} />
-        <Limb d={ARM_R} c={skin} w={20} />
+        {showL && <Limb d={ARM_L} c={skin} w={20} />}
+        {showR && <Limb d={ARM_R} c={skin} w={20} />}
         {sleeve > 0 && (
           <>
-            <Limb d={ARM_L} c={sleeveColor} w={25} dash={sleeve} />
-            <Limb d={ARM_R} c={sleeveColor} w={25} dash={sleeve} />
-            <PatLimb d={ARM_L} w={25} p={sleevePat} dash={sleeve} />
-            <PatLimb d={ARM_R} w={25} p={sleevePat} dash={sleeve} />
+            {showL && <Limb d={ARM_L} c={sleeveColor} w={25} dash={sleeve} />}
+            {showR && <Limb d={ARM_R} c={sleeveColor} w={25} dash={sleeve} />}
+            {showL && <PatLimb d={ARM_L} w={25} p={sleevePat} dash={sleeve} />}
+            {showR && <PatLimb d={ARM_R} w={25} p={sleevePat} dash={sleeve} />}
           </>
         )}
       </g>
-      {d.dress === 'prenses' && (
+      {showBase && d.dress === 'prenses' && (
         <>
           <circle cx="118" cy="198" r="16" fill={d.dressColor} {...o} />
           <circle cx="182" cy="198" r="16" fill={d.dressColor} {...o} />
         </>
       )}
-      <HandItem id={d.hand} />
-      {hand(90)}
-      {hand(210)}
+      {showR && <HandItem id={d.hand} />}
+      {showL && hand(90)}
+      {showR && hand(210)}
+      {showBase && <>
       <ellipse cx="88" cy="124" rx="9" ry="12" fill={skin} {...o} />
       <ellipse cx="212" cy="124" rx="9" ry="12" fill={skin} {...o} />
       <ellipse cx="150" cy="118" rx="62" ry="60" fill={skin} {...o} />
@@ -720,7 +733,8 @@ export function Doll({ d, bg = true, viewBox = '0 0 300 440', className, title }
       <HairFront style={d.hair} c={d.hairColor} />
       <Glasses id={d.glasses} />
       <Hat id={d.hat} c={d.hatColor} />
-      {hand2(d.hand, 'front')}
+      </>}
+      {showR && hand2(d.hand, 'front')}
     </>
   );
   return (

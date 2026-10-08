@@ -64,9 +64,12 @@ Yenilikler:
 
 ## Bu sürümde neler var (ayrıntı)
 
-- **Çizio Adası (ücretsiz):** Giydir karakteriyle gezilen 3B ada: kaydırak, salıncak, dans pisti, tekne turu, çocuğun
-  resimlerinin sergilendiği sanat galerisi, ev (kıyafet değiştirme), Çizio'dan günlük 3 görev ve yıldız avı (bitince 5 yıldız).
-  Joystick, dokunarak yürüme, kamerayı döndürme, el sallama / zıplama / alkış. Tek kişilik; internete veri göndermez.
+- **Çizio Adası (ücretsiz):** Giydir karakteri yürüyen bir kâğıt kukla (kollar ve bacaklar sallanır; el sallama, zıplama,
+  alkış, dans pozları), evcil hayvanı arkasından gelir. Büyük ada ve 18 mekân: ev, sanat galerisi (çocuğun resimleri), oyun
+  parkı (kaydırak, salıncak), dans pisti, müzik karoları, trambolin, futbol sahası, dönme dolap, atlıkarınca, çiçek bahçesi,
+  dondurma arabası, deniz feneri, sıcak hava balonu, iskele (tekne turu, balık tutma), kumsalda 3 hazine, Çizio. Dolaşan
+  kedi, köpek, tavşan, kurbağa, tilki, penguen; kelebekler; denizde yunuslar. Her gün 17 görevden 4'ü (biri yıldız avı),
+  hepsi bitince 5 yıldız. Tek kişilik; internete veri göndermez.
 - **Çizdiğinle oyna (3B):** 3 şerit, kaydırarak kaçma, zıplama; yıldız, mıknatıs, kalkan, kalp; 3 can, 60 saniye.
 - **Canlanan çizim**, **Hikaye kitabım** (PDF), **çevrimiçi arkadaşlar** (meydan okuma, canlı düello, birlikte boyama).
 - Ses: 3.521 cümlenin tamamı Çizio'nun sesiyle (yeniler Whisper ile doğrulandı).
