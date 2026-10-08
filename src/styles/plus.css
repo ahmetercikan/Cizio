@@ -1,0 +1,104 @@
+/* Çizio Adası (Çizio Plus): açılış kartı, tanıtım ve oyun */
+
+.world-card--ada { --world: #0d8074; --world-dark: #0a6159; --world-soft: #d4f3ee; }
+.world-art--ada { background: linear-gradient(#bfeaff, #e9f8ff); }
+.world-art__island { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; }
+.world-art__doll { position: absolute; left: 34%; bottom: 14%; width: 34%; }
+.world-art__doll svg { width: 100%; height: auto; display: block; }
+.world-card__status--plus { background: linear-gradient(90deg, #ffc83d, #ff9f43); color: #3a2b27; }
+@media (min-width: 861px) and (max-width: 1279px) {
+  .worlds__grid--4 { grid-template-columns: repeat(2, 1fr); max-height: none; }
+  .worlds__grid--4 .world-card { flex-direction: row; align-items: center; padding: 12px 70px 12px 12px; }
+  .worlds__grid--4 .world-art { flex: none; width: 44%; min-height: 0; aspect-ratio: 1; }
+  .worlds__grid--4 .world-card__go { top: 50%; bottom: auto; transform: translateY(-50%); }
+}
+@media (min-width: 1280px) {
+  .worlds__grid--4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Tanıtım */
+.paywall { min-height: 100dvh; display: flex; flex-direction: column; padding: calc(var(--safe-top) + 14px) 18px calc(var(--safe-bottom) + 20px); }
+.paywall__top { position: relative; z-index: 1; }
+.paywall__main { position: relative; z-index: 1; flex: 1; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 28px; width: min(1040px, 100%); margin: 0 auto; }
+.paywall__hero { position: relative; }
+.paywall__island { width: 100%; height: auto; display: block; }
+.paywall__doll { position: absolute; left: 38%; bottom: 22%; width: 26%; }
+.paywall__doll svg { width: 100%; height: auto; display: block; }
+.paywall__text { display: grid; gap: 12px; justify-items: start; }
+.paywall__text .title-xl { margin: 0; color: var(--teal-dark); }
+.paywall__badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 99px; background: linear-gradient(90deg, #ffc83d, #ff9f43); font-weight: 800; color: var(--ink); }
+.paywall__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-weight: 700; color: var(--ink); }
+.paywall__list li { display: flex; gap: 8px; align-items: flex-start; }
+.paywall__list svg { flex: none; color: var(--teal); }
+.paywall__buy { min-width: 260px; font-size: 22px; }
+.paywall__fine { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); max-width: 460px; }
+.paywall__links { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .paywall__main { grid-template-columns: 1fr; gap: 10px; }
+  .paywall__hero { max-width: 340px; justify-self: center; }
+}
+
+/* Oyun */
+.island { position: fixed; inset: 0; z-index: 30; overflow: hidden; background: #a9e4ff; user-select: none; -webkit-user-select: none; }
+.island__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.island__top { position: absolute; top: calc(var(--safe-top) + 14px); left: 16px; right: 16px; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; }
+.island__top > * { pointer-events: auto; }
+.island__quests {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: var(--shadow-card);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--ink);
+}
+.island__qdots { display: inline-flex; gap: 4px; }
+.island__qdots i { width: 10px; height: 10px; border-radius: 50%; background: rgba(58, 43, 39, 0.18); }
+.island__qdots i.on { background: var(--green); }
+.island__emotes { position: absolute; right: 16px; bottom: calc(var(--safe-bottom) + 18px); z-index: 2; display: flex; gap: 10px; }
+.island__emotes .game__btn { min-width: 58px; height: 58px; border-radius: 50%; padding: 0; }
+.island__act { position: absolute; left: 50%; bottom: calc(var(--safe-bottom) + 100px); transform: translateX(-50%); z-index: 3; white-space: nowrap; }
+.island__toast {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--safe-top) + 80px);
+  transform: translateX(-50%);
+  z-index: 4;
+  padding: 10px 20px;
+  border-radius: 99px;
+  background: var(--green);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 19px;
+  box-shadow: var(--shadow-pop);
+  white-space: nowrap;
+}
+.island__panel { display: grid; justify-items: center; gap: 12px; text-align: center; }
+.island__qlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; width: 100%; }
+.island__qlist li { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; background: #f6f2ea; font-weight: 800; color: var(--ink); text-align: left; }
+.island__qlist li.done { background: #dff5e7; color: var(--green); }
+.island__check { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 3px solid currentColor; }
+.island__art { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 12px; }
+.island__art img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #fff; border-radius: 12px; box-shadow: var(--shadow-card); }
+
+.joystick {
+  position: absolute;
+  left: 22px;
+  bottom: calc(var(--safe-bottom) + 22px);
+  z-index: 2;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 6px 18px rgba(13, 80, 70, 0.2);
+  touch-action: none;
+  display: grid;
+  place-items: center;
+}
+.joystick__knob { width: 56px; height: 56px; border-radius: 50%; background: #fff; box-shadow: 0 4px 0 rgba(13, 128, 116, 0.3); pointer-events: none; transition: transform 0.05s; }

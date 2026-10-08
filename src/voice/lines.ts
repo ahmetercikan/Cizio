@@ -9,8 +9,9 @@
  */
 import type { Lesson } from '../lessons/types';
 import { CHALLENGE_LINES, CHALLENGES } from '../lib/daily';
-import { ALIVE_LINE, GAME_END_LINES, GAME_LINES } from '../art/lines';
+import { ALIVE_LINE, GAME_END_LINES, GAME_LINES, GAME_LIVES_LINE } from '../art/lines';
 import { STORY_VOICE_LINES } from '../story/data';
+import { ISLAND_VOICE_LINES } from '../world/quests';
 
 export const STATIC_LINES: string[] = [
   // Karşılama / ebeveyn ekranı ses testi
@@ -50,7 +51,9 @@ export const STATIC_LINES: string[] = [
   ALIVE_LINE,
   ...new Set(Object.values(GAME_LINES)),
   ...GAME_END_LINES,
+  GAME_LIVES_LINE,
   ...STORY_VOICE_LINES,
+  ...ISLAND_VOICE_LINES,
 ];
 
 /** Her ders için üretilecek kalıp cümleler. */

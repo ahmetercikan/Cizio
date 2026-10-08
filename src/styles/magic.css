@@ -267,3 +267,55 @@
 
 .challenge-card--play { --tint: #ffe1d8; }
 .challenge-card--story { --tint: #fff1c7; }
+
+/* 3B koşu oyunu: canlar, güçlendirici, ekran düğmeleri */
+.game__lives { display: inline-flex; gap: 2px; padding: 6px 10px; border-radius: 99px; background: rgba(255, 255, 255, 0.9); box-shadow: var(--shadow-card); }
+.game__power {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-card);
+  animation: pulse 1s ease-in-out infinite;
+}
+.game__power--magnet { color: #e53935; }
+.game__power--shield { color: #0d8074; }
+.game__pad {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--safe-bottom) + 18px);
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.game__pad-row, .game__pad-col { display: flex; gap: 12px; pointer-events: auto; }
+.game__pad-col { flex-direction: column; margin-left: auto; }
+.game__btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 68px;
+  height: 68px;
+  padding: 0 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 2px solid rgba(58, 43, 39, 0.15);
+  box-shadow: 0 4px 0 rgba(13, 128, 116, 0.25);
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 20px;
+  touch-action: manipulation;
+}
+.game__btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(13, 128, 116, 0.25); }
+.game__btn--jump { background: rgba(255, 200, 61, 0.92); padding: 0 22px; }
+.game__result { display: flex; gap: 22px; justify-content: center; font-weight: 800; color: var(--ink); }
+.game__result span { display: inline-flex; align-items: center; gap: 6px; font-size: 18px; }
+.game__result b { font-family: var(--display); font-size: 28px; }

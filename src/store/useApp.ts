@@ -35,6 +35,16 @@ export interface LessonProgress {
   bestScaffold?: Scaffold | 'paper';
 }
 
+export interface IslandDay {
+  day: string;
+  stars: string[];
+  done: string[];
+  rewarded?: boolean;
+}
+
+/** Çizio Adası'nda günlük görevler bitince verilen yıldız. */
+export const ISLAND_REWARD = 5;
+
 export interface StoryBookData {
   id: string;
   theme: string;
@@ -98,6 +108,8 @@ export interface ProfileData {
   english?: EnglishData;
   /** Hikaye kitaplarım: çizimlerden kurulan masallar (resimler galeride, burada yalnızca kimlikleri). */
   books?: StoryBookData[];
+  /** Çizio Adası: bugünün toplanan yıldızları, biten görevler, ödül alındı mı. */
+  island?: IslandDay;
   /** Çevrimiçi kimlik (ebeveyn bölümünden açılır; yoksa çevrimiçi kapalı). */
   online?: OnlineIdentity;
 }
@@ -155,6 +167,10 @@ interface AppState {
   /** "Çizdiğinle oyna" turu: toplanan yıldızlara göre ödül (tur başına en çok 3, günde en çok 5 tur). Döner: verilen ödül. */
   recordGame(collected: number): number;
   addBook(b: StoryBookData): void;
+  /** Çizio Adası: yıldız toplandı / etkinlik yapıldı; günlük ödülü al (döner: verilen yıldız). */
+  islandStar(id: string): void;
+  islandDone(activity: string): void;
+  islandReward(): number;
   removeBook(id: string): void;
   setOutfit(outfit?: string): void;
   setDoll(d: DollState): void;
@@ -355,6 +371,38 @@ export const useApp = create<AppState>()(
         const next: ProfileData = { ...d, days: { ...d.days, [k]: { ...t, games: (t.games ?? 0) + 1, stars: (t.stars ?? 0) + reward } } };
         set({ data: { ...data, [activeId]: withChests(d, next) } });
         return reward;
+      },
+
+      islandStar(id) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = data[activeId] ?? emptyData();
+        const k = dayKey();
+        const cur = d.island?.day === k ? d.island : { day: k, stars: [], done: [] };
+        if (cur.stars.includes(id)) return;
+        set({ data: { ...data, [activeId]: { ...d, island: { ...cur, stars: [...cur.stars, id] } } } });
+      },
+
+      islandDone(activity) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = data[activeId] ?? emptyData();
+        const k = dayKey();
+        const cur = d.island?.day === k ? d.island : { day: k, stars: [], done: [] };
+        if (cur.done.includes(activity)) return;
+        set({ data: { ...data, [activeId]: { ...d, island: { ...cur, done: [...cur.done, activity] } } } });
+      },
+
+      islandReward() {
+        const { activeId, data } = get();
+        if (!activeId) return 0;
+        const d = { ...emptyData(), ...data[activeId] };
+        const k = dayKey();
+        if (d.island?.day !== k || d.island.rewarded) return 0;
+        const t = today(d);
+        const next: ProfileData = { ...d, island: { ...d.island, rewarded: true }, days: { ...d.days, [k]: { ...t, stars: (t.stars ?? 0) + ISLAND_REWARD } } };
+        set({ data: { ...data, [activeId]: withChests(d, next) } });
+        return ISLAND_REWARD;
       },
 
       addBook(b) {

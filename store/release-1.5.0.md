@@ -1,5 +1,8 @@
 # Çizio 1.5.0 (versionCode 7) — Google Play yayın rehberi
 
+Play'deki son sürüm 1.4.0 (versionCode 6, incelemede). 1.5.0, 1.4.0'dan sonraki bütün yenilikleri içerir.
+(Daha önce hazırlanan 1.6.0 ve 1.7.0 paketleri hiç yüklenmedi ve silindi.)
+
 ## Yüklenecek dosyalar
 
 | Ne | Dosya |
@@ -11,14 +14,14 @@ Ekran görüntüleri, simge ve mağaza metinleri değişmedi.
 
 ## Sıra önemli: önce Veri güvenliği formu, sonra sürüm
 
-Bu sürüm (isteğe bağlı) internete veri gönderdiği için Play, sürümü incelemeye almadan önce **Veri güvenliği** formunun
-güncel olmasını ister. Önce 1. adımı, sonra 2. adımı yapın.
+Çevrimiçi arkadaşlar özelliği (ebeveyn açarsa) internete veri gönderdiği için Play, sürümü incelemeye almadan önce
+**Veri güvenliği** formunun güncel olmasını ister.
 
 ## 1) Veri güvenliği formunu güncelle
 
 Play Console → Çizio → **Politika ve programlar → Uygulama içeriği → Veri güvenliği → Yönet / Düzenle**.
 
-**Veri toplama ve güvenlik sayfası**
+**Veri toplama ve güvenlik**
 - Uygulamanız, gerekli kullanıcı verisi türlerinden herhangi birini topluyor ya da paylaşıyor mu? → **Evet**
 - Toplanan tüm kullanıcı verileri aktarım sırasında şifreleniyor mu? → **Evet**
 - Kullanıcıların verilerinin silinmesini isteyebilecekleri bir yol sağlıyor musunuz? → **Evet** (uygulama içinden: Ebeveyn bölümü → Çevrimiçi özellikleri kapat)
@@ -32,40 +35,40 @@ Play Console → Çizio → **Politika ve programlar → Uygulama içeriği → 
 | Uygulama etkinliği | **Diğer kullanıcı tarafından oluşturulan içerik** | Oyun sonuçları, hazır tepkiler, birlikte boyama hamleleri |
 | Cihaz veya diğer kimlikler | **Cihaz veya diğer kimlikler** | Firebase anonim hesap kimliği |
 
-Her biri için açılan sorularda:
-- Toplanıyor mu / paylaşılıyor mu? → **Toplanıyor**. Paylaşılıyor işaretlemeyin (Firebase "hizmet sağlayıcı" sayılır, paylaşım değildir).
+Her biri için:
+- **Toplanıyor** işaretleyin; **Paylaşılıyor** işaretlemeyin (Firebase "hizmet sağlayıcı" sayılır).
 - Geçici olarak mı işleniyor? → **Hayır**
-- Zorunlu mu, isteğe bağlı mı? → **Kullanıcılar bu verilerin toplanmasını seçebilir** (isteğe bağlı)
+- Zorunlu mu, isteğe bağlı mı? → **Kullanıcılar bu verilerin toplanmasını seçebilir**
 - Neden toplanıyor? → yalnızca **Uygulama işlevleri**
 
-Diğer her şey (konum, e-posta, telefon, kişiler, finans, sağlık, mesajlar, ses, dosyalar, takvim, uygulama bilgileri ve performans, web tarama) **işaretlenmez**.
-
-Sonra **Kaydet**.
-
-**Gizlilik politikası adresi** aynı kalır (sayfa güncellendi, çevrimiçi özelliği anlatıyor).
+Diğer her şey **işaretlenmez**. Sonra **Kaydet**. Gizlilik politikası adresi aynı kalır (sayfa güncellendi).
 
 ## 2) Yeni sürümü yükle
 
-1. Play Console → Çizio → **Test ve yayınla → Üretim**.
-2. **Yeni sürüm oluştur** → **App Bundle'ları yükle** → `cizio-1.5.0.aab`.
-3. Sürüm adı otomatik gelir: `7 (1.5.0)`.
-4. **Sürüm notları** → `<tr-TR>` ile `</tr-TR>` arasına aşağıdaki metni yapıştırın.
-5. **Sonraki** → **Kaydet** → **Sürümü incelemeye gönder**.
+1. Play Console → Çizio → **Test ve yayınla → Üretim** → **Yeni sürüm oluştur**.
+   (1.4.0 hâlâ incelemedeyse Play, yeni sürümün onun yerine geçeceğini söyler; onaylayın.)
+2. **App Bundle'ları yükle** → `cizio-1.5.0.aab`. Sürüm adı otomatik gelir: `7 (1.5.0)`.
+3. **Sürüm notları** → `<tr-TR>` ile `</tr-TR>` arasına aşağıdakini yapıştırın.
+4. **Sonraki** → **Kaydet** → **Sürümü incelemeye gönder**.
 
 ### Sürüm notları (tr-TR)
 
 ```
 Yenilikler:
-• Arkadaşlarla oyna! Ebeveyn onayıyla eklenen arkadaşlarla sırayla meydan okuma, canlı düello ve birlikte boyama
-• Arkadaşlar yalnızca ebeveynler arasında paylaşılan kodla eklenir; mesajlaşma yok, yalnızca hazır tepkiler
-• Çevrimiçi özellikler varsayılan olarak kapalıdır, Ebeveyn bölümünden açılır ve istenince tüm veriler silinir
-• Hata düzeltmeleri
+• Yeni dünya: Çizio Adası! Giydirdiğin karakterle 3B adada gez, kaydır, sallan, dans et
+• Çizimin canlansın: göz kırpar, tekerlek döner, balık yüzer
+• Çizdiğinle oyna artık 3 boyutlu: sağa sola kaç, zıpla, yıldız topla
+• Hikaye kitabım: çizimlerinden masal yap, Çizio okusun
+• Arkadaşlarla oyna: ebeveyn onayıyla meydan okuma, düello, birlikte boyama
 ```
 
 ## Bu sürümde neler var (ayrıntı)
 
-- Çevrimiçi arkadaşlar (Firebase: anonim giriş + Firestore; güvenlik kuralları `firestore.rules`).
-- Arkadaşlarım sayfası, üst çubukta rozetli arkadaş düğmesi, Atölye'de "Arkadaşlarım" kartı.
-- Sırayla meydan okuma (iki çizim yan yana, kazanan, hazır tepkiler), canlı düello (60 sn, bakarak / hafızadan), birlikte boyama (sırayla, her sırada 3 boyama).
-- Veri: kapatınca sunucudaki her şey silinir; düellolar 1 gün, diğer oyunlar 30 gün sonra kendiliğinden silinir.
-- Gerçek Firebase'de iki cihazla (tarayıcı + Android) uçtan uca denendi.
+- **Çizio Adası (ücretsiz):** Giydir karakteriyle gezilen 3B ada: kaydırak, salıncak, dans pisti, tekne turu, çocuğun
+  resimlerinin sergilendiği sanat galerisi, ev (kıyafet değiştirme), Çizio'dan günlük 3 görev ve yıldız avı (bitince 5 yıldız).
+  Joystick, dokunarak yürüme, kamerayı döndürme, el sallama / zıplama / alkış. Tek kişilik; internete veri göndermez.
+- **Çizdiğinle oyna (3B):** 3 şerit, kaydırarak kaçma, zıplama; yıldız, mıknatıs, kalkan, kalp; 3 can, 60 saniye.
+- **Canlanan çizim**, **Hikaye kitabım** (PDF), **çevrimiçi arkadaşlar** (meydan okuma, canlı düello, birlikte boyama).
+- Ses: 3.521 cümlenin tamamı Çizio'nun sesiyle (yeniler Whisper ile doğrulandı).
+- Android'de denendi: ada ve 3B oyun saniyede 60 kare.
+- Ücretli bölüm (Çizio Plus) şimdilik kapalı; ileride açmak için: `store/plus-abonelik-adimlari.md`.

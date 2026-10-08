@@ -14,10 +14,12 @@ import { useApp } from '../store/useApp';
 import { AvatarArt, AVATARS } from '../components/Avatars';
 import { Doodles } from '../components/Doodles';
 import { ParentOnline } from '../online/ParentOnline';
+import { ParentPlus } from '../world/ParentPlus';
+import { PLUS_ENABLED } from '../world/plus';
 import { AGES, ALL_WORDS, HOME_PHRASES, known, STORIES } from '../english/data';
 import { say as sayEn } from '../english/voice';
 
-function Gate({ onPass, onCancel }: { onPass: () => void; onCancel: () => void }) {
+export function Gate({ onPass, onCancel }: { onPass: () => void; onCancel: () => void }) {
   const [q] = useState(() => [3 + Math.floor(Math.random() * 7), 3 + Math.floor(Math.random() * 7)] as const);
   const [v, setV] = useState('');
   const [err, setErr] = useState(false);
@@ -260,6 +262,7 @@ export default function Parent() {
         </label>
       </section>
 
+      {PLUS_ENABLED && <ParentPlus />}
       {active && <ParentOnline profile={active} toast={showToast} />}
 
       <section className="paper-card settings-card" style={{ marginTop: 16 }}>

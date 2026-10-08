@@ -24,6 +24,8 @@ import Profiles from './pages/Profiles';
 import Shop from './pages/Shop';
 import StoryShelf, { StoryReader } from './pages/StoryBook';
 import Worlds from './pages/Worlds';
+import World from './pages/World';
+import { initPlus } from './world/plus';
 import { OnlineSync } from './online/OnlineHost';
 import { useApp } from './store/useApp';
 
@@ -40,6 +42,8 @@ export default function App() {
   const natural = useApp((s) => s.settings.naturalVoice);
   useEffect(() => setSfxEnabled(sfxOn), [sfxOn]);
   useEffect(() => setNaturalVoice(natural !== false), [natural]);
+  // Çizio Plus (Google Play aboneliği) yalnızca Android uygulamasında başlatılır
+  useEffect(() => void initPlus().catch(() => {}), []);
   // iOS: ses ancak bir dokunuştan sonra çalabilir; ilk dokunuşta ses öğesinin kilidini aç.
   useEffect(() => {
     const once = () => unlockAudio();
@@ -75,6 +79,7 @@ export default function App() {
         <Route path="/dukkan" element={<NeedsProfile><Shop /></NeedsProfile>} />
         <Route path="/meydan/:kind" element={<NeedsProfile><Challenge /></NeedsProfile>} />
         <Route path="/meydan/:kind/:lessonId" element={<NeedsProfile><Challenge /></NeedsProfile>} />
+        <Route path="/ada" element={<NeedsProfile><World /></NeedsProfile>} />
         <Route path="/oyun" element={<NeedsProfile><DrawGamePicker /></NeedsProfile>} />
         <Route path="/oyun/:id" element={<NeedsProfile><DrawGame /></NeedsProfile>} />
         <Route path="/hikaye" element={<NeedsProfile><StoryShelf /></NeedsProfile>} />
