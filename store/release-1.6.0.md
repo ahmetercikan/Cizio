@@ -1,5 +1,7 @@
 # Çizio 1.6.0 (versionCode 8) — Google Play yayın rehberi
 
+Play'deki son sürüm 1.4.0 (versionCode 6). 1.5.0 hiç yüklenmedi; 1.6.0 onun her şeyini (çevrimiçi arkadaşlar) içerir.
+
 ## Yüklenecek dosyalar
 
 | Ne | Dosya |
@@ -7,33 +9,49 @@
 | Uygulama paketi | `store/release/cizio-1.6.0.aab` |
 | Telefonda denemek için (Play'e yüklenmez) | `store/release/cizio-1.6.0.apk` |
 
-1.5.0'ı henüz yüklemediyseniz yüklemeyin; 1.6.0 onun her şeyini (çevrimiçi arkadaşlar) içerir.
+Ekran görüntüleri, simge ve mağaza metinleri değişmedi.
 
-## 1) Veri güvenliği
+## Sıra önemli: önce Veri güvenliği formu, sonra sürüm
 
-- 1.5.0 için formu doldurduysanız **değişiklik gerekmez**: yeni özelliklerin hepsi cihazda çalışır, internete bir şey göndermez.
-- Doldurmadıysanız önce `store/release-1.5.0.md` içindeki **1) Veri güvenliği formunu güncelle** adımını yapın.
+Çevrimiçi arkadaşlar özelliği (ebeveyn açarsa) internete veri gönderdiği için Play, sürümü incelemeye almadan önce
+**Veri güvenliği** formunun güncel olmasını ister.
+
+## 1) Veri güvenliği formunu güncelle
+
+Play Console → Çizio → **Politika ve programlar → Uygulama içeriği → Veri güvenliği → Yönet / Düzenle**.
+
+**Veri toplama ve güvenlik**
+- Uygulamanız, gerekli kullanıcı verisi türlerinden herhangi birini topluyor ya da paylaşıyor mu? → **Evet**
+- Toplanan tüm kullanıcı verileri aktarım sırasında şifreleniyor mu? → **Evet**
+- Kullanıcıların verilerinin silinmesini isteyebilecekleri bir yol sağlıyor musunuz? → **Evet** (uygulama içinden: Ebeveyn bölümü → Çevrimiçi özellikleri kapat)
+
+**Veri türleri** — yalnızca şunları işaretleyin:
+
+| Kategori | Veri türü | Neden |
+|---|---|---|
+| Kişisel bilgiler | **Ad** | Çocuğun görünen adı (takma ad) arkadaşlarına gösterilir |
+| Fotoğraflar ve videolar | **Fotoğraflar** | Arkadaşla oynanan oyunlarda çizilen küçük resim |
+| Uygulama etkinliği | **Diğer kullanıcı tarafından oluşturulan içerik** | Oyun sonuçları, hazır tepkiler, birlikte boyama hamleleri |
+| Cihaz veya diğer kimlikler | **Cihaz veya diğer kimlikler** | Firebase anonim hesap kimliği |
+
+Her biri için:
+- **Toplanıyor** işaretleyin; **Paylaşılıyor** işaretlemeyin (Firebase "hizmet sağlayıcı" sayılır).
+- Geçici olarak mı işleniyor? → **Hayır**
+- Zorunlu mu, isteğe bağlı mı? → **Kullanıcılar bu verilerin toplanmasını seçebilir**
+- Neden toplanıyor? → yalnızca **Uygulama işlevleri**
+
+Diğer her şey (konum, e-posta, telefon, kişiler, finans, sağlık, mesajlar, ses, dosyalar, takvim, uygulama bilgileri ve
+performans, web tarama) **işaretlenmez**. Sonra **Kaydet**. Gizlilik politikası adresi aynı kalır (sayfa güncellendi).
 
 ## 2) Yeni sürümü yükle
 
 1. Play Console → Çizio → **Test ve yayınla → Üretim** → **Yeni sürüm oluştur**.
+   (1.4.0 hâlâ incelemedeyse Play, yeni sürümün onun yerine geçeceğini söyler; onaylayın. Böylece doğrudan 1.6.0 incelenir.)
 2. **App Bundle'ları yükle** → `cizio-1.6.0.aab`. Sürüm adı otomatik gelir: `8 (1.6.0)`.
 3. **Sürüm notları** → `<tr-TR>` ile `</tr-TR>` arasına aşağıdakini yapıştırın.
 4. **Sonraki** → **Kaydet** → **Sürümü incelemeye gönder**.
 
 ### Sürüm notları (tr-TR)
-
-1.5.0 yayınlandıysa:
-
-```
-Yenilikler:
-• Çizimin canlansın! Kedin göz kırpıyor, kamyonunun tekerlekleri dönüyor, balığın denizde yüzüyor
-• Çizdiğinle oyna: kendi çizdiğin resim oyunun kahramanı olsun, yıldızları topla
-• Hikaye kitabım: çizimlerinden masal yap, Çizio sana okusun, kitabını PDF olarak kaydet
-• Hata düzeltmeleri
-```
-
-1.5.0 yayınlanmadıysa (iki sürümün yenilikleri birlikte):
 
 ```
 Yenilikler:
@@ -46,15 +64,13 @@ Yenilikler:
 
 ## Bu sürümde neler var (ayrıntı)
 
-- **Canlanan çizim:** ekranda çizilen ders resimleri parçalarına ayrılır (her kalem darbesi hangi adımda çizildiğini
-  bilir): gözler kırpar, tekerlekler döner, kuyruk sallanır, kanatlar çırpar, kollar el sallar, kulaklar oynar. Resim
-  konusuna göre sahnesinde hareket eder (balık denizde yüzer, roket uzaya uçar, kamyon yolda gider, çiçek rüzgarda
-  sallanır). Kâğıt fotoğraflarında ve eski resimlerde arka plan saydamlaştırılır, resim bütün olarak hareket eder.
-  Kutlama ekranında "Canlandır!", galeride her resimde "Canlandır".
+- **Canlanan çizim:** ekranda çizilen ders resimleri parçalarına ayrılır: gözler kırpar, tekerlekler döner, kuyruk
+  sallanır, kanatlar çırpar, kollar el sallar, kulaklar oynar. Resim konusuna göre sahnesinde hareket eder (balık denizde
+  yüzer, roket uzaya uçar, kamyon yolda gider, çiçek rüzgarda sallanır). Kâğıt fotoğraflarında ve eski resimlerde resim
+  bütün olarak hareket eder.
 - **Çizdiğinle oyna:** 45 saniyelik tur; araç ve hayvanlarla engellerin üstünden zıplama, uçan ve yüzenlerle dokunarak
-  yükselme. Çarpınca bir şey kaybedilmez. Toplanan yıldızlara göre tur başına en çok 3, günde en çok 5 ödüllü tur.
-- **Hikaye kitabım:** 2-5 resim + 4 masal konusu (Büyük Piknik, Hazine Avı, Uzay Yolculuğu, Doğum Günü Partisi);
-  98 dersin her biri için kahraman ve arkadaş cümleleri; Çizio sayfa sayfa sesli okur ve sayfayı kendisi çevirir;
-  kitap A4 PDF olarak kaydedilir / paylaşılır. Kitaplar profilde saklanır.
-- Ekranda çizilen resimler artık kalem kaydıyla birlikte galeriye kaydedilir (canlandırma için).
-- Android'de denendi: canlanan çizim ve oyun saniyede 60 kare.
+  yükselme. Tur başına en çok 3, günde en çok 5 ödüllü tur.
+- **Hikaye kitabım:** 2-5 resim + 4 masal konusu; 98 dersin hepsi için masal cümleleri; Çizio sesli okur; A4 PDF.
+- **Çevrimiçi arkadaşlar:** ebeveyn bölümünden açılır; arkadaş kodu + iki tarafın ebeveyn onayı; sırayla meydan okuma,
+  canlı düello, birlikte boyama; mesajlaşma yok, yalnızca hazır tepkiler; kapatınca sunucudaki veriler silinir.
+- Ses: 3.507 cümlenin tamamı Çizio'nun sesiyle (yeni 231 cümle Whisper ile doğrulandı).
