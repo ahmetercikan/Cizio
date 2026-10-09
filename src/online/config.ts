@@ -18,3 +18,6 @@ export const USE_EMULATOR = import.meta.env.VITE_FIREBASE_EMULATOR === '1';
 
 /** Çevrimiçi özellikler bu sürümde kullanılabilir mi? */
 export const ONLINE_AVAILABLE = USE_EMULATOR || FIREBASE_CONFIG !== null;
+
+/** Çizio Adası'nda birlikte oynama (Realtime Database) kullanılabilir mi? Konsolda veritabanı oluşturulup databaseURL eklenince açılır. */
+export const ISLAND_ONLINE = USE_EMULATOR || !!FIREBASE_CONFIG?.databaseURL;

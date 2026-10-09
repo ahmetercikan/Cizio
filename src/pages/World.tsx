@@ -2,9 +2,10 @@
  * Çizio Adası (/ada): 3B oyun dünyası (src/world/island.ts). Şimdilik herkese açık (PLUS_ENABLED = false);
  * ücretli olursa abonelik yoksa tanıtım ve satın alma (ebeveyn kilidi arkasında) gösterilir.
  */
-import { ArrowLeft, Check, Crown, Hand, Images, Loader2, MessageCircle, PartyPopper, RotateCcw, Shirt, Sparkles, Star, X } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Hand, Home, Images, Loader2, MessageCircle, PartyPopper, RotateCcw, Shirt, Sparkles, Star, Users, X, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AvatarArt } from '../components/Avatars';
 import { Doodles } from '../components/Doodles';
 import { Mascot } from '../components/Mascot';
 import { Modal } from '../components/ui';
@@ -15,10 +16,14 @@ import { sfx } from '../lib/sfx';
 import { speak } from '../lib/speech';
 import { dayKey, hashStr } from '../lib/util';
 import { ISLAND_REWARD, useApp, useProfile, useProfileData } from '../store/useApp';
-import type { Island, Spot, SpotId } from '../world/island';
+import type { Island, Spot } from '../world/island';
+import { coastAt, LAKE, SNOW_PEAK, WORLD_R, ZONES, type Zone } from '../world/layout';
 import { buyPlus, canBuy, managePlus, PLUS_ENABLED, restorePlus, usePlus } from '../world/plus';
 import { ISLAND_LINES, QUESTS, STARS_GOAL, todayQuests, type QuestId } from '../world/quests';
 import { Gate } from './Parent';
+import { ISLAND_ONLINE } from '../online/config';
+import { useOnlineView } from '../online/OnlineHost';
+import type { Presence, RoomHandle } from '../online/rt';
 
 export default function World() {
   const owned = usePlus((s) => s.owned);
@@ -100,6 +105,9 @@ function IslandArt() {
 // ------------------------------------------------------------------------------------------------
 // Oyun
 // ------------------------------------------------------------------------------------------------
+/** Adada dolaşan kâğıt kartların ders çizimleri. */
+const CARD_IDS = ['ayi', 'tilki', 'tavsan', 'baykus', 'kedi', 'kopek', 'penguen', 'trex', 'triceratops', 'uzun-boyun', 'stegozor', 'ucan-dinozor', 'dino-yumurta', 'prenses', 'sovalye', 'balik', 'denizyildizi', 'ahtapot', 'denizati', 'yengec'];
+
 function IslandPlay() {
   const nav = useNavigate();
   const profile = useProfile()!;
@@ -112,8 +120,23 @@ function IslandPlay() {
   const [failed, setFailed] = useState(false);
   const [near, setNear] = useState<Spot | null>(null);
   const [busy, setBusy] = useState(false);
-  const [panel, setPanel] = useState<'quests' | 'gallery' | null>(null);
+  const [driving, setDriving] = useState(false);
+  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [me, setMe] = useState({ x: 0, z: 12, h: 0 });
+  // Birlikte oynama (Realtime Database): oda = adanın sahibinin pid'i
+  const ov = useOnlineView();
+  const myId = data.online?.pid;
+  const [room, setRoom] = useState<string | null>(null);
+  const [peerNames, setPeerNames] = useState<string[]>([]);
+  const [presence, setPresence] = useState<Record<string, Presence | null>>({});
+  const [rtReady, setRtReady] = useState(false);
+  const rt = useRef<typeof import('../online/rt') | null>(null);
+  const handle = useRef<RoomHandle | null>(null);
+  const goTo = useRef<string | null>(null);
+  const known = useRef<Set<string>>(new Set());
+  const friends = ov?.friends ?? [];
+  const friendKey = friends.map((f) => f.pid).join(',');
   const day = dayKey();
   const island = data.island?.day === day ? data.island : { day, stars: [], done: [] as string[], rewarded: false };
   const quests = useMemo(() => todayQuests(profile.id, day), [profile.id, day]);
@@ -122,7 +145,7 @@ function IslandPlay() {
   const say = (t: string) => settings.narration && speak(t, { rate: settings.rate });
   const flash = (t: string) => {
     setToast(t);
-    setTimeout(() => setToast((x) => (x === t ? null : x)), 2200);
+    setTimeout(() => setToast((x) => (x === t ? null : x)), 2400);
   };
 
   // Ada kurulumu
@@ -131,33 +154,39 @@ function IslandPlay() {
     void (async () => {
       try {
         const [{ Island }, tex] = await Promise.all([import('../world/island'), import('../world/textures')]);
-        const CRITTERS = ['kedi', 'kopek', 'tavsan', 'kurbaga', 'tilki', 'penguen', 'kelebek', 'yunus'];
-        const [parts, mascot, art, critters] = await Promise.all([
-          tex.dollParts(data.doll ?? PRESETS[0]),
-          tex.mascotCanvas(),
+        const doll = data.doll ?? PRESETS[0];
+        const [pet, art, mascot, cards] = await Promise.all([
+          doll.pet ? tex.petCanvas(doll) : Promise.resolve(null),
           tex.artCanvases(profile.id),
-          Promise.all(CRITTERS.map(async (id) => ({ id, canvas: await tex.lessonCanvas(id) }))),
+          tex.mascotCanvas(),
+          Promise.all(CARD_IDS.map(async (id) => [id, await tex.lessonCanvas(id)] as const)),
         ]);
         if (!alive || !ref.current) return;
-        world.current = new Island(ref.current, { parts, mascot, art, critters, taken: island.stars, starSeed: hashStr(`${day}|${profile.id}|yildiz`) }, {
+        world.current = new Island(ref.current, {
+          doll, pet, art, tex: { ...Object.fromEntries(cards), maskot: mascot }, taken: island.stars, starSeed: hashStr(`${day}|${profile.id}|yildiz`),
+        }, {
           onNear: setNear,
           onStar: (id) => {
             islandStar(id);
-            const n = (useApp.getState().data[profile.id]?.island?.stars.length ?? 0);
+            const n = useApp.getState().data[profile.id]?.island?.stars.length ?? 0;
             if (n === STARS_GOAL) {
               flash('Görev tamam: 5 yıldız!');
               say(ISLAND_LINES.questDone);
             }
           },
-          onActivityDone: (id) => actRef.current(id, true),
+          onDone: (q) => doneRef.current(q),
           onBusy: setBusy,
+          onDrive: setDriving,
           onMessage: flash,
-          sound: { star: (i) => sfx.star(i % 6), step: () => {}, pop: () => sfx.pop(), dance: (b) => sfx.star(b % 6), note: (i) => sfx.note(i), kick: () => sfx.kick() },
+          onPos: (x, z, h) => setMe({ x, z, h }),
+          onPage: (id) => pageRef.current(id),
+          sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick() },
         });
         setReady(true);
         if (import.meta.env.DEV) (window as unknown as { __island?: Island }).__island = world.current;
         say(ISLAND_LINES.welcome);
-      } catch {
+      } catch (e) {
+        console.error(e);
         if (alive) setFailed(true);
       }
     })();
@@ -168,20 +197,53 @@ function IslandPlay() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const markDone = (q: QuestId) => {
-    if (!quests.includes(q) || questDone(q)) return;
+  useEffect(() => {
+    if (!ready || !myId || !ISLAND_ONLINE) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const r = await import('../online/rt');
+        if (!alive) return;
+        rt.current = r;
+        await r.claim(myId);
+        setRtReady(true);
+        await enter(myId);
+      } catch {
+        /* çevrimdışı: tek başına oynanır */
+      }
+    })();
+    const send = setInterval(() => {
+      const w = world.current;
+      if (w && handle.current) handle.current.send({ ...w.liveState(), n: profile.name });
+    }, 200);
+    return () => {
+      alive = false;
+      clearInterval(send);
+      void handle.current?.leave();
+      handle.current = null;
+    };
+  }, [ready, myId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Kendi adama yalnızca onaylı arkadaşlarım girebilsin (arkadaş listesi değişince güncellenir)
+  useEffect(() => {
+    if (!rtReady || !myId || !rt.current) return;
+    const owners = friends.map(({ f, pid }) => f.owners[f.members.indexOf(pid)]).filter((u): u is string => !!u);
+    void rt.current.allowFriends(myId, owners).catch(() => {});
+  }, [rtReady, friendKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Arkadaşlarım şu an adada mı?
+  useEffect(() => {
+    if (!rtReady || !rt.current || !friends.length) return;
+    return rt.current.watchPresence(friends.map((f) => f.pid), setPresence);
+  }, [rtReady, friendKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const markDone = (q: string) => {
+    if (!(q in QUESTS) || !quests.includes(q as QuestId) || questDone(q as QuestId)) return;
     islandDone(q);
-    flash(`Görev tamam: ${QUESTS[q]}`);
+    flash(`Görev tamam: ${QUESTS[q as QuestId]}`);
     say(ISLAND_LINES.questDone);
   };
-
-  /** Mekân etkinliği: oyun içinde bitenler (kaydırak…) ya da sayfada açılanlar (galeri, ev, Çizio). */
-  const activity = (id: SpotId, finished = false) => {
-    if (!finished) {
-      sfx.pop();
-      world.current?.activity(id);
-      return;
-    }
+  const page = (id: string) => {
     if (id === 'gallery') {
       setPanel('gallery');
       markDone('gallery');
@@ -191,13 +253,14 @@ function IslandPlay() {
     } else if (id === 'home') {
       markDone('home');
       nav('/giydir');
-    } else if ((id as string) in QUESTS) markDone(id as QuestId);
+    }
   };
+  const doneRef = useRef(markDone);
+  doneRef.current = markDone;
+  const pageRef = useRef(page);
+  pageRef.current = page;
 
-  const actRef = useRef(activity);
-  actRef.current = activity;
-
-  // Joystick ve dokunarak yürüme / kamerayı döndürme
+  // Dokunarak yürüme / sürükleyerek kamerayı döndürme
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const onDown = (e: React.PointerEvent) => {
     drag.current = { x: e.clientX, y: e.clientY, moved: false };
@@ -232,6 +295,46 @@ function IslandPlay() {
       flash(`+${n} yıldız!`);
     }
   };
+  /** Bir odaya gir (kendi adam ya da bir arkadaşın adası). */
+  const enter = async (roomId: string, friendPid?: string) => {
+    const r = rt.current;
+    if (!r || !myId) return;
+    await handle.current?.leave();
+    handle.current = null;
+    world.current?.setPeers({});
+    known.current = new Set();
+    goTo.current = friendPid ?? null;
+    try {
+      const h = await r.joinRoom(roomId, myId, data.doll ?? PRESETS[0], (peers) => {
+        world.current?.setPeers(peers);
+        const live = Object.entries(peers).filter(([, p]) => p.live && p.look);
+        setPeerNames(live.map(([, p]) => p.live!.n));
+        for (const [pid, p] of live) {
+          if (!known.current.has(pid)) {
+            known.current.add(pid);
+            if (roomId === myId) flash(`${p.live!.n} adana geldi!`);
+          }
+        }
+        if (goTo.current && peers[goTo.current]?.live && world.current?.goToPeer(goTo.current)) goTo.current = null;
+      }, () => flash('Bu ada dolu: bir adada sen ve en çok 10 arkadaşın olabilir.'));
+      if (!h) {
+        if (roomId !== myId) void enter(myId);
+        return;
+      }
+      handle.current = h;
+      setRoom(roomId);
+    } catch {
+      flash('Arkadaşının adasına şu an girilemiyor.');
+      if (roomId !== myId) void enter(myId);
+    }
+  };
+
+  const travel = (z: Zone) => {
+    sfx.pop();
+    setPanel(null);
+    world.current?.teleport(...z.spawn);
+    flash(z.name);
+  };
 
   return (
     <div className="island">
@@ -243,17 +346,31 @@ function IslandPlay() {
           <Star size={20} fill="#ffc83d" color="#3a2b27" /> {Math.min(island.stars.length, STARS_GOAL)}/{STARS_GOAL}
           <span className="island__qdots">{quests.map((q) => <i key={q} className={questDone(q) ? 'on' : ''} />)}</span>
         </button>
+        {ready && (
+          <span className="island__right">
+            {ISLAND_ONLINE && (
+              <button className="island__friends" aria-label="Arkadaşlar" onClick={() => setPanel('friends')}>
+                <Users size={22} />
+                {peerNames.length > 0 && <b>{peerNames.length + 1}</b>}
+              </button>
+            )}
+            <MiniMap me={me} onOpen={() => setPanel('map')} />
+          </span>
+        )}
       </header>
       {ready && (
         <>
-          <Joystick onChange={(x, y) => world.current?.setJoystick(x, y)} />
-          <div className="island__emotes">
-            <button className="game__btn" aria-label="El salla" onClick={() => world.current?.emote('wave')}><Hand size={26} /></button>
-            <button className="game__btn" aria-label="Zıpla" onClick={() => world.current?.emote('jump')}><PartyPopper size={26} /></button>
-            <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><Sparkles size={26} /></button>
-          </div>
-          {near && !busy && (
-            <button className="pill island__act rise" onClick={() => activity(near.id)}>
+          {!busy && <Joystick onChange={(x, y) => world.current?.setJoystick(x, y)} />}
+          {!driving && !busy && (
+            <div className="island__emotes">
+              <button className="game__btn" aria-label="El salla" onClick={() => world.current?.emote('wave')}><Hand size={26} /></button>
+              <button className="game__btn" aria-label="Zıpla" onClick={() => world.current?.emote('jump')}><PartyPopper size={26} /></button>
+              <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><Sparkles size={26} /></button>
+            </div>
+          )}
+          {driving && <button className="pill pill--yellow island__act rise" onClick={() => world.current?.dismount()}>İn</button>}
+          {near && !busy && !driving && (
+            <button className="pill island__act rise" onClick={() => { sfx.pop(); world.current?.activity(near.id); }}>
               {near.id === 'gallery' ? <Images size={22} /> : near.id === 'home' ? <Shirt size={22} /> : near.id === 'cizio' ? <MessageCircle size={22} /> : <Sparkles size={22} />} {near.label}
             </button>
           )}
@@ -278,14 +395,112 @@ function IslandPlay() {
             ) : island.rewarded ? (
               <p className="sub">Bugünkü ödülünü aldın. Yarın yeni görevler gelecek!</p>
             ) : (
-              <p className="sub">Hepsini bitirince {ISLAND_REWARD} yıldız kazanırsın.</p>
+              <p className="sub">Hepsini bitirince {ISLAND_REWARD} yıldız kazanırsın. Haritadan istediğin yere hemen gidebilirsin.</p>
             )}
             {PLUS_ENABLED && <button className="btn-outline btn-outline--sm" onClick={() => void managePlus()}><Crown size={16} /> Aboneliği yönet</button>}
           </div>
         </Modal>
       )}
+      {panel === 'map' && <BigMap me={me} onPick={travel} onClose={() => setPanel(null)} />}
+      {panel === 'friends' && (
+        <Modal onClose={() => setPanel(null)}>
+          <div className="island__panel">
+            <h2 className="title-lg">Adada arkadaşlarım</h2>
+            {!myId ? (
+              <p className="sub">Arkadaşlarınla birlikte oynamak için bir büyüğünden ebeveyn bölümünde "Çevrimiçi arkadaşlar"ı açmasını iste.</p>
+            ) : (
+              <>
+                <p className="sub">{room && room !== myId ? `${ov?.players[room]?.name ?? 'Arkadaşının'} adasındasın.` : 'Kendi adandasın.'} Bir adada sen ve en çok 10 arkadaşın olabilir.</p>
+                {peerNames.length > 0 && <p className="island__here">Burada: {peerNames.join(', ')}</p>}
+                {friends.length === 0 && <p className="sub">Henüz arkadaşın yok. Bir büyüğün ebeveyn bölümünden arkadaş ekleyebilir.</p>}
+                <ul className="island__flist">
+                  {friends.map(({ pid }) => {
+                    const pr = presence[pid];
+                    const info = ov?.players[pid];
+                    const there = pr?.room && pr.room === room;
+                    return (
+                      <li key={pid}>
+                        <AvatarArt id={info?.avatar ?? 'kedi'} size={44} />
+                        <span><b>{info?.name ?? 'Arkadaşın'}</b><small>{!pr ? 'Adada değil' : there ? 'Seninle aynı adada' : pr.room === pid ? 'Kendi adasında' : 'Adada'}</small></span>
+                        {pr && !there && (
+                          <button className="pill pill--sm" onClick={() => { setPanel(null); flash('Yolculuk başlıyor…'); void enter(pr.room, pid); }}>Yanına git</button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                {room && room !== myId && (
+                  <button className="btn-outline" onClick={() => { setPanel(null); void enter(myId); world.current?.teleport(0, 12); }}><Home size={18} /> Kendi adama dön</button>
+                )}
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
       {panel === 'gallery' && <GalleryPanel profileId={profile.id} onClose={() => setPanel(null)} />}
     </div>
+  );
+}
+
+/** Ada çizimi (küçük ve büyük haritada ortak): kıyı, göl, dağ ve bölgeler. */
+function IslandSvg({ me, onPick, labels }: { me: { x: number; z: number; h: number }; onPick?: (z: Zone) => void; labels?: boolean }) {
+  const S = 300 / (WORLD_R * 2);
+  const P = (x: number, z: number) => [150 + x * S, 150 + z * S];
+  const coast = Array.from({ length: 72 }, (_, i) => {
+    const a = (i / 72) * Math.PI * 2;
+    const [x, y] = P(Math.cos(a) * coastAt(a), Math.sin(a) * coastAt(a));
+    return `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ') + 'Z';
+  const [mx, my] = P(me.x, me.z);
+  const [lx, ly] = P(LAKE.x, LAKE.z);
+  const [sx, sy] = P(SNOW_PEAK.x, SNOW_PEAK.z);
+  return (
+    <svg viewBox="0 0 300 300" className="island-map" aria-label="Ada haritası">
+      <circle cx="150" cy="150" r="150" fill="#3fb7dd" />
+      <path d={coast} fill="#f3dca2" stroke="#3a2b27" strokeWidth="2" />
+      <path d={coast} fill="#8fd16f" transform="translate(150 150) scale(0.94) translate(-150 -150)" />
+      <circle cx={lx} cy={ly} r={LAKE.r * S} fill="#3fb7dd" stroke="#3a2b27" strokeWidth="1.5" />
+      <circle cx={sx} cy={sy} r={SNOW_PEAK.r * S * 0.6} fill="#f4f9ff" stroke="#3a2b27" strokeWidth="1.5" />
+      {ZONES.map((z) => {
+        const [x, y] = P(z.x, z.z);
+        return (
+          <g key={z.id} onClick={onPick ? () => onPick(z) : undefined} style={onPick ? { cursor: 'pointer' } : undefined}>
+            <circle cx={x} cy={y} r={labels ? 11 : 6} fill={z.color} stroke="#3a2b27" strokeWidth="2" />
+            {labels && <text x={x} y={y + 24} textAnchor="middle" className="island-map__label">{z.name}</text>}
+          </g>
+        );
+      })}
+      <g transform={`translate(${mx} ${my}) rotate(${(-me.h * 180) / Math.PI + 180})`}>
+        <circle r={labels ? 7 : 5} fill="#ffffff" stroke="#ef4b4b" strokeWidth="3" />
+        <path d="M0,-12 L5,-4 H-5 Z" fill="#ef4b4b" />
+      </g>
+    </svg>
+  );
+}
+
+function MiniMap({ me, onOpen }: { me: { x: number; z: number; h: number }; onOpen: () => void }) {
+  return (
+    <button className="island__mini" aria-label="Haritayı aç" onClick={onOpen}>
+      <IslandSvg me={me} />
+    </button>
+  );
+}
+
+function BigMap({ me, onPick, onClose }: { me: { x: number; z: number; h: number }; onPick: (z: Zone) => void; onClose: () => void }) {
+  return (
+    <Modal onClose={onClose} className="modal--wide">
+      <div className="art-view__head">
+        <b className="title-lg"><MapIcon size={24} style={{ verticalAlign: '-4px' }} /> Ada haritası</b>
+        <button className="round-btn round-btn--light" aria-label="Kapat" onClick={onClose}><X /></button>
+      </div>
+      <p className="sub" style={{ marginTop: 0 }}>Gitmek istediğin yere dokun!</p>
+      <div className="island-map__wrap"><IslandSvg me={me} onPick={onPick} labels /></div>
+      <div className="island-map__list">
+        {ZONES.map((z) => (
+          <button key={z.id} className="island-map__chip" style={{ ['--c' as string]: z.color }} onClick={() => onPick(z)}>{z.name}</button>
+        ))}
+      </div>
+    </Modal>
   );
 }
 

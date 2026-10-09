@@ -76,6 +76,11 @@ export async function dollParts(d: DollState): Promise<DollParts> {
   return { base, armL, armR, legL, legR, pet, splitY };
 }
 
+/** Evcil hayvan katmanı (Giydir kuklası tuvali boyutunda; adada kesilip kart yapılır). */
+export async function petCanvas(d: DollState): Promise<HTMLCanvasElement> {
+  return svgToCanvas(withSize(renderToStaticMarkup(createElement(Doll, { d, bg: false, layer: 'pet' })), 360, 528), 360, 528);
+}
+
 /** Ders çiziminin renkli hâli (adada dolaşan hayvanlar için). */
 export async function lessonCanvas(id: string, size = 256): Promise<HTMLCanvasElement> {
   const svg = renderToStaticMarkup(createElement(LessonArt, { id }));

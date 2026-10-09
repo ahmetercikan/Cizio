@@ -194,7 +194,7 @@ export function ParentOnline({ profile, toast }: { profile: Profile; toast: (m: 
       {confirmOff && (
         <Confirm title="Çevrimiçi özellikler kapatılsın mı?" text={`${genitive(profile.name)} arkadaş kodu, arkadaşlıkları, arkadaşlarıyla oynadığı oyunlar ve paylaşılan resimler sunucudan silinir. Cihazdaki çizimler ve ilerleme etkilenmez.`}
           yes="Kapat" danger onNo={() => setConfirmOff(false)}
-          onYes={() => { setConfirmOff(false); void run(async () => { await (await online()).unregister(id!); setOnline(profile.id, undefined); }); }} />
+          onYes={() => { setConfirmOff(false); void run(async () => { await (await online()).unregister(id!); await import('./rt').then((r) => r.forget(id!.pid)).catch(() => {}); setOnline(profile.id, undefined); }); }} />
       )}
     </section>
   );

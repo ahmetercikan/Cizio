@@ -32,7 +32,7 @@ Play Console → Çizio → **Politika ve programlar → Uygulama içeriği → 
 |---|---|---|
 | Kişisel bilgiler | **Ad** | Çocuğun görünen adı (takma ad) arkadaşlarına gösterilir |
 | Fotoğraflar ve videolar | **Fotoğraflar** | Arkadaşla oynanan oyunlarda çizilen küçük resim |
-| Uygulama etkinliği | **Diğer kullanıcı tarafından oluşturulan içerik** | Oyun sonuçları, hazır tepkiler, birlikte boyama hamleleri |
+| Uygulama etkinliği | **Diğer kullanıcı tarafından oluşturulan içerik** | Oyun sonuçları, hazır tepkiler, birlikte boyama hamleleri, Çizio Adası'nda karakterin görünüşü ve oyun içindeki yeri |
 | Cihaz veya diğer kimlikler | **Cihaz veya diğer kimlikler** | Firebase anonim hesap kimliği |
 
 Her biri için:
@@ -41,7 +41,7 @@ Her biri için:
 - Zorunlu mu, isteğe bağlı mı? → **Kullanıcılar bu verilerin toplanmasını seçebilir**
 - Neden toplanıyor? → yalnızca **Uygulama işlevleri**
 
-Diğer her şey **işaretlenmez**. Sonra **Kaydet**. Gizlilik politikası adresi aynı kalır (sayfa güncellendi).
+**Konum** işaretlenmez: adadaki yer oyun haritasındaki bir noktadır, cihazın konumu değildir. Diğer her şey **işaretlenmez**. Sonra **Kaydet**. Gizlilik politikası adresi aynı kalır (sayfa güncellendi).
 
 ## 2) Yeni sürümü yükle
 
@@ -55,7 +55,9 @@ Diğer her şey **işaretlenmez**. Sonra **Kaydet**. Gizlilik politikası adresi
 
 ```
 Yenilikler:
-• Yeni dünya: Çizio Adası! Giydirdiğin karakterle 3B adada gez, kaydır, sallan, dans et
+• Yeni dünya: Çizio Adası! Giydirdiğin karakterle kocaman 3B adada gez: lunapark, göl, plaj, orman kampı, çiftlik, karlı dağ, dinozor vadisi, şato, roket
+• Su eğlencesi: jet ski, sörf, şnorkel, kuğu tekne, su kaydırağı
+• Adada arkadaşlarınla buluş: ebeveyn onayıyla en çok 10 arkadaş aynı adada
 • Çizimin canlansın: göz kırpar, tekerlek döner, balık yüzer
 • Çizdiğinle oyna artık 3 boyutlu: sağa sola kaç, zıpla, yıldız topla
 • Hikaye kitabım: çizimlerinden masal yap, Çizio okusun
@@ -64,12 +66,14 @@ Yenilikler:
 
 ## Bu sürümde neler var (ayrıntı)
 
-- **Çizio Adası (ücretsiz):** Giydir karakteri yürüyen bir kâğıt kukla (kollar ve bacaklar sallanır; el sallama, zıplama,
-  alkış, dans pozları), evcil hayvanı arkasından gelir. Büyük ada ve 18 mekân: ev, sanat galerisi (çocuğun resimleri), oyun
-  parkı (kaydırak, salıncak), dans pisti, müzik karoları, trambolin, futbol sahası, dönme dolap, atlıkarınca, çiçek bahçesi,
-  dondurma arabası, deniz feneri, sıcak hava balonu, iskele (tekne turu, balık tutma), kumsalda 3 hazine, Çizio. Dolaşan
-  kedi, köpek, tavşan, kurbağa, tilki, penguen; kelebekler; denizde yunuslar. Her gün 17 görevden 4'ü (biri yıldız avı),
-  hepsi bitince 5 yıldız. Tek kişilik; internete veri göndermez.
+- **Çizio Adası (ücretsiz):** Giydir karakteri 3B bir karakter; gerçek insan gibi gittiği yöne döner, yürür, koşar,
+  yüzer (el sallama, zıplama, alkış, dans). Önceki adanın ~20 katı büyüklükte 11 bölge: kasaba, lunapark, göl, plaj,
+  orman kampı, çiftlik, karlı dağ, dinozor vadisi, şato, deniz feneri, roket üssü. 38 mekân ve etkinlik; su etkinlikleri
+  (jet ski, sörf, şnorkelle deniz altı, kuğu tekne, su kaydırağı, balık tutma, yüzme). Köşede küçük harita, büyük haritadan
+  bölgeye hızlı gidiş. Her gün 38 görevden 4'ü (biri yıldız avı), hepsi bitince 5 yıldız.
+- **Adada birlikte oynama:** Çevrimiçi açıksa çocuk, onaylı arkadaşlarının adasına gidebilir ("Yanına git"); bir adada
+  sahibi ve en çok 10 arkadaşı. Arkadaşlar birbirinin karakterini, adını, yürüyüşünü ve el sallamasını görür; yazışma yok.
+  Firebase Realtime Database (ücretsiz plan) kullanılır; konum paketleri küçük, yalnızca karakter hareket edince gönderilir.
 - **Çizdiğinle oyna (3B):** 3 şerit, kaydırarak kaçma, zıplama; yıldız, mıknatıs, kalkan, kalp; 3 can, 60 saniye.
 - **Canlanan çizim**, **Hikaye kitabım** (PDF), **çevrimiçi arkadaşlar** (meydan okuma, canlı düello, birlikte boyama).
 - Ses: 3.521 cümlenin tamamı Çizio'nun sesiyle (yeniler Whisper ile doğrulandı).

@@ -33,6 +33,12 @@ function init() {
   }
 }
 
+/** Firebase uygulaması (Realtime Database gibi diğer servisler için). */
+export function firebaseApp(): FirebaseApp {
+  init();
+  return app;
+}
+
 /** Anonim oturum (cihaz başına bir kez; sonra hatırlanır). Döner: cihazın uid'i. */
 export function signIn(): Promise<string> {
   init();

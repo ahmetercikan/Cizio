@@ -3,7 +3,9 @@ import { hashStr } from '../lib/util';
 
 export type QuestId =
   | 'stars' | 'slide' | 'swing' | 'dance' | 'boat' | 'gallery' | 'home' | 'ferris' | 'carousel' | 'trampoline'
-  | 'balloon' | 'fish' | 'icecream' | 'flowers' | 'lighthouse' | 'treasure' | 'goal' | 'music';
+  | 'balloon' | 'fish' | 'icecream' | 'flowers' | 'lighthouse' | 'treasure' | 'goal' | 'music'
+  | 'coaster' | 'waterslide' | 'swan' | 'swim' | 'jetski' | 'surf' | 'snorkel' | 'sandcastle' | 'lifeguard'
+  | 'campfire' | 'tent' | 'treehouse' | 'harvest' | 'tractor' | 'snowman' | 'sled' | 'fossil' | 'egg' | 'castle' | 'rocket';
 
 export const STARS_GOAL = 5;
 /** Yıldız avı dışında her gün kaç görev. */
@@ -28,6 +30,26 @@ export const QUESTS: Record<QuestId, string> = {
   treasure: 'Kumsalda bir hazine kaz',
   goal: 'Futbol sahasında gol at',
   music: 'Müzik karolarında bir şarkı çal',
+  coaster: 'Lunaparkta hız trenine bin',
+  waterslide: 'Göldeki su kaydırağından kay',
+  swan: 'Gölde kuğu tekneye bin',
+  swim: 'Gölde ya da denizde yüz',
+  jetski: 'Plajda jet ski sür',
+  surf: 'Plajda sörf yap',
+  snorkel: 'Şnorkelle denizin altını gez',
+  sandcastle: 'Plajda kumdan kale yap',
+  lifeguard: 'Cankurtaran kulesine çık',
+  campfire: 'Kamp ateşinde marshmallow kızart',
+  tent: 'Orman kampında çadırda dinlen',
+  treehouse: 'Ağaç eve tırman',
+  harvest: 'Çiftlikte havuç topla',
+  tractor: 'Çiftlikte traktöre bin',
+  snowman: 'Karlı dağda kardan adam yap',
+  sled: 'Karlı dağdan kızakla kay',
+  fossil: 'Dinozor vadisinde fosil kaz',
+  egg: 'Dev dinozor yumurtasına dokun',
+  castle: 'Şatonun kulesine çık',
+  rocket: 'Roketle uzaya çık',
 };
 
 /** Bugünün görevleri: yıldız avı hep var, diğer üçü güne göre değişir. */
