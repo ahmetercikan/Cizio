@@ -62,6 +62,17 @@ describe('oda', () => {
     await assertFails(set(ref(as('uidB'), `rooms/${pA}/live/${pB}`), { x: 1, z: 2 }));
     await assertFails(set(ref(as('uidB'), `rooms/${pA}/live/${pB}`), { ...live, p: 'cok-uzun-bir-poz-adi' }));
   });
+  it('çiftlik özeti: yalnızca ada sahibi yazar, arkadaş okur, yabancı okuyamaz', async () => {
+    await assertSucceeds(set(ref(as('uidA'), `rooms/${pA}/home`), '{"b":""}'));
+    await assertFails(set(ref(as('uidB'), `rooms/${pA}/home`), '{"b":""}'));
+    await assertFails(set(ref(as('uidA'), `rooms/${pA}/home`), 'x'.repeat(25000)));
+    await assertSucceeds(get(ref(as('uidB'), `rooms/${pA}/home`)));
+    await assertFails(get(ref(as('uidX'), `rooms/${pA}/home`)));
+  });
+  it('dünya alanı kısa olmalı', async () => {
+    await assertSucceeds(set(ref(as('uidB'), `rooms/${pA}/live/${pB}`), { ...live, w: 'maze' }));
+    await assertFails(set(ref(as('uidB'), `rooms/${pA}/live/${pB}`), { ...live, w: 'x'.repeat(30) }));
+  });
   it('varlık: yalnızca kendi oyuncusu için yazar', async () => {
     await assertSucceeds(set(ref(as('uidB'), `presence/${pB}`), { room: pA, ts: 1 }));
     await assertFails(set(ref(as('uidX'), `presence/${pB}`), { room: pA, ts: 1 }));

@@ -31,7 +31,15 @@ export const ZONES: Zone[] = [
   { id: 'castle', name: 'Şato', x: -222, z: 12, color: '#9b6bff', spawn: [-190, 12] },
   { id: 'lighthouse', name: 'Deniz Feneri', x: 64, z: -246, color: '#ef4b4b', spawn: [56, -222] },
   { id: 'rocket', name: 'Roket Üssü', x: 168, z: -168, color: '#5b8def', spawn: [150, -150] },
+  { id: 'home', name: 'Çiftliğim', x: 124, z: 44, color: '#7cc760', spawn: [88, 44] },
+  { id: 'market', name: 'Pazar', x: -20, z: 18, color: '#ff9f43', spawn: [-12, 13] },
+  { id: 'portal', name: 'Macera Kapıları', x: -74, z: -36, color: '#c86bff', spawn: [-52, -26] },
 ];
+/** Çiftliğim: arsanın düzlüğü daha geniş (tarla, ahır ve inşa alanı). */
+export const HOME = zone_('home');
+function zone_(id: string) {
+  return ZONES.find((z) => z.id === id)!;
+}
 export const zone = (id: string) => ZONES.find((z) => z.id === id)!;
 
 const smooth = (a: number, b: number, x: number) => {
@@ -49,7 +57,8 @@ function flatMask(x: number, z: number) {
   let m = 0;
   for (const zn of ZONES) {
     if (zn.id === 'snow' || zn.id === 'dino') continue;
-    m = Math.max(m, 1 - smooth(34, 58, Math.hypot(x - zn.x, z - zn.z)));
+    const [a, b] = zn.id === 'home' ? [50, 72] : [34, 58];
+    m = Math.max(m, 1 - smooth(a, b, Math.hypot(x - zn.x, z - zn.z)));
   }
   return m;
 }

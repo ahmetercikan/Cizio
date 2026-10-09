@@ -12,6 +12,7 @@ import { questDone, todayQuest, type ChallengeKind } from '../lib/daily';
 import { STATE_KEY } from '../lib/legacy';
 import type { DollState } from '../dressup/catalog';
 import type { OnlineIdentity } from '../online/types';
+import { normalizeFarm, type FarmState, type Result as FarmResult } from '../world/economy';
 import { DAILY_GAME_CAP, emptyEnglish, GAME_STARS, SESSION_STARS, type Age, type EnglishData } from '../english/data';
 import { chestsEarned, earnedSum, giftStatus, GIFT_DAYS, pickReward, rareKey, walletOf, xpOf, type ChestReason, type GiftState, type Reward } from '../lib/rewards';
 
@@ -110,6 +111,8 @@ export interface ProfileData {
   books?: StoryBookData[];
   /** Çizio Adası: bugünün toplanan yıldızları, biten görevler, ödül alındı mı. */
   island?: IslandDay;
+  /** Çizio Adası'ndaki çiftliğim: altın, seviye, tarla, hayvanlar, inşa (src/world/economy.ts). */
+  farm?: FarmState;
   /** Çevrimiçi kimlik (ebeveyn bölümünden açılır; yoksa çevrimiçi kapalı). */
   online?: OnlineIdentity;
 }
@@ -171,6 +174,8 @@ interface AppState {
   islandStar(id: string): void;
   islandDone(activity: string): void;
   islandReward(): number;
+  /** Çiftlik işlemi: economy.ts fonksiyonu uygulanır, sonuç kaydedilir (hata varsa durum değişmez). */
+  farmApply<R extends FarmResult>(f: (s: FarmState) => R): R;
   removeBook(id: string): void;
   setOutfit(outfit?: string): void;
   setDoll(d: DollState): void;
@@ -403,6 +408,14 @@ export const useApp = create<AppState>()(
         const next: ProfileData = { ...d, island: { ...d.island, rewarded: true }, days: { ...d.days, [k]: { ...t, stars: (t.stars ?? 0) + ISLAND_REWARD } } };
         set({ data: { ...data, [activeId]: withChests(d, next) } });
         return ISLAND_REWARD;
+      },
+
+      farmApply(f) {
+        const { activeId, data } = get();
+        const d = (activeId && data[activeId]) || emptyData();
+        const r = f(normalizeFarm(d.farm));
+        if (activeId && !r.err) set({ data: { ...data, [activeId]: { ...d, farm: r.s } } });
+        return r;
       },
 
       addBook(b) {

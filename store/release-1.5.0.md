@@ -58,6 +58,10 @@ Yenilikler:
 • Yeni dünya: Çizio Adası! Giydirdiğin karakterle kocaman 3B adada gez: lunapark, göl, plaj, orman kampı, çiftlik, karlı dağ, dinozor vadisi, şato, roket
 • Su eğlencesi: jet ski, sörf, şnorkel, kuğu tekne, su kaydırağı
 • Adada arkadaşlarınla buluş: ebeveyn onayıyla en çok 10 arkadaş aynı adada
+• Çiftliğim: tohum ek, sula, topla; tavuk, inek, koyun ve arı besle; pazarda sat, seviye atla
+• Minecraft gibi blokla ev yap, hazır yapılar kur
+• Macera kapıları: Labirent, Gökyüzü Parkuru, Şeker Diyarı (arkadaşlarla birlikte)
+• Ekrana dokun, zıpla!
 • Çizimin canlansın: göz kırpar, tekerlek döner, balık yüzer
 • Çizdiğinle oyna artık 3 boyutlu: sağa sola kaç, zıpla, yıldız topla
 • Hikaye kitabım: çizimlerinden masal yap, Çizio okusun
@@ -71,6 +75,12 @@ Yenilikler:
   orman kampı, çiftlik, karlı dağ, dinozor vadisi, şato, deniz feneri, roket üssü. 38 mekân ve etkinlik; su etkinlikleri
   (jet ski, sörf, şnorkelle deniz altı, kuğu tekne, su kaydırağı, balık tutma, yüzme). Köşede küçük harita, büyük haritadan
   bölgeye hızlı gidiş. Her gün 38 görevden 4'ü (biri yıldız avı), hepsi bitince 5 yıldız.
+- **Çiftliğim ve Pazar:** 16 tarla, 7 ürün, 4 hayvan, mutfak (5 tarif), pazarda al-sat ve sipariş panosu, seviyeler ve
+  çiftçi defteri (20 adım). Ada altını yalnızca oynayarak kazanılır, gerçek parayla satılmaz.
+- **İnşa:** 20×20 arsada 35 çeşit blok ve eşya, 4 hazır yapı. Karakter zıplayarak blokların üstüne çıkar.
+- **Macera kapıları:** her gün değişen Labirent (aynı adadaki arkadaşlar aynı labirenti görür), Gökyüzü Parkuru
+  (kayan platformlar, zıplatan mantarlar, kontrol noktaları), Şeker Diyarı (75 saniyede 20 şeker).
+- **Dokunma:** boş yere dokununca zıplar; bir eşyaya dokununca o iş yapılır (uzaksa yanına yürür).
 - **Adada birlikte oynama:** Çevrimiçi açıksa çocuk, onaylı arkadaşlarının adasına gidebilir ("Yanına git"); bir adada
   sahibi ve en çok 10 arkadaşı. Arkadaşlar birbirinin karakterini, adını, yürüyüşünü ve el sallamasını görür; yazışma yok.
   Firebase Realtime Database (ücretsiz plan) kullanılır; konum paketleri küçük, yalnızca karakter hareket edince gönderilir.

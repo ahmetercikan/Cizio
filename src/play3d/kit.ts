@@ -6,7 +6,7 @@ import * as THREE from 'three';
 
 let gradient: THREE.DataTexture | null = null;
 /** Üç tonlu ışık geçişi: çizgi film görünümü. */
-function toonGradient() {
+export function toonGradient() {
   if (gradient) return gradient;
   const data = new Uint8Array([90, 90, 90, 255, 175, 175, 175, 255, 255, 255, 255, 255]);
   gradient = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);

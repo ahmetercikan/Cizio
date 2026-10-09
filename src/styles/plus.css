@@ -76,7 +76,8 @@
   font-weight: 700;
   font-size: 19px;
   box-shadow: var(--shadow-pop);
-  white-space: nowrap;
+  max-width: min(92vw, 560px);
+  text-align: center;
 }
 .island__panel { display: grid; justify-items: center; gap: 12px; text-align: center; }
 .island__qlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; width: 100%; }
@@ -165,4 +166,90 @@
 .island__flist small { color: var(--ink-soft, #7a6a64); }
 @media (max-width: 520px) {
   .island__friends { width: 44px; height: 44px; }
+}
+
+/* Çiftliğim: altın ve seviye */
+.island__mid { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.farm-hud {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 99px; background: #fff;
+  box-shadow: var(--shadow-card); font-family: var(--display); font-weight: 700; font-size: 18px; color: var(--ink);
+}
+.farm-hud__lv {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #7cc760; color: #fff;
+  font-family: var(--display); font-weight: 700; font-size: 18px; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.15);
+}
+.farm-hud__lv.big { width: 56px; height: 56px; font-size: 28px; flex: none; }
+.farm-hud__lv.huge { width: 96px; height: 96px; font-size: 48px; background: var(--sun); color: var(--ink); }
+.farm-hud__bar { display: block; width: 56px; height: 10px; border-radius: 99px; background: #eee6d8; overflow: hidden; }
+.farm-hud__bar.wide { width: 100%; margin: 6px 0 4px; height: 12px; }
+.farm-hud__bar i { display: block; height: 100%; background: #7cc760; border-radius: 99px; transition: width 0.4s; }
+.farm-coin { display: inline-flex; align-items: center; gap: 4px; font-family: var(--display); font-weight: 700; color: #b07a00; }
+.farm-coin svg { color: #e0a800; }
+.farm-coin.big { font-size: 28px; }
+.island__chip { position: absolute; top: calc(var(--safe-top) + 74px); left: 50%; transform: translateX(-50%); z-index: 2; max-width: calc(100% - 32px); }
+.farm-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 99px; background: rgba(255, 255, 255, 0.9);
+  font-weight: 800; font-size: 15px; color: var(--ink); box-shadow: var(--shadow-card); max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Pazar ve listeler */
+.farm-modal { max-height: min(86vh, 760px); overflow-y: auto; }
+.farm-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.farm-tabs button { padding: 8px 18px; border-radius: 99px; background: #f6f2ea; font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--ink); }
+.farm-tabs button.on { background: var(--ink); color: #fff; }
+.farm-tabs .farm-coin { margin-left: auto; font-size: 20px; }
+.farm-shop h3, .farm-h3 { font-family: var(--display); margin: 14px 0 6px; color: var(--ink); text-align: left; }
+.farm-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.farm-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 16px; background: #f6f2ea; text-align: left; }
+.farm-list li.locked { opacity: 0.55; }
+.farm-list li .pill, .farm-list li .btn-outline { flex: none; }
+.farm-emoji { font-size: 30px; width: 40px; text-align: center; flex: none; }
+.farm-list__name { flex: 1; display: grid; min-width: 0; }
+.farm-list__name small { color: var(--ink-soft, #7a6a64); font-weight: 700; }
+.farm-orders { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.farm-order { display: grid; gap: 6px; padding: 12px; border-radius: 18px; background: #fff7ec; border: 3px dashed #e8d3a3; text-align: center; }
+.farm-order.ready { border-color: var(--green); background: #ecfaf1; }
+.farm-order__needs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; font-weight: 800; }
+.farm-order__needs span { padding: 2px 8px; border-radius: 99px; background: #fff; }
+.farm-order__needs span.ok { background: #d5f5e2; }
+.farm-order__btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.farm-journal__top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; text-align: left; }
+.farm-journal__top > div { flex: 1; display: grid; }
+.farm-journal__top small { color: var(--ink-soft, #7a6a64); font-weight: 700; }
+.island__qlist li.now { background: #fff1c7; outline: 3px solid var(--sun); }
+.island__qlist li.next { opacity: 0.6; }
+.farm-inv { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.farm-inv span { padding: 6px 12px; border-radius: 99px; background: #f6f2ea; font-weight: 800; }
+
+/* İnşa */
+.build-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 10px 12px calc(var(--safe-bottom) + 10px);
+  background: rgba(255, 255, 255, 0.94); box-shadow: 0 -6px 24px rgba(58, 43, 39, 0.15); border-radius: 22px 22px 0 0;
+}
+.build-bar__row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.build-tool {
+  flex: none; display: grid; justify-items: center; gap: 2px; width: 70px; padding: 6px 4px; border-radius: 14px; background: #f6f2ea;
+  border: 3px solid transparent; color: var(--ink);
+}
+.build-tool.on { border-color: var(--ink); background: #fff1c7; }
+.build-tool small { font-weight: 800; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.build-swatch { width: 34px; height: 30px; border-radius: 6px; border: 2px solid rgba(58, 43, 39, 0.45); border-top-width: 8px; display: block; }
+.build-swatch--glass { opacity: 0.6; }
+.build-swatch--light { box-shadow: 0 0 10px #ffd84d; }
+.build-swatch--emoji { border: 0; font-size: 26px; line-height: 30px; text-align: center; }
+.build-more { flex: none; align-self: center; display: inline-flex; gap: 4px; align-items: center; padding: 0 10px; font-weight: 800; font-size: 13px; color: var(--ink-soft, #7a6a64); white-space: nowrap; }
+.build-bar__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.island--building .joystick { bottom: calc(var(--safe-bottom) + 170px); }
+
+/* Macera kapıları */
+.realm-hud { flex: 1; display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.realm-hud__goal { display: grid; padding: 6px 16px; border-radius: 18px; background: rgba(255, 255, 255, 0.92); box-shadow: var(--shadow-card); text-align: center; }
+.realm-hud__goal b { font-family: var(--display); font-size: 18px; }
+.realm-hud__goal span { font-weight: 800; font-size: 14px; }
+.realm-hud__prog { padding: 8px 16px; border-radius: 99px; background: var(--ink); color: #fff; font-family: var(--display); font-weight: 700; font-size: 19px; }
+@media (max-width: 520px) {
+  .farm-hud__bar { width: 36px; }
+  .island__chip { top: calc(var(--safe-top) + 124px); }
+  .build-tool { width: 60px; }
 }

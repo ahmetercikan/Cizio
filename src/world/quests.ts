@@ -5,7 +5,8 @@ export type QuestId =
   | 'stars' | 'slide' | 'swing' | 'dance' | 'boat' | 'gallery' | 'home' | 'ferris' | 'carousel' | 'trampoline'
   | 'balloon' | 'fish' | 'icecream' | 'flowers' | 'lighthouse' | 'treasure' | 'goal' | 'music'
   | 'coaster' | 'waterslide' | 'swan' | 'swim' | 'jetski' | 'surf' | 'snorkel' | 'sandcastle' | 'lifeguard'
-  | 'campfire' | 'tent' | 'treehouse' | 'harvest' | 'tractor' | 'snowman' | 'sled' | 'fossil' | 'egg' | 'castle' | 'rocket';
+  | 'campfire' | 'tent' | 'treehouse' | 'harvest' | 'tractor' | 'snowman' | 'sled' | 'fossil' | 'egg' | 'castle' | 'rocket'
+  | 'farm' | 'sell' | 'build' | 'maze' | 'sky' | 'candy';
 
 export const STARS_GOAL = 5;
 /** Yıldız avı dışında her gün kaç görev. */
@@ -50,6 +51,12 @@ export const QUESTS: Record<QuestId, string> = {
   egg: 'Dev dinozor yumurtasına dokun',
   castle: 'Şatonun kulesine çık',
   rocket: 'Roketle uzaya çık',
+  farm: 'Çiftliğinde tarlanı sula ya da ürün topla',
+  sell: 'Pazarda bir ürün sat',
+  build: 'Çiftliğinde blok koyarak bir şey yap',
+  maze: 'Labirentteki hazineyi bul',
+  sky: 'Gökyüzü Parkuru’nu bitir',
+  candy: 'Şeker Diyarı’nda şeker topla',
 };
 
 /** Bugünün görevleri: yıldız avı hep var, diğer üçü güne göre değişir. */

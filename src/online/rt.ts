@@ -6,7 +6,8 @@
  *   /allow/{room}/{uid} = true             oda sahibinin onaylı arkadaşlarının cihazları (sahip yazar)
  *   /presence/{pid} = { room, ts }         şu an adada mı, hangi odada (bağlantı kopunca silinir)
  *   /rooms/{room}/looks/{pid} = DollState  karakterin görünüşü (girerken bir kez)
- *   /rooms/{room}/live/{pid} = { x, z, y, h, p, n, t }  konum ve poz (yalnızca değişince, saniyede en çok 5 kez)
+ *   /rooms/{room}/live/{pid} = { x, z, y, h, p, n, w, t }  konum ve poz (yalnızca değişince, saniyede en çok 5 kez)
+ *   /rooms/{room}/home = "…"               ada sahibinin çiftliği ve yapıları (arkadaşlar görür; yalnızca sahibi yazar)
  * Her oda bir oyuncunun adasıdır (oda kimliği = sahibinin pid'i). Bir odada sen ve en çok 10 arkadaşın.
  * Ücretsiz planda kalmak için paketler küçük tutulur ve kahraman dururken hiç gönderilmez.
  */
@@ -45,11 +46,22 @@ export async function allowFriends(room: string, friendOwners: string[]) {
 export async function forget(pid: string) {
   await signIn();
   const d = rtdb();
-  await Promise.all([remove(ref(d, `allow/${pid}`)), remove(ref(d, `presence/${pid}`))]).catch(() => {});
+  await Promise.all([remove(ref(d, `allow/${pid}`)), remove(ref(d, `presence/${pid}`)), remove(ref(d, `rooms/${pid}/home`))]).catch(() => {});
   await remove(ref(d, `owners/${pid}`)).catch(() => {});
 }
 
-export interface Live { x: number; z: number; y: number; h: number; p: string; n: string; t?: number }
+/** Canlı durum. w: hangi dünyada (boş: ada; 'maze', 'sky', 'candy': macera kapısının ardı). */
+/** Kendi çiftliğimin özetini paylaşır (arkadaşlar adama gelince görür). */
+export async function publishHome(room: string, data: string) {
+  await signIn();
+  await set(ref(rtdb(), `rooms/${room}/home`), data);
+}
+/** Bir adanın çiftlik özetini izler. */
+export function watchHome(room: string, cb: (data: string | null) => void): Unsubscribe {
+  return onValue(ref(rtdb(), `rooms/${room}/home`), (s) => cb((s.val() as string | null) ?? null), () => cb(null));
+}
+
+export interface Live { x: number; z: number; y: number; h: number; p: string; n: string; w?: string; t?: number }
 export interface Presence { room: string; ts: number }
 
 /** Arkadaşların şu an adada olup olmadığı ve hangi odada oldukları. */
@@ -119,10 +131,10 @@ export async function joinRoom(room: string, me: string, look: DollState, onPeer
   let last = '';
   return {
     send(l) {
-      const key = `${l.x.toFixed(1)}|${l.z.toFixed(1)}|${l.y.toFixed(1)}|${l.h.toFixed(2)}|${l.p}`;
+      const key = `${l.x.toFixed(1)}|${l.z.toFixed(1)}|${l.y.toFixed(1)}|${l.h.toFixed(2)}|${l.p}|${l.w ?? ''}`;
       if (key === last) return;
       last = key;
-      void update(liveRef, { x: +l.x.toFixed(2), z: +l.z.toFixed(2), y: +l.y.toFixed(2), h: +l.h.toFixed(2), p: l.p, n: l.n, t: serverTimestamp() }).catch(() => {});
+      void update(liveRef, { x: +l.x.toFixed(2), z: +l.z.toFixed(2), y: +l.y.toFixed(2), h: +l.h.toFixed(2), p: l.p, n: l.n, w: l.w ?? '', t: serverTimestamp() }).catch(() => {});
     },
     async leave() {
       offLooks();

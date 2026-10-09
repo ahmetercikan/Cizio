@@ -2,7 +2,7 @@
  * Çizio Adası (/ada): 3B oyun dünyası (src/world/island.ts). Şimdilik herkese açık (PLUS_ENABLED = false);
  * ücretli olursa abonelik yoksa tanıtım ve satın alma (ebeveyn kilidi arkasında) gösterilir.
  */
-import { ArrowLeft, Check, Crown, Hand, Home, Images, Loader2, MessageCircle, PartyPopper, RotateCcw, Shirt, Sparkles, Star, Users, X, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Hand, Home, Images, Loader2, MessageCircle, Music, RotateCcw, Shirt, Sparkles, Sprout, Star, Store, Users, X, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AvatarArt } from '../components/Avatars';
@@ -21,6 +21,9 @@ import { coastAt, LAKE, SNOW_PEAK, WORLD_R, ZONES, type Zone } from '../world/la
 import { buyPlus, canBuy, managePlus, PLUS_ENABLED, restorePlus, usePlus } from '../world/plus';
 import { ISLAND_LINES, QUESTS, STARS_GOAL, todayQuests, type QuestId } from '../world/quests';
 import { Gate } from './Parent';
+import { advanceJourney, CROPS, ANIMALS, fillOrders, newFarm, normalizeFarm, realmReward, unlocksAt, type FarmState, type Result } from '../world/economy';
+import { BlueprintPanel, BuildBar, FarmHud, JournalPanel, JourneyChip, KitchenPanel, LevelUp, MarketPanel, OrdersPanel, RealmDone, RealmHud, SeedPanel, type Apply } from '../world/FarmPanels';
+import type { FarmBridge, RealmId } from '../world/homestead';
 import { ISLAND_ONLINE } from '../online/config';
 import { useOnlineView } from '../online/OnlineHost';
 import type { Presence, RoomHandle } from '../online/rt';
@@ -121,7 +124,18 @@ function IslandPlay() {
   const [near, setNear] = useState<Spot | null>(null);
   const [busy, setBusy] = useState(false);
   const [driving, setDriving] = useState(false);
-  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | null>(null);
+  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | null>(null);
+  // Çiftliğim
+  const farm = normalizeFarm(data.farm);
+  const [seedField, setSeedField] = useState(0);
+  const [levelUp, setLevelUp] = useState<number | null>(null);
+  const [inBuildArea, setInBuildArea] = useState(false);
+  const [building, setBuilding] = useState(false);
+  const [tool, setTool] = useState('ahsap');
+  // Macera kapıları
+  const [realm, setRealm] = useState<{ id: RealmId; name: string; goal: string } | null>(null);
+  const [realmProg, setRealmProg] = useState('');
+  const [realmDone, setRealmDone] = useState<{ id: RealmId; name: string; text: string; coins: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [me, setMe] = useState({ x: 0, z: 12, h: 0 });
   // Birlikte oynama (Realtime Database): oda = adanın sahibinin pid'i
@@ -145,8 +159,45 @@ function IslandPlay() {
   const say = (t: string) => settings.narration && speak(t, { rate: settings.rate });
   const flash = (t: string) => {
     setToast(t);
-    setTimeout(() => setToast((x) => (x === t ? null : x)), 2400);
+    setTimeout(() => setToast((x) => (x === t ? null : x)), 2600);
   };
+
+  /** Çiftlik işlemi: kaydedilir, defter ilerler, seviye atlanınca kutlanır, ada görüntüsü yenilenir. */
+  const applyQuiet: Apply = (f) => {
+    const st = useApp.getState();
+    const r = st.farmApply(f);
+    if (r.err) return r;
+    const j = st.farmApply(advanceJourney);
+    j.steps.forEach((t, i) => setTimeout(() => {
+      flash(`Defter: ${t} ✓`);
+      sfx.success();
+    }, 1400 * (i + 1)));
+    const lv = j.levelUp ?? r.levelUp;
+    if (lv) {
+      setLevelUp(lv);
+      sfx.fanfare();
+    }
+    world.current?.farmChanged();
+    return r;
+  };
+  /** Ekranlardan yapılan işlem: mesajı da gösterir. */
+  const apply: Apply = (f) => {
+    const r = applyQuiet(f);
+    if (r.err) {
+      flash(r.err);
+      sfx.soft();
+    } else if (r.msg) {
+      flash(r.msg);
+      sfx.pop();
+    }
+    return r;
+  };
+  const bridge = useRef<FarmBridge>({
+    get: () => normalizeFarm(useApp.getState().data[profile.id]?.farm),
+    apply: (f: (s: FarmState) => Result) => applyRef.current(f),
+  });
+  const applyRef = useRef(applyQuiet);
+  applyRef.current = applyQuiet;
 
   // Ada kurulumu
   useEffect(() => {
@@ -164,6 +215,7 @@ function IslandPlay() {
         if (!alive || !ref.current) return;
         world.current = new Island(ref.current, {
           doll, pet, art, tex: { ...Object.fromEntries(cards), maskot: mascot }, taken: island.stars, starSeed: hashStr(`${day}|${profile.id}|yildiz`),
+          farm: bridge.current,
         }, {
           onNear: setNear,
           onStar: (id) => {
@@ -180,10 +232,20 @@ function IslandPlay() {
           onMessage: flash,
           onPos: (x, z, h) => setMe({ x, z, h }),
           onPage: (id) => pageRef.current(id),
+          onRealm: (r) => {
+            setRealm(r);
+            setRealmProg('');
+            setPanel(null);
+            if (r) flash(r.goal);
+          },
+          onRealmProgress: setRealmProg,
+          onRealmFinish: (id, bonus, text) => finishRef.current(id, bonus, text),
+          onBuildArea: setInBuildArea,
           sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick() },
         });
+        world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
         setReady(true);
-        if (import.meta.env.DEV) (window as unknown as { __island?: Island }).__island = world.current;
+        if (import.meta.env.DEV) Object.assign(window, { __island: world.current, __app: useApp });
         say(ISLAND_LINES.welcome);
       } catch (e) {
         console.error(e);
@@ -237,6 +299,31 @@ function IslandPlay() {
     return rt.current.watchPresence(friends.map((f) => f.pid), setPresence);
   }, [rtReady, friendKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Çiftliğimi paylaş (kendi adamdayken, değişince birkaç saniyede bir) ve arkadaşın adasında onunkini göster
+  const guest = !!(room && myId && room !== myId);
+  const homeKey = JSON.stringify([farm.build, farm.fields, farm.animals]);
+  const published = useRef('');
+  useEffect(() => {
+    if (!rtReady || !myId || guest || !rt.current) return;
+    const t = setTimeout(() => {
+      const snap = world.current?.homeSnapshot();
+      if (!snap || snap === published.current) return;
+      published.current = snap;
+      void rt.current!.publishHome(myId, snap).catch(() => (published.current = ''));
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [rtReady, myId, guest, homeKey]);
+  useEffect(() => {
+    if (!guest || !room || !rt.current) return;
+    const name = ov?.players[room]?.name ?? 'Arkadaşın';
+    const off = rt.current.watchHome(room, (data) => world.current?.setHomeView(guestFarm(data), name));
+    return () => {
+      off();
+      world.current?.setHomeView(null, null);
+      published.current = '';
+    };
+  }, [guest, room]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const markDone = (q: string) => {
     if (!(q in QUESTS) || !quests.includes(q as QuestId) || questDone(q as QuestId)) return;
     islandDone(q);
@@ -253,8 +340,45 @@ function IslandPlay() {
     } else if (id === 'home') {
       markDone('home');
       nav('/giydir');
+    } else if (id === 'market' || id === 'orders') {
+      useApp.getState().farmApply((s) => ({ s: fillOrders(s) }));
+      setPanel(id);
+    } else if (id === 'kitchen' || id === 'journal') {
+      setPanel(id);
+    } else if (id === 'build') {
+      startBuild();
+    } else if (id.startsWith('field:')) {
+      setSeedField(Number(id.slice(6)));
+      setPanel('seed');
     }
   };
+  const startBuild = () => {
+    world.current?.setBuildMode(true);
+    world.current?.setTool({ block: tool });
+    setBuilding(true);
+    flash('Blok koymak için arsaya dokun!');
+  };
+  const stopBuild = () => {
+    world.current?.setBuildMode(false);
+    setBuilding(false);
+  };
+  const pickTool = (t: string) => {
+    sfx.select();
+    setTool(t);
+    world.current?.setTool(t === 'erase' ? { erase: true } : { block: t });
+  };
+  const finish = (id: RealmId, bonus: number, text: string) => {
+    const before = bridge.current.get().coins;
+    const r = applyQuiet((s) => {
+      const a = realmReward(s, id, day);
+      return { ...a, s: { ...a.s, coins: a.s.coins + bonus } };
+    });
+    sfx.fanfare();
+    const name = ({ maze: 'Labirent', sky: 'Gökyüzü Parkuru', candy: 'Şeker Diyarı' } as const)[id];
+    setTimeout(() => setRealmDone({ id, name, text, coins: r.s.coins - before }), 900);
+  };
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
   const doneRef = useRef(markDone);
   doneRef.current = markDone;
   const pageRef = useRef(page);
@@ -302,6 +426,8 @@ function IslandPlay() {
     await handle.current?.leave();
     handle.current = null;
     world.current?.setPeers({});
+    world.current?.setBuildMode(false);
+    setBuilding(false);
     known.current = new Set();
     goTo.current = friendPid ?? null;
     try {
@@ -323,10 +449,16 @@ function IslandPlay() {
       }
       handle.current = h;
       setRoom(roomId);
+      world.current?.setSeed(hashStr(`${roomId}|${day}|labirent`));
     } catch {
       flash('Arkadaşının adasına şu an girilemiyor.');
       if (roomId !== myId) void enter(myId);
     }
+  };
+
+  const sold = () => {
+    sfx.success();
+    markDone('sell');
   };
 
   const travel = (z: Zone) => {
@@ -336,17 +468,30 @@ function IslandPlay() {
     flash(z.name);
   };
 
+  const actIcon = (id: string) =>
+    id === 'gallery' ? <Images size={22} /> : id === 'home' ? <Shirt size={22} /> : id === 'cizio' ? <MessageCircle size={22} />
+      : id === 'market' ? <Store size={22} /> : id === 'orders' ? <ClipboardList size={22} /> : id === 'kitchen' ? <ChefHat size={22} />
+        : id === 'journal' ? <BookOpen size={22} /> : id === 'build' ? <Hammer size={22} /> : id.startsWith('field:') ? <Sprout size={22} />
+          : id.startsWith('pen:') ? <Egg size={22} /> : id.startsWith('portal:') ? <DoorOpen size={22} /> : <Sparkles size={22} />;
+
   return (
-    <div className="island">
+    <div className={`island ${building ? 'island--building' : ''}`}>
       <canvas ref={ref} className="island__canvas" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => (drag.current = null)} />
       {!ready && <div className="alive__wait"><Mascot size={110} mood="think" /><b>Ada hazırlanıyor…</b></div>}
       <header className="island__top">
         <button className="round-btn round-btn--light" aria-label="Adadan çık" onClick={() => nav('/')}><ArrowLeft size={26} strokeWidth={2.6} /></button>
-        <button className="island__quests" onClick={() => setPanel('quests')}>
-          <Star size={20} fill="#ffc83d" color="#3a2b27" /> {Math.min(island.stars.length, STARS_GOAL)}/{STARS_GOAL}
-          <span className="island__qdots">{quests.map((q) => <i key={q} className={questDone(q) ? 'on' : ''} />)}</span>
-        </button>
-        {ready && (
+        {realm ? (
+          <RealmHud name={realm.name} goal={realm.goal} progress={realmProg} onLeave={() => world.current?.leaveRealm()} />
+        ) : (
+          <span className="island__mid">
+            <button className="island__quests" onClick={() => setPanel('quests')}>
+              <Star size={20} fill="#ffc83d" color="#3a2b27" /> {Math.min(island.stars.length, STARS_GOAL)}/{STARS_GOAL}
+              <span className="island__qdots">{quests.map((q) => <i key={q} className={questDone(q) ? 'on' : ''} />)}</span>
+            </button>
+            {ready && <FarmHud s={farm} onOpen={() => setPanel('journal')} />}
+          </span>
+        )}
+        {ready && !realm && (
           <span className="island__right">
             {ISLAND_ONLINE && (
               <button className="island__friends" aria-label="Arkadaşlar" onClick={() => setPanel('friends')}>
@@ -358,21 +503,29 @@ function IslandPlay() {
           </span>
         )}
       </header>
+      {ready && !realm && !building && <div className="island__chip"><JourneyChip s={farm} onOpen={() => setPanel('journal')} /></div>}
       {ready && (
         <>
           {!busy && <Joystick onChange={(x, y) => world.current?.setJoystick(x, y)} />}
-          {!driving && !busy && (
+          {!driving && !busy && !building && (
             <div className="island__emotes">
               <button className="game__btn" aria-label="El salla" onClick={() => world.current?.emote('wave')}><Hand size={26} /></button>
-              <button className="game__btn" aria-label="Zıpla" onClick={() => world.current?.emote('jump')}><PartyPopper size={26} /></button>
+              <button className="game__btn" aria-label="Dans et" onClick={() => world.current?.emote('dance')}><Music size={26} /></button>
               <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><Sparkles size={26} /></button>
             </div>
           )}
           {driving && <button className="pill pill--yellow island__act rise" onClick={() => world.current?.dismount()}>İn</button>}
-          {near && !busy && !driving && (
+          {near && !busy && !driving && !building && (
             <button className="pill island__act rise" onClick={() => { sfx.pop(); world.current?.activity(near.id); }}>
-              {near.id === 'gallery' ? <Images size={22} /> : near.id === 'home' ? <Shirt size={22} /> : near.id === 'cizio' ? <MessageCircle size={22} /> : <Sparkles size={22} />} {near.label}
+              {actIcon(near.id)} {near.label}
             </button>
+          )}
+          {inBuildArea && !guest && !building && !busy && !near && !realm && (
+            <button className="pill pill--yellow island__act rise" onClick={startBuild}><Hammer size={22} /> İnşa et</button>
+          )}
+          {building && (
+            <BuildBar s={farm} tool={tool} onTool={pickTool} onUndo={() => { if (!world.current?.undoBuild()) flash('Geri alınacak bir şey yok.'); }}
+              onBlueprints={() => setPanel('blueprint')} onDone={stopBuild} onJump={() => world.current?.jump()} />
           )}
         </>
       )}
@@ -438,8 +591,40 @@ function IslandPlay() {
         </Modal>
       )}
       {panel === 'gallery' && <GalleryPanel profileId={profile.id} onClose={() => setPanel(null)} />}
+      {panel === 'market' && <MarketPanel s={farm} apply={apply} onClose={() => setPanel(null)} onSold={sold} />}
+      {panel === 'orders' && <OrdersPanel s={farm} apply={apply} onClose={() => setPanel(null)} onSold={sold} />}
+      {panel === 'kitchen' && <KitchenPanel s={farm} apply={apply} onClose={() => setPanel(null)} onCook={() => sfx.success()} />}
+      {panel === 'journal' && <JournalPanel s={farm} onClose={() => setPanel(null)} />}
+      {panel === 'seed' && <SeedPanel s={farm} field={seedField} apply={apply} onClose={() => setPanel(null)} />}
+      {panel === 'blueprint' && (
+        <BlueprintPanel s={farm} onClose={() => setPanel(null)} onPick={(id) => {
+          setPanel(null);
+          const msg = world.current?.blueprint(id);
+          if (msg) flash(msg);
+        }} />
+      )}
+      {levelUp && <LevelUp level={levelUp} unlocks={unlocksAt(levelUp)} onClose={() => setLevelUp(null)} />}
+      {realmDone && (
+        <RealmDone name={realmDone.name} text={realmDone.text} coins={realmDone.coins}
+          onAgain={() => { const id = realmDone.id; setRealmDone(null); world.current?.leaveRealm(); world.current?.enterRealm(id); }}
+          onLeave={() => { setRealmDone(null); world.current?.leaveRealm(); }} />
+      )}
     </div>
   );
+}
+
+/** Arkadaşın paylaştığı çiftlik özeti → yalnızca görülen bir çiftlik (bozuk veri yok sayılır). */
+function guestFarm(data: string | null): FarmBridge {
+  const s = newFarm();
+  try {
+    const j = JSON.parse(data ?? '{}') as { b?: string; f?: [string, number][]; a?: [string, number][] };
+    if (typeof j.b === 'string') s.build = j.b;
+    if (Array.isArray(j.f)) s.fields = j.f.slice(0, 16).map(([c, w]) => (CROPS.some((x) => x.id === c) ? { c: c as FarmState['fields'][0]['c'], w: w || undefined } : {}));
+    if (Array.isArray(j.a)) s.animals = j.a.slice(0, 10).filter(([k]) => ANIMALS.some((x) => x.id === k)).map(([k, fed]) => ({ k: k as FarmState['animals'][0]['k'], fed: fed || undefined }));
+  } catch {
+    /* boş çiftlik */
+  }
+  return { get: () => s, apply: () => ({ s, err: 'Bu arkadaşının çiftliği.' }) };
 }
 
 /** Ada çizimi (küçük ve büyük haritada ortak): kıyı, göl, dağ ve bölgeler. */

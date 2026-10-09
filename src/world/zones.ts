@@ -51,6 +51,10 @@ export interface SpotDef {
   vehicle?: Vehicle;
   /** React tarafında açılır (ev, galeri, Çizio). */
   page?: boolean;
+  /** Duruma göre değişen düğme yazısı (null: düğme gösterilmez). */
+  dyn?: () => string | null;
+  /** Duruma göre ne yapılacağı: bir etkinlik, React sayfası ya da yalnızca mesaj. */
+  use?: () => Activity | 'page' | { msg: string } | null;
 }
 
 export interface Deck { x: number; z: number; r?: number; w?: number; d?: number; y: number }
@@ -147,7 +151,7 @@ export class WorldBuilder {
 // ================================================================================================
 // Ortak modeller
 // ================================================================================================
-function house(color: string, s = 1, roof = '#e05a4f') {
+export function house(color: string, s = 1, roof = '#e05a4f') {
   const g = new THREE.Group();
   const body = outline(mesh(new THREE.BoxGeometry(7, 4.5, 6), toon(color)), 1.02);
   body.position.y = 2.25;
@@ -166,7 +170,7 @@ function house(color: string, s = 1, roof = '#e05a4f') {
   return g;
 }
 
-function sign(text: string, color = '#ffffff') {
+export function sign(text: string, color = '#ffffff') {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 160;

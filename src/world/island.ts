@@ -1,8 +1,11 @@
 /**
- * Çizio Adası: büyük, 3B, tek kişilik oyun dünyası (eski adanın ~20 katı).
+ * Çizio Adası: büyük, 3B oyun dünyası (eski adanın ~20 katı), çiftliğim, pazar ve macera kapıları.
  *
- * Kahraman Giydir karakterinin 3B hâli (src/world/avatar3d.ts): yürüdüğü yöne döner, koşar, yüzer, araç sürer.
- * Arazi src/world/terrain.ts, bölgeler ve etkinlikler src/world/zones.ts, harita verisi src/world/layout.ts.
+ * Kahraman Giydir karakterinin 3B hâli (src/world/avatar3d.ts): yürüdüğü yöne döner, koşar, yüzer, zıplar, araç sürer.
+ * Dokunma: bir eşyaya (tarla, kaydırak, kapı…) dokununca o iş yapılır (uzaksa önce yanına yürünür); boş bir yere
+ * dokununca zıplar; inşa modunda blok konur ya da kaldırılır.
+ * Arazi src/world/terrain.ts, bölgeler src/world/zones.ts, çiftlik/pazar/kapılar src/world/homestead.ts,
+ * inşa src/world/build.ts, kapıların ardındaki dünyalar src/world/realms.ts.
  * React tarafı (src/pages/World.tsx) yalnızca girdi verir ve olayları dinler.
  */
 import * as THREE from 'three';
@@ -13,10 +16,14 @@ import { isWater, WORLD_R } from './layout';
 import { petCard } from './puppet';
 import { BlockGrid, buildHorizon, buildTerrain, buildVegetation } from './terrain';
 import { buildZones, starPlaces, WorldBuilder, type Activity, type SpotDef, type Vehicle } from './zones';
+import { buildMarket, buildPortals, Homestead, REALMS, type FarmBridge, type RealmId } from './homestead';
+import { makeRealm, type Hero, type Realm } from './realms';
+import { blockById, buyBlueprint, placedBlocks, type FarmState } from './economy';
+import type { Cell } from './build';
 import type { Live } from '../online/rt';
 
 /** Adadaki bir arkadaş (çok oyunculu). */
-interface Remote { av: Avatar3D; tag: THREE.Sprite; look: string; pos: THREE.Vector3; target: THREE.Vector3; h: number; th: number; pose: Pose; speed: number; seen: number }
+interface Remote { av: Avatar3D; tag: THREE.Sprite; look: string; pos: THREE.Vector3; target: THREE.Vector3; h: number; th: number; pose: Pose; speed: number; seen: number; w: string }
 
 function nameTag(name: string) {
   const c = document.createElement('canvas');
@@ -41,8 +48,9 @@ function nameTag(name: string) {
   return sp;
 }
 
-
 export interface Spot { id: string; pos: THREE.Vector3; r: number; label: string }
+
+export interface RealmInfo { id: RealmId; name: string; goal: string }
 
 export interface IslandEvents {
   onNear: (s: Spot | null) => void;
@@ -55,8 +63,16 @@ export interface IslandEvents {
   onDrive: (driving: boolean) => void;
   /** Konum (küçük harita için, saniyede birkaç kez). */
   onPos: (x: number, z: number, heading: number) => void;
-  /** React'ta açılan mekân (ev, galeri, Çizio). */
+  /** React'ta açılan mekân (ev, galeri, Çizio, pazar, tarla…). */
   onPage: (id: string) => void;
+  /** Macera kapısından girildi / çıkıldı (null). */
+  onRealm?: (r: RealmInfo | null) => void;
+  /** Macera ilerlemesi (⭐ 2/6…). */
+  onRealmProgress?: (text: string) => void;
+  /** Macera bitti: ek altın ve mesaj. */
+  onRealmFinish?: (id: RealmId, bonus: number, text: string) => void;
+  /** Kahraman inşa alanında mı (İnşa düğmesi için). */
+  onBuildArea?: (inside: boolean) => void;
   sound: { star: (i: number) => void; pop: () => void; note: (i: number) => void; kick: () => void };
 }
 
@@ -70,9 +86,12 @@ export interface IslandOptions {
   taken: string[];
   starSeed: number;
   start?: [number, number];
+  /** Çiftliğim (kayıt React'ta). */
+  farm: FarmBridge;
 }
 
 const WALK = 8, RUN = 15;
+const GRAVITY = 32, JUMP = 12.5;
 const SKY = new THREE.Color('#a9e4ff');
 const DEEP = new THREE.Color('#1f86b8');
 
@@ -85,6 +104,7 @@ export class Island {
   private sun: THREE.DirectionalLight;
   private grid = new BlockGrid();
   private wb: WorldBuilder;
+  private home: Homestead;
   private avatar: Avatar3D;
   private pet: THREE.Mesh | null = null;
   private petPos = new THREE.Vector3();
@@ -92,6 +112,7 @@ export class Island {
   private shadow: THREE.Mesh;
   private sparkles: Sparkles;
   private pick: THREE.Mesh;
+  private land: THREE.Object3D;
   private sea: THREE.Mesh;
   private water: THREE.Texture;
   private stars: { id: string; obj: THREE.Object3D; taken: boolean }[] = [];
@@ -102,7 +123,9 @@ export class Island {
   private clock = 0;
   private pos = new THREE.Vector3();
   private heading = 0;
+  private hero: Hero;
   private target: THREE.Vector3 | null = null;
+  private pending: string | null = null;
   private joy = new THREE.Vector2();
   private camYaw = Math.PI;
   private camYawGoal = Math.PI;
@@ -111,8 +134,9 @@ export class Island {
   private swimming = false;
   private swimTime = 0;
   private near: SpotDef | null = null;
+  private nearLabel = '';
   private emoteUntil = 0;
-  private emoteKind: 'wave' | 'jump' | 'clap' | null = null;
+  private emoteKind: 'wave' | 'dance' | 'clap' | null = null;
   private act: { spot: SpotDef; def: Activity; t: number } | null = null;
   private drive: Vehicle | null = null;
   private musicLast = -1;
@@ -124,6 +148,15 @@ export class Island {
   private actor: { pos: THREE.Vector3; heading: number; hand: THREE.Group };
   private remotes = new Map<string, Remote>();
   private lastPose: Pose = 'walk';
+  // inşa
+  private building = false;
+  private tool: { block: string } | { erase: true } = { block: 'ahsap' };
+  private undo: string[] = [];
+  private inBuild = false;
+  // macera kapıları
+  private realm: Realm | null = null;
+  private realmBack = new THREE.Vector3();
+  private seed = 1;
 
   constructor(private canvas: HTMLCanvasElement, private o: IslandOptions, private ev: IslandEvents) {
     this.renderer = makeRenderer(canvas);
@@ -140,6 +173,7 @@ export class Island {
 
     const terrain = buildTerrain(this.scene);
     this.pick = terrain.pick;
+    this.land = terrain.land;
     this.sea = terrain.sea;
     this.water = terrain.water;
     buildHorizon(this.scene, (s) => cloud(s));
@@ -157,6 +191,9 @@ export class Island {
       },
       { note: (i) => this.ev.sound.note(i), kick: () => this.ev.sound.kick(), pop: () => this.ev.sound.pop(), star: (i) => this.ev.sound.star(i) });
     buildZones(this.wb, o.taken);
+    this.home = new Homestead(this.wb, o.farm);
+    buildMarket(this.wb);
+    buildPortals(this.wb, (id) => this.enterRealm(id));
     buildVegetation(this.scene, this.grid, this.wb.keepOut);
     this.spots = this.wb.spots;
     this.buildStars();
@@ -165,8 +202,9 @@ export class Island {
     this.avatar = new Avatar3D(o.doll);
     this.scene.add(this.avatar.root);
     this.actor = { pos: this.pos, heading: 0, hand: this.avatar.hand };
+    this.hero = { pos: this.pos, vy: 0, grounded: true };
     const [sx, sz] = o.start ?? [0, 12];
-    this.pos.set(sx, this.ground(sx, sz), sz);
+    this.pos.set(sx, this.wb.ground(sx, sz), sz);
     this.heading = Math.PI;
     if (o.pet) {
       this.pet = petCard(o.pet);
@@ -192,18 +230,33 @@ export class Island {
       const taken = this.o.taken.includes(s.id);
       const p = { x: s.x, z: s.z };
       this.grid.push(p, 1.2);
+      if (this.home.build.inside(p.x, p.z, 2)) continue;
       const obj = star();
       obj.scale.setScalar(1.4);
-      obj.position.set(p.x, this.ground(p.x, p.z) + 1.4, p.z);
+      obj.position.set(p.x, this.wb.ground(p.x, p.z) + 1.4, p.z);
       obj.visible = !taken;
       this.scene.add(obj);
       this.stars.push({ id: s.id, obj, taken });
     }
   }
 
-  /** Zemin (iskele, ada güvertesi dahil). */
-  private ground(x: number, z: number) {
-    return this.wb.ground(x, z);
+  /** Bulunulan sahne (ada ya da macera dünyası). */
+  private get stage() {
+    return this.realm?.scene ?? this.scene;
+  }
+  private get fx() {
+    return this.realm?.sparkles ?? this.sparkles;
+  }
+
+  /** Kahramanın basabileceği zemin: adada arazi + iskele + bloklar; macerada dünyanın zemini. */
+  private floorAt(x: number, z: number, y: number) {
+    if (this.realm) return this.realm.floor(x, z, y);
+    const g = this.wb.ground(x, z);
+    const b = this.home.build.standY(x, z, y);
+    return b !== null ? Math.max(b, g) : g;
+  }
+  private blockedAt(x: number, z: number, y: number) {
+    return this.realm ? this.realm.blocked(x, z, y) : this.home.build.blocked(x, z, y);
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -211,48 +264,102 @@ export class Island {
   // ----------------------------------------------------------------------------------------------
   setJoystick(x: number, y: number) {
     this.joy.set(x, y);
-    if (x || y) this.target = null;
+    if (x || y) {
+      this.target = null;
+      this.pending = null;
+    }
   }
+  /** Ekrana dokunma: inşa modunda blok; bir eşyaya dokunduysa o iş; değilse zıplama. */
   tapTo(clientX: number, clientY: number) {
-    if (this.act || this.drive) return;
+    if (this.act) return;
     const r = this.canvas.getBoundingClientRect();
     const v = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     this.ray.setFromCamera(v, this.camera);
-    const hit = this.ray.intersectObject(this.pick)[0];
-    if (hit) this.target = hit.point.clone();
+    if (this.building && !this.realm) return this.buildTap();
+    if (this.drive || this.realm) return this.jump();
+    const s = this.spotUnderTap();
+    if (!s) return this.jump();
+    const d = Math.hypot(s.x - this.pos.x, s.z - this.pos.z);
+    if (d < s.r + 0.5) return this.activity(s.id);
+    // uzak: önce yanına yürü
+    this.target = new THREE.Vector3(s.x, 0, s.z);
+    this.pending = s.id;
+  }
+  /** Dokunulan noktanın yakınındaki mekân (arazi ya da gökyüzü değilse). */
+  private spotUnderTap(): SpotDef | null {
+    const hits = this.ray.intersectObjects(this.scene.children, true);
+    for (const h of hits) {
+      let o: THREE.Object3D | null = h.object;
+      if (o === this.shadow || o === this.pick || o === this.sea) continue;
+      while (o && o !== this.avatar.root && o !== this.pet) o = o.parent;
+      if (o) continue; // kendi karakterine dokundu
+      if (h.object === this.land || h.distance > 90) return null;
+      let best: SpotDef | null = null, bd = Infinity;
+      for (const s of this.spots) {
+        if (s.dyn && s.dyn() === null) continue;
+        const x = s.vehicle ? s.vehicle.pos.x : s.x, z = s.vehicle ? s.vehicle.pos.z : s.z;
+        const d = Math.hypot(h.point.x - x, h.point.z - z);
+        if (d < s.r + 4 && d < bd) [best, bd] = [s, d];
+      }
+      return best;
+    }
+    return null;
+  }
+  /** Zıpla (yerdeyken). */
+  jump() {
+    if (this.act || this.drive || this.swimming || !this.hero.grounded) return;
+    this.hero.vy = JUMP;
+    this.hero.grounded = false;
+    this.emoteKind = null;
+    this.ev.sound.pop();
   }
   rotateCamera(dx: number) {
     this.camYawGoal -= dx * 0.006;
     this.lastDrag = this.clock;
   }
-  emote(kind: 'wave' | 'jump' | 'clap') {
+  emote(kind: 'wave' | 'dance' | 'clap') {
     if (this.act || this.drive) return;
     this.emoteKind = kind;
-    this.emoteUntil = this.clock + (kind === 'jump' ? 0.7 : 1.6);
-    if (kind === 'clap') this.sparkles.burst(this.pos.clone().setY(this.pos.y + 2.8), 14);
+    this.emoteUntil = this.clock + (kind === 'dance' ? 2.6 : 1.6);
+    if (kind === 'clap') this.fx.burst(this.pos.clone().setY(this.pos.y + 2.8), 14);
     // el sallarken kameraya döner
     if (kind === 'wave') this.heading = Math.atan2(this.camera.position.x - this.pos.x, this.camera.position.z - this.pos.z);
     this.ev.sound.pop();
   }
   /** Yakındaki mekânın etkinliği ya da aracı. */
   activity(id: string) {
-    if (this.act || this.drive) return;
+    if (this.act || this.drive || this.realm) return;
     const s = this.spots.find((x) => x.id === id);
     if (!s) return;
+    this.target = null;
+    this.pending = null;
+    if (s.use) {
+      const u = s.use();
+      if (!u) return;
+      if (u === 'page') return this.ev.onPage(id);
+      if ('msg' in u) {
+        if (u.msg) this.ev.onMessage(u.msg);
+        this.setNear(null);
+        return;
+      }
+      return this.startAct(s, u);
+    }
     if (s.page) return this.ev.onPage(id);
     if (s.vehicle) return this.mount(s);
-    if (!s.act) return;
-    this.act = { spot: s, def: s.act, t: 0 };
-    this.target = null;
+    if (s.act) this.startAct(s, s.act);
+  }
+  private startAct(s: SpotDef, def: Activity) {
+    this.act = { spot: s, def, t: 0 };
+    this.hero.vy = 0;
+    this.hero.grounded = true;
     this.actor.heading = this.heading;
-    s.act.start?.(this.actor);
+    def.start?.(this.actor);
     this.ev.onBusy(true);
     this.setNear(null);
-    if (s.act.underwater) this.setUnderwater(true);
+    if (def.underwater) this.setUnderwater(true);
   }
   private mount(s: SpotDef) {
     this.drive = s.vehicle!;
-    this.target = null;
     this.ev.onDrive(true);
     this.ev.onDone(s.id);
     this.setNear(null);
@@ -265,24 +372,178 @@ export class Island {
     let best: [number, number] | null = null;
     for (let r = 2; r <= 12 && !best; r += 2) for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
       const x = v.pos.x + Math.cos(a) * r, z = v.pos.z + Math.sin(a) * r;
-      if (this.ground(x, z) > 0.1) {
+      if (this.wb.ground(x, z) > 0.1) {
         best = [x, z];
         break;
       }
     }
     const [x, z] = best ?? [v.pos.x + 2, v.pos.z];
-    this.pos.set(x, Math.max(-0.55, this.ground(x, z)), z);
+    this.pos.set(x, Math.max(-0.55, this.wb.ground(x, z)), z);
     this.drive = null;
     this.ev.onDrive(false);
   }
   /** Haritadan hızlı gidiş. */
   teleport(x: number, z: number) {
     if (this.act) return;
+    if (this.realm) this.leaveRealm();
     if (this.drive) this.dismount();
-    this.pos.set(x, this.ground(x, z), z);
+    this.pos.set(x, this.wb.ground(x, z), z);
+    this.hero.vy = 0;
     this.target = null;
+    this.pending = null;
     if (this.pet) this.petPos.set(x + 1.5, 0, z + 1);
     this.camera.position.set(x + Math.sin(this.camYaw) * 13, this.pos.y + 8, z + Math.cos(this.camYaw) * 13);
+  }
+
+  // ----------------------------------------------------------------------------------------------
+  // İnşa
+  // ----------------------------------------------------------------------------------------------
+  setBuildMode(on: boolean) {
+    this.building = on;
+    this.home.build.setEditing(on);
+    if (on) {
+      this.target = null;
+      this.pending = null;
+    }
+  }
+  setTool(t: { block: string } | { erase: true }) {
+    this.tool = t;
+  }
+  get buildMode() {
+    return this.building;
+  }
+  private saveBuild(delta: number) {
+    const str = this.home.build.save();
+    this.o.farm.apply((s) => placedBlocks(s, str, delta));
+  }
+  private buildTap() {
+    const h = this.home.build.hit(this.ray);
+    if (!h) return this.ev.onMessage('İnşa alanının içine dokun.');
+    const before = this.home.build.save();
+    if ('erase' in this.tool) {
+      if (!h.remove) return;
+      const b = this.home.build.remove(h.remove);
+      if (b) {
+        this.undo.push(before);
+        this.fx.burst(this.home.build.cellCenter(h.remove), 8, b.color);
+        this.ev.sound.pop();
+        this.saveBuild(0);
+      }
+      return;
+    }
+    if (!h.place) return;
+    const c: Cell = h.place;
+    const err = this.home.build.place(c, this.tool.block, this.home.build.bodyCells(this.pos.x, this.pos.z, this.pos.y));
+    if (err) return this.ev.onMessage(err);
+    this.undo.push(before);
+    if (this.undo.length > 60) this.undo.shift();
+    this.home.build.flash(c);
+    this.fx.burst(this.home.build.cellCenter(c), 5, blockById(this.tool.block)?.color);
+    this.ev.sound.pop();
+    this.saveBuild(1);
+    this.ev.onDone('build');
+  }
+  undoBuild() {
+    const prev = this.undo.pop();
+    if (prev === undefined) return false;
+    this.home.build.load(prev);
+    this.saveBuild(0);
+    this.ev.sound.pop();
+    return true;
+  }
+  /** Hazır yapı kur: altın düşer, bloklar kahramanın yakınına konur. */
+  blueprint(id: string): string {
+    const check = buyBlueprint(this.o.farm.get(), id);
+    if (check.err) return check.err;
+    const before = this.home.build.save();
+    const n = this.home.build.placeBlueprint(id, this.home.build.center, this.home.build.bodyCells(this.pos.x, this.pos.z, this.pos.y));
+    if (!n) return 'Arsanda bunun için yeterli boş yer yok. Biraz yer aç!';
+    this.undo.push(before);
+    const str = this.home.build.save();
+    const r = this.o.farm.apply((s) => {
+      const b = buyBlueprint(s, id);
+      return b.err ? b : { ...placedBlocks(b.s, str, n), msg: b.msg };
+    });
+    this.fx.burst(new THREE.Vector3(...this.home.build.center, 0).set(this.home.build.center[0], this.home.build.y0 + 4, this.home.build.center[1]), 30);
+    this.ev.sound.star(5);
+    this.ev.onDone('build');
+    return r.err ?? r.msg ?? '';
+  }
+  /** Çiftlik durumu React'ta değişti (pazarda alınan hayvan…): görüntüyü yenile. */
+  farmChanged() {
+    this.home.refresh();
+  }
+  /** Arkadaşın adasında onun çiftliği ve yapıları gösterilir (null: kendi çiftliğim). */
+  setHomeView(bridge: FarmBridge | null, guest: string | null) {
+    this.home.setBridge(bridge ?? this.o.farm, guest);
+  }
+  /** Kendi çiftliğimin paylaşılacak özeti (arkadaşlar görür). */
+  homeSnapshot(): string {
+    const s: FarmState = this.o.farm.get();
+    return JSON.stringify({ b: s.build, f: s.fields.map((f) => [f.c ?? '', f.w ?? 0]), a: s.animals.map((a) => [a.k, a.fed ?? 0]) });
+  }
+
+  // ----------------------------------------------------------------------------------------------
+  // Macera kapıları
+  // ----------------------------------------------------------------------------------------------
+  /** Labirent tohumu (aynı odadaki arkadaşlar aynı labirenti görür). */
+  setSeed(seed: number) {
+    this.seed = seed >>> 0;
+  }
+  enterRealm(id: RealmId) {
+    if (this.realm) return;
+    this.realmBack.copy(this.pos);
+    const realm = makeRealm(id, {
+      progress: (t) => this.ev.onRealmProgress?.(t),
+      msg: (t) => this.ev.onMessage(t),
+      finish: (bonus, text) => {
+        this.ev.onRealmFinish?.(id, bonus, text);
+        this.ev.onDone(id);
+      },
+      sound: { star: (i) => this.ev.sound.star(i), pop: () => this.ev.sound.pop() },
+    }, this.seed);
+    this.realm = realm;
+    if (this.building) this.setBuildMode(false);
+    this.moveActors(realm.scene);
+    // arkadaşlar üst üste doğmasın: başlangıç noktası biraz kayar
+    this.pos.copy(realm.spawn).add(new THREE.Vector3((Math.random() - 0.5) * 3, 0, (Math.random() - 0.5) * 1.5));
+    this.heading = realm.spawnH;
+    this.camYaw = this.camYawGoal = realm.spawnH + Math.PI;
+    this.hero.vy = 0;
+    this.hero.grounded = true;
+    this.target = null;
+    this.pending = null;
+    this.petPos.copy(this.pos).add(new THREE.Vector3(1.5, 0, 1));
+    this.camera.position.set(this.pos.x + Math.sin(this.camYaw) * 13, this.pos.y + 8, this.pos.z + Math.cos(this.camYaw) * 13);
+    this.setNear(null);
+    const def = REALMS.find((r) => r.id === id)!;
+    this.ev.onRealm?.({ id, name: def.name, goal: realm.goal });
+  }
+  leaveRealm() {
+    const r = this.realm;
+    if (!r) return;
+    this.realm = null;
+    this.moveActors(this.scene);
+    disposeScene(r.scene);
+    r.dispose();
+    // kapının önüne dön
+    const back = this.realmBack;
+    this.pos.set(back.x + 2.5, this.wb.ground(back.x + 2.5, back.z), back.z);
+    this.heading = Math.PI / 2;
+    this.hero.vy = 0;
+    this.hero.grounded = true;
+    this.petPos.copy(this.pos).add(new THREE.Vector3(1.5, 0, 1));
+    this.camera.position.set(this.pos.x - 12, this.pos.y + 8, this.pos.z);
+    this.camYaw = this.camYawGoal = -Math.PI / 2;
+    this.ev.onRealm?.(null);
+  }
+  get realmId(): RealmId | null {
+    return this.realm?.id ?? null;
+  }
+  private moveActors(to: THREE.Scene) {
+    to.add(this.avatar.root, this.shadow);
+    if (this.pet) to.add(this.pet);
+    for (const r of this.remotes.values()) to.add(r.av.root, r.tag);
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -295,7 +556,10 @@ export class Island {
     if (this.act) this.stepActivity(dt);
     else if (this.drive) this.stepDrive(dt);
     else this.stepWalk(dt);
-    this.stepWorld(dt);
+    if (this.realm) {
+      const out = this.realm.update(dt, this.clock, this.hero);
+      if (out) this.leaveRealm();
+    } else this.stepWorld(dt);
     this.draw(dt);
     this.raf = requestAnimationFrame(this.frame);
   };
@@ -310,8 +574,13 @@ export class Island {
     if (this.target) {
       const d = this.target.clone().sub(this.pos).setY(0);
       const l = d.length();
-      if (l < 0.4) {
+      const sp = this.pending ? this.spots.find((s) => s.id === this.pending) : null;
+      if (l < (sp ? sp.r * 0.8 : 0.4)) {
         this.target = null;
+        if (sp) {
+          this.pending = null;
+          this.activity(sp.id);
+        }
         return { dir: d, mag: 0 };
       }
       return { dir: d.normalize(), mag: l > 25 ? 1 : 0.9 };
@@ -325,24 +594,48 @@ export class Island {
 
   private stepWalk(dt: number) {
     const { dir, mag } = this.moveDir();
-    const g = this.ground(this.pos.x, this.pos.z);
-    this.swimming = g < -0.7;
+    const g = this.realm ? 0 : this.wb.ground(this.pos.x, this.pos.z);
+    this.swimming = !this.realm && g < -0.7 && this.pos.y < 0;
     const run = mag > 0.95 && !this.swimming;
     const sp = mag <= 0 ? 0 : (run ? RUN : WALK * mag) * (this.swimming ? 0.55 : 1);
     this.speed += ((mag > 0 ? (run ? 1.3 : mag) : 0) - this.speed) * Math.min(1, dt * 10);
     if (mag > 0) {
       const next = this.pos.clone().addScaledVector(dir, sp * dt);
-      this.grid.push(next);
-      const R = Math.hypot(next.x, next.z);
-      if (R > WORLD_R) next.multiplyScalar(WORLD_R / R);
-      this.pos.x = next.x;
-      this.pos.z = next.z;
+      if (!this.realm) {
+        this.grid.push(next);
+        const R = Math.hypot(next.x, next.z);
+        if (R > WORLD_R) next.multiplyScalar(WORLD_R / R);
+      }
+      // duvarlar (bloklar, labirent): eksen eksen dene, duvar boyunca kayar
+      if (!this.blockedAt(next.x, this.pos.z, this.pos.y)) this.pos.x = next.x;
+      if (!this.blockedAt(this.pos.x, next.z, this.pos.y)) this.pos.z = next.z;
       this.turnTo(Math.atan2(dir.x, dir.z), dt);
       // ileri giderken kamera yavaşça arkaya döner
       if (this.clock - this.lastDrag > 1.2 && this.joy.y > 0.3) this.camYawGoal += angDiff(this.heading + Math.PI, this.camYawGoal) * Math.min(1, dt * 0.8);
     }
-    const ng = this.ground(this.pos.x, this.pos.z);
-    this.pos.y += ((this.swimming ? -0.55 : Math.max(ng, -0.7)) - this.pos.y) * Math.min(1, dt * 14);
+    // dikey: yerçekimi, zıplama, yokuşlar
+    const f = this.floorAt(this.pos.x, this.pos.z, this.pos.y);
+    if (this.swimming) {
+      this.pos.y += (-0.55 - this.pos.y) * Math.min(1, dt * 14);
+      this.hero.vy = 0;
+      this.hero.grounded = true;
+    } else if (this.hero.grounded && this.hero.vy <= 0 && f > this.pos.y - 0.7 && f < this.pos.y + 0.5) {
+      this.pos.y += (f - this.pos.y) * Math.min(1, dt * 14);
+    } else {
+      this.hero.vy -= GRAVITY * dt;
+      this.pos.y += this.hero.vy * dt;
+      if (this.pos.y <= f && this.hero.vy <= 0) {
+        if (this.hero.vy < -14) this.fx.burst(this.pos.clone().setY(f + 0.2), 6, '#ffffff');
+        this.pos.y = f;
+        this.hero.vy = 0;
+        this.hero.grounded = true;
+      } else {
+        this.hero.grounded = false;
+        // kafa bloğa çarpınca geri düş
+        if (this.hero.vy > 0 && this.blockedAt(this.pos.x, this.pos.z, this.pos.y - 0.2)) this.hero.vy = 0;
+      }
+    }
+    if (this.realm) return;
     if (this.swimming) {
       this.swimTime += dt;
       if (this.swimTime > 8 && this.swimTime - dt <= 8) {
@@ -362,23 +655,34 @@ export class Island {
       }
     }
     this.stepMusic();
-    let near: SpotDef | null = null;
+    // en yakın mekân (kendi yarıçapı içinde)
+    let near: SpotDef | null = null, best = Infinity, label = '';
     for (const s of this.spots) {
       const x = s.vehicle ? s.vehicle.pos.x : s.x, z = s.vehicle ? s.vehicle.pos.z : s.z;
-      if (Math.hypot(x - this.pos.x, z - this.pos.z) < s.r) near = s;
+      const d = Math.hypot(x - this.pos.x, z - this.pos.z) / s.r;
+      if (d >= 1 || d >= best) continue;
+      const l = s.dyn ? s.dyn() : s.label;
+      if (l === null) continue;
+      [near, best, label] = [s, d, l];
     }
-    this.setNear(near);
+    this.setNear(near, label);
+    const inB = this.home.build.inside(this.pos.x, this.pos.z, 1);
+    if (inB !== this.inBuild) {
+      this.inBuild = inB;
+      this.ev.onBuildArea?.(inB);
+    }
   }
 
-  private setNear(s: SpotDef | null) {
-    if (s?.id === this.near?.id) return;
+  private setNear(s: SpotDef | null, label = '') {
+    if (s?.id === this.near?.id && label === this.nearLabel) return;
     this.near = s;
-    this.ev.onNear(s ? { id: s.id, pos: new THREE.Vector3(s.x, 0, s.z), r: s.r, label: s.label } : null);
+    this.nearLabel = label;
+    this.ev.onNear(s ? { id: s.id, pos: new THREE.Vector3(s.x, 0, s.z), r: s.r, label } : null);
   }
 
   private stepMusic() {
     let on = -1;
-    for (const t of this.wb.musicTiles) if (Math.abs(this.pos.x - t.x) < 0.9 && Math.abs(this.pos.z - t.z) < 1.4) on = t.note;
+    for (const t of this.wb.musicTiles) if (Math.abs(this.pos.x - t.x) < 0.9 && Math.abs(this.pos.z - t.z) < 1.4 && this.hero.grounded) on = t.note;
     if (on === this.musicLast) return;
     this.musicLast = on;
     if (on < 0) return;
@@ -402,7 +706,7 @@ export class Island {
       v.heading += angDiff(Math.atan2(dir.x, dir.z), v.heading) * Math.min(1, dt * 3);
       const f = new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading));
       const next = v.pos.clone().addScaledVector(f, v.speed * mag * dt);
-      if ((!v.water || (isWater(next.x, next.z) && this.ground(next.x, next.z) < -0.4)) && Math.hypot(next.x, next.z) < WORLD_R) v.pos.copy(next);
+      if ((!v.water || (isWater(next.x, next.z) && this.wb.ground(next.x, next.z) < -0.4)) && Math.hypot(next.x, next.z) < WORLD_R) v.pos.copy(next);
       if (Math.random() < dt * 8) this.sparkles.burst(v.pos.clone().addScaledVector(f, -1.5).setY(0.2), 2, '#ffffff');
       if (this.clock - this.lastDrag > 1.2) this.camYawGoal += angDiff(v.heading + Math.PI, this.camYawGoal) * Math.min(1, dt * 1.5);
     }
@@ -423,13 +727,14 @@ export class Island {
     this.heading = this.actor.heading;
     this.act = null;
     if (a.def.underwater) this.setUnderwater(false);
+    this.ev.onBusy(false);
+    if (this.realm) return; // kapıdan geçildi
     // etkinlik bitince kahraman yere (ya da suya) iner
-    const g = this.ground(this.pos.x, this.pos.z);
+    const g = this.wb.ground(this.pos.x, this.pos.z);
     if (Math.abs(this.pos.y - g) > 0.4) {
       if (g < -0.7) this.pos.y = -0.55;
-      else this.pos.set(a.spot.x, this.ground(a.spot.x, a.spot.z), a.spot.z);
+      else this.pos.set(a.spot.x, this.wb.ground(a.spot.x, a.spot.z), a.spot.z);
     }
-    this.ev.onBusy(false);
     if (msg) this.ev.onMessage(msg);
     this.ev.onDone(a.def.quest ?? a.spot.id);
     this.sparkles.burst(this.pos.clone().setY(this.pos.y + 2), 14);
@@ -450,6 +755,7 @@ export class Island {
     this.water.offset.x += dt * 0.02;
     for (const s of this.stars) if (!s.taken) s.obj.rotation.y += dt * 2;
     for (const f of this.wb.ticks) f(dt, this.clock, this.actor);
+    this.home.update(dt, this.clock);
     // araçlar: binilmeyenler suda sallanır
     for (const s of this.spots) {
       const v = s.vehicle;
@@ -481,7 +787,7 @@ export class Island {
           if (Math.abs(side) > 0.2) w.facing = side > 0 ? 1 : -1;
         } else w.obj.rotation.y = Math.atan2(d.x, d.z);
       }
-      w.obj.position.set(w.pos.x, this.ground(w.pos.x, w.pos.z) + (moving ? Math.abs(Math.sin(w.hop)) * 0.25 : 0), w.pos.z);
+      w.obj.position.set(w.pos.x, this.wb.ground(w.pos.x, w.pos.z) + (moving ? Math.abs(Math.sin(w.hop)) * 0.25 : 0), w.pos.z);
       if (w.card) w.obj.scale.x = w.facing;
     }
     // kâğıt kartlar kameraya döner
@@ -505,6 +811,7 @@ export class Island {
     }
     if (this.drive) return 'drive';
     if (this.swimming) return 'swim';
+    if (!this.hero.grounded) return 'jump';
     if (this.emoteKind && this.clock < this.emoteUntil) return this.emoteKind;
     this.emoteKind = null;
     return this.avatar.hand.getObjectByName('held') ? 'hold' : 'walk';
@@ -514,15 +821,13 @@ export class Island {
     const pose = this.pose();
     this.lastPose = pose;
     this.drawRemotes(dt);
-    let jump = 0;
-    if (pose === 'jump' && !this.act) jump = Math.sin(Math.max(0, 1 - (this.emoteUntil - this.clock) / 0.7) * Math.PI) * 1.4;
-    this.avatar.root.position.set(this.pos.x, this.pos.y + jump, this.pos.z);
+    this.avatar.root.position.copy(this.pos);
     this.avatar.root.rotation.y = this.heading;
     this.avatar.update(dt, this.clock, pose, this.act ? (pose === 'climb' ? 0.8 : 0) : this.speed);
-    const g = this.ground(this.pos.x, this.pos.z);
-    this.shadow.visible = !this.swimming && !this.drive && this.pos.y - g < 6 && g > -0.3;
+    const g = this.floorAt(this.pos.x, this.pos.z, this.pos.y + 0.1);
+    this.shadow.visible = !this.swimming && !this.drive && Number.isFinite(g) && this.pos.y - g < 8 && (this.realm ? true : g > -0.3);
     this.shadow.position.set(this.pos.x, g + 0.06, this.pos.z);
-    const sk = 1 / (1 + Math.max(0, this.pos.y + jump - g) * 0.25);
+    const sk = 1 / (1 + Math.max(0, this.pos.y - g) * 0.25);
     this.shadow.scale.set(sk, sk, 1);
     // evcil hayvan: biraz arkada, zıplayarak gelir
     if (this.pet) {
@@ -536,25 +841,27 @@ export class Island {
         this.petPos.addScaledVector(d, Math.min(1, dt * 4));
         this.petHop += dt * 12;
       }
-      const pg = Math.max(-0.4, this.ground(this.petPos.x, this.petPos.z));
+      const pf = this.floorAt(this.petPos.x, this.petPos.z, this.pos.y + 0.5);
+      const pg = Number.isFinite(pf) ? Math.max(this.realm ? pf : -0.4, pf) : this.pos.y;
       this.pet.position.set(this.petPos.x, pg + (moving ? Math.abs(Math.sin(this.petHop)) * 0.3 : 0), this.petPos.z);
       this.pet.rotation.y = Math.atan2(this.camera.position.x - this.petPos.x, this.camera.position.z - this.petPos.z);
     }
     // kamera
     this.camYaw += angDiff(this.camYawGoal, this.camYaw) * Math.min(1, dt * 6);
-    const [dist, h] = this.act?.def.cam ?? (this.drive ? [16, 8] : [13, 7.5]);
+    const [dist, h] = this.act?.def.cam ?? (this.realm ? this.realm.cam : this.building ? [17, 13] : this.drive ? [16, 8] : [13, 7.5]);
     const cx = this.pos.x + Math.sin(this.camYaw) * dist, cz = this.pos.z + Math.cos(this.camYaw) * dist;
     let cy = this.pos.y + h;
-    if (!this.underwater) cy = Math.max(cy, Math.max(0, this.ground(cx, cz)) + 2);
+    if (!this.underwater && !this.realm) cy = Math.max(cy, Math.max(0, this.wb.ground(cx, cz)) + 2);
     const k = Math.min(1, dt * 6);
     this.camera.position.x += (cx - this.camera.position.x) * k;
     this.camera.position.y += (cy - this.camera.position.y) * k;
     this.camera.position.z += (cz - this.camera.position.z) * k;
     this.camera.lookAt(this.pos.x, this.pos.y + 1.8, this.pos.z);
     // güneş kahramanı izler (gölgeler hep yakında net)
-    this.sun.position.set(this.pos.x - 30, this.pos.y + 60, this.pos.z + 26);
-    this.sun.target.position.set(this.pos.x, this.pos.y, this.pos.z);
-    this.renderer.render(this.scene, this.camera);
+    const sun = this.realm?.sun ?? this.sun;
+    sun.position.set(this.pos.x - 30, this.pos.y + 60, this.pos.z + 26);
+    sun.target.position.set(this.pos.x, this.pos.y, this.pos.z);
+    this.renderer.render(this.stage, this.camera);
   }
 
   private resize() {
@@ -569,16 +876,17 @@ export class Island {
   // ----------------------------------------------------------------------------------------------
   // Arkadaşlar (çok oyunculu)
   // ----------------------------------------------------------------------------------------------
-  /** Gönderilecek kendi durumum (konum, yön, poz). */
+  /** Gönderilecek kendi durumum (konum, yön, poz, hangi dünyada). */
   liveState(): Omit<Live, 'n'> {
-    return { x: this.pos.x, z: this.pos.z, y: this.pos.y, h: this.heading, p: this.lastPose };
+    return { x: this.pos.x, z: this.pos.z, y: this.pos.y, h: this.heading, p: this.lastPose, w: this.realm?.id ?? '' };
   }
 
   /** Odadaki arkadaşların görünüşü ve canlı durumu (sunucudan geldikçe). */
   setPeers(peers: Record<string, { look?: DollState; live?: Live }>) {
     for (const [pid, r] of this.remotes) {
       if (!peers[pid]?.live || !peers[pid]?.look) {
-        this.scene.remove(r.av.root, r.tag);
+        r.av.root.parent?.remove(r.av.root);
+        r.tag.parent?.remove(r.tag);
         r.av.dispose();
         this.remotes.delete(pid);
       }
@@ -588,19 +896,23 @@ export class Island {
       const lk = JSON.stringify(p.look);
       let r = this.remotes.get(pid);
       if (r && r.look !== lk) {
-        this.scene.remove(r.av.root, r.tag);
+        r.av.root.parent?.remove(r.av.root);
+        r.tag.parent?.remove(r.tag);
         r.av.dispose();
         r = undefined;
       }
       if (!r) {
         const av = new Avatar3D(p.look);
         const tag = nameTag(p.live.n || 'Arkadaşın');
-        this.scene.add(av.root, tag);
-        const v = new THREE.Vector3(p.live.x, p.live.y ?? this.ground(p.live.x, p.live.z), p.live.z);
-        r = { av, tag, look: lk, pos: v.clone(), target: v, h: p.live.h, th: p.live.h, pose: p.live.p as Pose, speed: 0, seen: this.clock };
+        this.stage.add(av.root, tag);
+        const v = new THREE.Vector3(p.live.x, p.live.y ?? this.wb.ground(p.live.x, p.live.z), p.live.z);
+        r = { av, tag, look: lk, pos: v.clone(), target: v, h: p.live.h, th: p.live.h, pose: p.live.p as Pose, speed: 0, seen: this.clock, w: p.live.w ?? '' };
         this.remotes.set(pid, r);
       }
-      r.target.set(p.live.x, p.live.y ?? this.ground(p.live.x, p.live.z), p.live.z);
+      const w = p.live.w ?? '';
+      if (w !== r.w) r.pos.set(p.live.x, p.live.y, p.live.z);
+      r.w = w;
+      r.target.set(p.live.x, p.live.y ?? this.wb.ground(p.live.x, p.live.z), p.live.z);
       r.th = p.live.h;
       r.pose = (p.live.p as Pose) || 'walk';
       r.seen = this.clock;
@@ -611,12 +923,17 @@ export class Island {
   goToPeer(pid: string) {
     const r = this.remotes.get(pid);
     if (!r) return false;
+    if (r.w) return true; // macera dünyasında: adada bekle
     this.teleport(r.target.x + 2, r.target.z + 1.5);
     return true;
   }
 
   private drawRemotes(dt: number) {
+    const here = this.realm?.id ?? '';
     for (const r of this.remotes.values()) {
+      const vis = r.w === here;
+      r.av.root.visible = r.tag.visible = vis;
+      if (!vis) continue;
       const d = r.target.clone().sub(r.pos);
       if (d.length() > 30) r.pos.copy(r.target);
       else r.pos.addScaledVector(d, Math.min(1, dt * 8));
@@ -632,10 +949,14 @@ export class Island {
 
   /** Test/geliştirme: mekânların listesi ve durum. */
   get spotList() {
-    return this.spots.map((s) => ({ id: s.id, x: s.vehicle ? s.vehicle.pos.x : s.x, z: s.vehicle ? s.vehicle.pos.z : s.z, label: s.label }));
+    return this.spots.map((s) => ({ id: s.id, x: s.vehicle ? s.vehicle.pos.x : s.x, z: s.vehicle ? s.vehicle.pos.z : s.z, label: s.dyn?.() ?? s.label }));
   }
   get busy() {
     return !!this.act;
+  }
+  /** Test: kahramanın durumu. */
+  get heroState() {
+    return { x: this.pos.x, y: this.pos.y, z: this.pos.z, grounded: this.hero.grounded, realm: this.realm?.id ?? null };
   }
 
   dispose() {
@@ -643,6 +964,11 @@ export class Island {
     this.resizeObs.disconnect();
     this.avatar.dispose();
     for (const r of this.remotes.values()) r.av.dispose();
+    if (this.realm) {
+      disposeScene(this.realm.scene);
+      this.realm.dispose();
+    }
+    this.home.build.dispose();
     disposeScene(this.scene);
     this.renderer.dispose();
   }
