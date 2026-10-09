@@ -12,6 +12,7 @@ export const FIREBASE_CONFIG: FirebaseOptions | null = {
   storageBucket: 'cizio-5a08c.firebasestorage.app',
   messagingSenderId: '384704755624',
   appId: '1:384704755624:web:2832a82106a95308f54f9d',
+  databaseURL: 'https://cizio-5a08c-default-rtdb.europe-west1.firebasedatabase.app',
 };
 
 export const USE_EMULATOR = import.meta.env.VITE_FIREBASE_EMULATOR === '1';
