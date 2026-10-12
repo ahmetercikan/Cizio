@@ -39,6 +39,8 @@ export interface DollState {
 
 export const SKINS = ['#ffe3cc', '#f6c9a0', '#e5a878', '#d99a6c', '#c68653', '#a86b43', '#8d5a36', '#5e3b24'];
 export const HAIR_COLORS = ['#2b2220', '#5a3420', '#9a6234', '#e8b64c', '#f4e3b5', '#c8452c', '#ff8fb1', '#9b6bff', '#5b8def', '#2bb673', '#b9b3c9'];
+/** Parıltılı Renkler (özel paket 'renk'): altın, gümüş, inci, neon yeşil, neon pembe, galaksi. */
+export const SHINY_COLORS = ['#d4a72c', '#c3c9d2', '#f1e6d2', '#3dff8f', '#ff3fa4', '#2d1b69'];
 export const CLOTH_COLORS = ['#ff6b4a', '#ffc83d', '#2bb673', '#14a89a', '#5b8def', '#1d3557', '#9b6bff', '#ff8fb1', '#e9487d', '#ffffff', '#b9c6cc', '#3a2b27', '#8c5a2b', '#9be7de', '#fff1c7'];
 
 export interface Item {

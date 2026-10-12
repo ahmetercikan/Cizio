@@ -65,7 +65,7 @@ describe('oda', () => {
   it('çiftlik özeti: yalnızca ada sahibi yazar, arkadaş okur, yabancı okuyamaz', async () => {
     await assertSucceeds(set(ref(as('uidA'), `rooms/${pA}/home`), '{"b":""}'));
     await assertFails(set(ref(as('uidB'), `rooms/${pA}/home`), '{"b":""}'));
-    await assertFails(set(ref(as('uidA'), `rooms/${pA}/home`), 'x'.repeat(25000)));
+    await assertFails(set(ref(as('uidA'), `rooms/${pA}/home`), 'x'.repeat(45000)));
     await assertSucceeds(get(ref(as('uidB'), `rooms/${pA}/home`)));
     await assertFails(get(ref(as('uidX'), `rooms/${pA}/home`)));
   });

@@ -3,16 +3,18 @@
  * mutfak, çiftçi defteri, inşa çubuğu, hazır yapılar, seviye kutlaması ve macera ekranları.
  * Kurallar src/world/economy.ts'te; burada yalnızca gösterilir ve `apply` ile uygulanır.
  */
-import { BookOpen, Check, ChefHat, ClipboardList, Coins, Eraser, Hammer, Lock, LogOut, RotateCcw, Store, Trophy, Undo2, X } from 'lucide-react';
+import { BookOpen, Car, Check, ChefHat, ClipboardList, Coins, Crown, Eraser, Hammer, Lock, LogOut, RotateCcw, Store, Trophy, Undo2, X } from 'lucide-react';
+import { CARS } from './carsData';
+import { PREMIUM_HINT, usePremium } from './premium';
 import { useState, type ReactNode } from 'react';
 import { Modal } from '../components/ui';
 import {
-  ANIMALS, BLOCKS, BLUEPRINTS, buyAnimal, buyItem, buyPack, buyPrice, buyable, canCraft, canFill, clock, countAnimals, craft, CROPS, fillOrder,
+  ANIMALS, BLOCKS, BLUEPRINTS, buyAnimal, buyCar, STRUCTS, structPrice, buyItem, buyPack, buyPrice, buyable, canCraft, canFill, clock, countAnimals, craft, CROPS, fillOrder,
   ITEM_EMOJI, ITEM_NAME, JOURNEY, levelOf, levelProgress, PACKS, plant, plantAll, PRICE, RECIPES, sell, sellable, skipOrder, type BlockDef, type CropId,
   type FarmState, type ItemId, type Result,
 } from './economy';
 
-export type Apply = (f: (s: FarmState) => Result) => Result;
+export type Apply = <R extends Result>(f: (s: FarmState) => R) => R;
 
 const Coin = ({ n }: { n: number }) => <span className="farm-coin"><Coins size={16} /> {n}</span>;
 
@@ -52,8 +54,35 @@ function Panel({ title, icon, onClose, children, wide }: { title: string; icon?:
 // ------------------------------------------------------------------------------------------------
 // Pazar
 // ------------------------------------------------------------------------------------------------
-export function MarketPanel({ s, apply, tab: tab0, onClose, onSold }: { s: FarmState; apply: Apply; tab?: 'sell' | 'buy' | 'orders'; onClose: () => void; onSold: () => void }) {
-  const [tab, setTab] = useState<'sell' | 'buy' | 'orders'>(tab0 ?? 'sell');
+/** Sahip olunan arabalar: altınla alınanlar + açık özel paketteki arabalar. */
+export function ownedCars(s: FarmState, premium: string[]) {
+  return CARS.filter((c) => (c.premium ? premium.includes(c.premium) : (s.cars ?? []).includes(c.id))).map((c) => c.id);
+}
+
+function CarsTab({ s, apply, onHint }: { s: FarmState; apply: Apply; onHint: (t: string) => void }) {
+  const premium = usePremium((x) => x.owned);
+  const own = ownedCars(s, premium);
+  const lv = levelOf(s.xp);
+  return (
+    <ul className="farm-list">
+      {CARS.map((c) => {
+        const has = own.includes(c.id), locked = !c.premium && lv < c.level, now = (s.car ?? own[0]) === c.id;
+        return (
+          <li key={c.id} className={locked ? 'locked' : ''}>
+            <span className="farm-emoji">{c.emoji}</span>
+            <span className="farm-list__name"><b>{c.name}</b><small>{c.fly ? 'Denizin üstünden bile uçar!' : locked ? `${c.level}. seviyede açılır` : `Hız ${c.speed}`}</small></span>
+            {has ? (now ? <span className="premium-list__own"><Check size={18} /> Seçili</span> : <button className="btn-outline btn-outline--sm" onClick={() => apply((x) => ({ s: { ...x, car: c.id }, msg: `${c.name} seçildi.` }))}>Bunu kullan</button>)
+              : c.premium ? <button className="btn-outline btn-outline--sm" aria-label="Özel araba" onClick={() => onHint(PREMIUM_HINT)}><Crown size={16} color="#c98a00" /></button>
+                : locked ? <Lock size={20} /> : <button className="pill pill--sm" disabled={s.coins < c.price} onClick={() => apply((x) => buyCar(x, c.id))}><Coins size={16} /> {c.price}</button>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function MarketPanel({ s, apply, tab: tab0, onClose, onSold, onHint }: { s: FarmState; apply: Apply; tab?: 'sell' | 'buy' | 'orders' | 'cars'; onClose: () => void; onSold: () => void; onHint: (t: string) => void }) {
+  const [tab, setTab] = useState<'sell' | 'buy' | 'orders' | 'cars'>(tab0 ?? 'sell');
   const lv = levelOf(s.xp);
   const items = sellable(s);
   const sellAll = () => {
@@ -78,6 +107,7 @@ export function MarketPanel({ s, apply, tab: tab0, onClose, onSold }: { s: FarmS
         <button className={tab === 'sell' ? 'on' : ''} onClick={() => setTab('sell')}>Sat</button>
         <button className={tab === 'buy' ? 'on' : ''} onClick={() => setTab('buy')}>Al</button>
         <button className={tab === 'orders' ? 'on' : ''} onClick={() => setTab('orders')}>Siparişler</button>
+        <button className={tab === 'cars' ? 'on' : ''} onClick={() => setTab('cars')}><Car size={16} style={{ verticalAlign: '-3px' }} /> Arabalar</button>
         <Coin n={s.coins} />
       </div>
       {tab === 'sell' && (
@@ -138,6 +168,7 @@ export function MarketPanel({ s, apply, tab: tab0, onClose, onSold }: { s: FarmS
         </div>
       )}
       {tab === 'orders' && <Orders s={s} apply={apply} onSold={onSold} />}
+      {tab === 'cars' && <CarsTab s={s} apply={apply} onHint={onHint} />}
     </Panel>
   );
 }
@@ -284,16 +315,36 @@ function Swatch({ b }: { b: BlockDef }) {
 export function BuildBar({ s, tool, onTool, onUndo, onBlueprints, onDone, onJump }: {
   s: FarmState; tool: string; onTool: (t: string) => void; onUndo: () => void; onBlueprints: () => void; onDone: () => void; onJump: () => void;
 }) {
+  const [tab, setTab] = useState<'blocks' | 'structs'>(tool.startsWith('struct:') ? 'structs' : 'blocks');
   const blocks = BLOCKS.filter((b) => s.packs.includes(b.pack));
   const more = PACKS.some((p) => p.price > 0 && !s.packs.includes(p.id));
+  const lv = levelOf(s.xp);
   return (
     <div className="build-bar rise">
+      <div className="build-bar__tabs">
+        <button className={tab === 'blocks' ? 'on' : ''} onClick={() => setTab('blocks')}>🧱 Bloklar</button>
+        <button className={tab === 'structs' ? 'on' : ''} onClick={() => setTab('structs')}>🌾 Yapılar</button>
+        <span className="build-bar__hint">{tool === 'erase' ? 'Kaldırmak istediğin bloğa ya da yapıya dokun.' : tool.startsWith('struct:') ? 'Kurmak istediğin düz bir yere dokun.' : 'Blok koymak için yere ya da bir bloğa dokun.'}</span>
+      </div>
       <div className="build-bar__row">
         <button className={`build-tool ${tool === 'erase' ? 'on' : ''}`} onClick={() => onTool('erase')} aria-label="Sil"><Eraser size={22} /><small>Sil</small></button>
-        {blocks.map((b) => (
-          <button key={b.id} className={`build-tool ${tool === b.id ? 'on' : ''}`} onClick={() => onTool(b.id)} aria-label={b.name}><Swatch b={b} /><small>{b.name}</small></button>
-        ))}
-        {more && <span className="build-more"><Store size={16} /> Daha fazla blok Pazar'da</span>}
+        {tab === 'blocks' ? (
+          <>
+            {blocks.map((b) => (
+              <button key={b.id} className={`build-tool ${tool === b.id ? 'on' : ''}`} onClick={() => onTool(b.id)} aria-label={b.name}><Swatch b={b} /><small>{b.name}</small></button>
+            ))}
+            {more && <span className="build-more"><Store size={16} /> Daha fazla blok Pazar'da</span>}
+          </>
+        ) : STRUCTS.map((d) => {
+          const locked = lv < d.level, price = structPrice(s, d.k), has = d.k !== 'tarla' && s.places.some((p) => p.k === d.k);
+          return (
+            <button key={d.k} className={`build-tool build-tool--struct ${tool === `struct:${d.k}` ? 'on' : ''}`} disabled={locked || has} onClick={() => onTool(`struct:${d.k}`)} aria-label={d.name}>
+              <span className="build-swatch build-swatch--emoji">{locked ? '🔒' : d.emoji}</span>
+              <small>{d.name}</small>
+              <small className="build-tool__price">{locked ? `${d.level}. seviye` : has ? 'Kurulu' : price ? `${price} altın` : 'Bedava'}</small>
+            </button>
+          );
+        })}
       </div>
       <div className="build-bar__actions">
         <button className="btn-outline btn-outline--sm" onClick={onUndo}><Undo2 size={18} /> Geri al</button>

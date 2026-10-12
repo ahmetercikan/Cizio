@@ -39,6 +39,10 @@ export interface Vehicle {
   speed: number;
   water: boolean;
   seatY: number;
+  /** Karada giden araba (yokuşları izler). */
+  land?: boolean;
+  /** Uçan araba: her yerin üstünden geçer. */
+  fly?: boolean;
 }
 
 export interface SpotDef {

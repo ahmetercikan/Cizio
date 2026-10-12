@@ -313,3 +313,48 @@
 .home-ghost p.bad { color: #d9534f; }
 .home-ghost__btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .home-sw { display: flex; gap: 8px; }
+
+/* Özel paketler (ebeveyn bölümü) ve oyundaki taç işareti */
+.premium-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 8px; }
+.premium-list li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: #faf6ee; }
+.premium-list__emoji { font-size: 30px; flex: none; }
+.premium-list__text { flex: 1; display: grid; }
+.premium-list__text small { color: var(--ink-soft, #7a6a64); font-weight: 700; }
+.premium-list__own { display: inline-flex; align-items: center; gap: 4px; color: var(--green); font-weight: 800; }
+.premium-list__soon { padding: 6px 12px; border-radius: 99px; background: #eee7f7; color: #6b5fa8; font-weight: 800; font-size: 14px; }
+.crown-tag { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #ffd84d; color: #7a5200; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12); }
+.island__drive { display: inline-flex; gap: 10px; }
+.island__car {
+  position: absolute; right: 16px; bottom: calc(var(--safe-bottom) + 90px); z-index: 2; width: 66px; height: 66px; border-radius: 22px;
+  display: grid; place-items: center; align-content: center; background: #fff; color: var(--ink); box-shadow: var(--shadow-card);
+}
+.island__car small { font-weight: 800; font-size: 11px; }
+.swatch--shiny { position: relative; display: inline-grid; place-items: center; color: #7a5200; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7), 0 0 8px rgba(255, 216, 77, 0.6); }
+.swatch--shiny svg { background: #ffd84d; border-radius: 50%; padding: 2px; }
+
+/* Oyun Çadırı */
+.mini-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.mini-pick button { display: grid; justify-items: center; gap: 4px; padding: 18px 10px; border-radius: 22px; background: #fff7ec; border: 3px solid #f1e1c4; color: var(--ink); }
+.mini-pick span { font-size: 46px; }
+.mini-pick small { font-weight: 800; color: var(--ink-soft, #7a6a64); }
+.mini-memory { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 460px; margin: 0 auto; }
+.mini-card { aspect-ratio: 3 / 4; border-radius: 16px; background: #b8b4e6; color: #fff; font-size: 34px; font-family: var(--display); font-weight: 700; display: grid; place-items: center; box-shadow: 0 4px 0 rgba(58, 43, 39, 0.15); transition: transform 0.15s; }
+.mini-card.up { background: #fff; color: var(--ink); transform: rotateY(0); border: 3px solid #e4def0; }
+.mini-card.done { background: #dff5e7; border-color: #9bd8b0; }
+.mini-sky { position: relative; height: min(56vh, 460px); border-radius: 20px; overflow: hidden; background: linear-gradient(#cfeaff, #f6fbff); touch-action: none; }
+.mini-balloon { position: absolute; width: 54px; height: 64px; margin-left: -27px; border-radius: 50% 50% 46% 46%; box-shadow: inset -6px -8px 0 rgba(0, 0, 0, 0.12); }
+.mini-balloon::after { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 26px; background: rgba(58, 43, 39, 0.35); }
+.home-card { position: relative; }
+.home-card--premium { border-color: #ffe08a; background: #fffbea; }
+.island__build {
+  position: absolute; right: 16px; bottom: calc(var(--safe-bottom) + 166px); z-index: 2; width: 66px; height: 66px; border-radius: 22px;
+  display: grid; place-items: center; align-content: center; background: #ffd84d; color: var(--ink); box-shadow: var(--shadow-card);
+}
+.island__build small { font-weight: 800; font-size: 11px; }
+.build-bar__tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.build-bar__tabs button { padding: 6px 12px; border-radius: 12px; background: #f6f2ea; font-weight: 800; font-size: 14px; color: var(--ink); }
+.build-bar__tabs button.on { background: var(--ink); color: #fff; }
+.build-bar__hint { font-weight: 800; font-size: 13px; color: var(--ink-soft, #7a6a64); }
+.build-tool--struct { width: 86px; }
+.build-tool:disabled { opacity: 0.5; }
+.build-tool__price { color: #b07a00; }

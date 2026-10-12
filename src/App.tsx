@@ -26,6 +26,7 @@ import StoryShelf, { StoryReader } from './pages/StoryBook';
 import Worlds from './pages/Worlds';
 import World from './pages/World';
 import { initPlus } from './world/plus';
+import { initPremium } from './world/premium';
 import { OnlineSync } from './online/OnlineHost';
 import { useApp } from './store/useApp';
 
@@ -44,6 +45,7 @@ export default function App() {
   useEffect(() => setNaturalVoice(natural !== false), [natural]);
   // Çizio Plus (Google Play aboneliği) yalnızca Android uygulamasında başlatılır
   useEffect(() => void initPlus().catch(() => {}), []);
+  useEffect(() => void initPremium().catch(() => {}), []);
   // iOS: ses ancak bir dokunuştan sonra çalabilir; ilk dokunuşta ses öğesinin kilidini aç.
   useEffect(() => {
     const once = () => unlockAudio();

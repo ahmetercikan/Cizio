@@ -6,7 +6,9 @@
  * Bloklar ve süs eşyaları da burada tanımlıdır (inşa: src/world/build.ts).
  */
 import { hashStr } from '../lib/util';
-import type { HomeState } from './homeData';
+import { ITEMS as HOME_ITEMS, normalizeHome, type HomeState } from './homeData';
+import { car as carDef } from './carsData';
+import { HOME } from './layout';
 
 // ================================================================================================
 // Ürünler
@@ -196,7 +198,31 @@ export interface FarmState {
   realmDay?: { day: string; done: string[] };
   /** Evim: plan, eşyalar, renkler (homeData.ts). */
   home?: HomeState;
+  /** Altınla alınan arabalar ve seçili olan (cars.ts). */
+  cars?: string[];
+  car?: string;
+  /** Mini oyunların günlük eşya ödülü sayısı. */
+  miniDay?: { day: string; n: number };
+  /** Adaya kurulan çiftlik yapıları (tarla, kümes, ahır…); tarlalar sırayla `fields` ile eşleşir. */
+  places: Place[];
 }
+
+// ================================================================================================
+// Çiftlik yapıları: çocuk istediği yere kurar (baştan hazır çiftlik yok)
+// ================================================================================================
+export type PlaceKind = 'tarla' | 'kumes' | 'ahir' | 'agil' | 'kovan' | 'mutfak';
+export interface Place { k: PlaceKind; x: number; z: number }
+export interface StructDef { k: PlaceKind; name: string; emoji: string; price: number; level: number; /** Kapladığı yarıçap. */ r: number; animal?: AnimalId }
+export const STRUCTS: StructDef[] = [
+  { k: 'tarla', name: 'Tarla', emoji: '🟫', price: 0, level: 1, r: 2.3 },
+  { k: 'kumes', name: 'Tavuk kümesi', emoji: '🐔', price: 40, level: 2, r: 5, animal: 'tavuk' },
+  { k: 'ahir', name: 'İnek ahırı', emoji: '🐄', price: 80, level: 3, r: 5, animal: 'inek' },
+  { k: 'agil', name: 'Koyun ağılı', emoji: '🐑', price: 80, level: 4, r: 5, animal: 'koyun' },
+  { k: 'kovan', name: 'Arı bahçesi', emoji: '🐝', price: 90, level: 5, r: 4, animal: 'ari' },
+  { k: 'mutfak', name: 'Mutfak', emoji: '🍳', price: 60, level: 3, r: 3.6 },
+];
+export const struct = (k: PlaceKind) => STRUCTS.find((x) => x.k === k)!;
+export const PEN_OF: Record<AnimalId, PlaceKind> = { tavuk: 'kumes', inek: 'ahir', koyun: 'agil', ari: 'kovan' };
 
 export const FIELDS_START = 4;
 export const FIELDS_MAX = 16;
@@ -204,7 +230,7 @@ export const START_COINS = 30;
 
 export function newFarm(): FarmState {
   return {
-    coins: START_COINS, xp: 0, inv: {}, fields: Array.from({ length: FIELDS_START }, () => ({})), animals: [], packs: ['temel'], build: '',
+    coins: START_COINS, xp: 0, inv: {}, fields: [], places: [], animals: [], packs: ['temel'], build: '',
     orders: [], orderSeq: 0, journey: 0,
     stats: { harvested: 0, planted: 0, watered: 0, sold: 0, orders: 0, blocks: 0, fed: 0, collected: 0, crafted: 0, realms: 0 },
   };
@@ -214,7 +240,24 @@ export function newFarm(): FarmState {
 export function normalizeFarm(s: Partial<FarmState> | undefined): FarmState {
   const n = newFarm();
   if (!s) return n;
-  return { ...n, ...s, stats: { ...n.stats, ...s.stats }, inv: { ...s.inv }, packs: s.packs?.length ? s.packs : n.packs };
+  const out: FarmState = { ...n, ...s, stats: { ...n.stats, ...s.stats }, inv: { ...s.inv }, packs: s.packs?.length ? s.packs : n.packs, fields: s.fields ?? [], places: s.places ?? [] };
+  if (!s.places) {
+    // eski kayıt (hazır çiftlik zamanı): kullanıldıysa yapılar eski yerlerine kurulur, hiç kullanılmadıysa boş başlar
+    const used = (s.fields ?? []).some((f) => f.c) || (s.stats?.planted ?? 0) > 0 || (s.animals?.length ?? 0) > 0 || (s.fields?.length ?? 0) > FIELDS_START;
+    if (used) out.places = legacyPlaces(out);
+    else out.fields = [];
+  }
+  return out;
+}
+
+/** Hazır çiftliğin eski yerleri (Çiftliğim bölgesi). */
+function legacyPlaces(s: FarmState): Place[] {
+  const C = HOME;
+  const out: Place[] = s.fields.map((_, i) => ({ k: 'tarla' as const, x: C.x - 30 + (i % 4) * 4.7, z: C.z - 26 + Math.floor(i / 4) * 4.7 }));
+  const pens: Record<AnimalId, [number, number]> = { tavuk: [C.x - 28, C.z + 20], inek: [C.x - 16, C.z + 20], koyun: [C.x - 4, C.z + 20], ari: [C.x - 16, C.z + 32] };
+  for (const k of Object.keys(pens) as AnimalId[]) if (s.animals.some((a) => a.k === k)) out.push({ k: PEN_OF[k], x: pens[k][0], z: pens[k][1] });
+  out.push({ k: 'mutfak', x: C.x - 6, z: C.z - 12 });
+  return out;
 }
 
 // ================================================================================================
@@ -345,14 +388,38 @@ export function plantAll(s: FarmState, c: CropId): Result {
   return { s: cur, msg: `${n} tarlaya ${crop(c).name.toLocaleLowerCase('tr')} ektin! Şimdi sula.` };
 }
 
-export const fieldPrice = (s: FarmState) => 15 + 10 * (s.fields.length - FIELDS_START);
+/** İlk 4 tarla bedava, sonrakiler giderek pahalı. */
+export const fieldPrice = (s: FarmState) => (s.fields.length < FIELDS_START ? 0 : 15 + 10 * (s.fields.length - FIELDS_START));
+export const structPrice = (s: FarmState, k: PlaceKind) => (k === 'tarla' ? fieldPrice(s) : struct(k).price);
 
-export function buyField(s: FarmState): Result {
-  if (s.fields.length >= FIELDS_MAX) return { s, err: 'Bütün tarlalar açık.' };
-  const p = fieldPrice(s);
-  if (s.coins < p) return { s, err: `Yeni tarla için ${p} altın gerekiyor.` };
-  return { s: { ...s, coins: s.coins - p, fields: [...s.fields, {}] }, msg: 'Yeni tarlan hazır!' };
+/** Bir çiftlik yapısı kurar (yerin uygun olduğunu ada denetler). */
+export function placeStruct(s: FarmState, k: PlaceKind, x: number, z: number): Result {
+  const d = struct(k);
+  if (levelOf(s.xp) < d.level) return { s, err: `${d.name} ${d.level}. seviyede açılır.` };
+  if (k === 'tarla' && s.fields.length >= FIELDS_MAX) return { s, err: `En çok ${FIELDS_MAX} tarla olabilir.` };
+  if (k !== 'tarla' && s.places.some((p) => p.k === k)) return { s, err: `Zaten bir ${d.name.toLocaleLowerCase('tr')} var.` };
+  const price = structPrice(s, k);
+  if (s.coins < price) return { s, err: `${d.name} için ${price} altın gerekiyor.` };
+  const next = { ...s, coins: s.coins - price, places: [...s.places, { k, x, z }], fields: k === 'tarla' ? [...s.fields, {}] : s.fields };
+  return { s: next, msg: k === 'tarla' ? 'Tarlan hazır! Tohum ekmek için ona dokun.' : d.animal ? `${d.name} hazır! Pazar'dan ${animal(d.animal).name.toLocaleLowerCase('tr')} alabilirsin.` : `${d.name} hazır!` };
 }
+
+/** Yapıyı kaldırır (ekili tarla ve içinde hayvan olan ağıl kaldırılmaz); yarı fiyatı geri gelir. */
+export function removeStruct(s: FarmState, i: number): Result {
+  const p = s.places[i];
+  if (!p) return { s };
+  const d = struct(p.k);
+  if (p.k === 'tarla') {
+    const fi = s.places.slice(0, i).filter((x) => x.k === 'tarla').length;
+    if (s.fields[fi]?.c) return { s, err: 'Bu tarlada ürün var. Önce topla.' };
+    return { s: { ...s, places: s.places.filter((_, j) => j !== i), fields: s.fields.filter((_, j) => j !== fi) }, msg: 'Tarla kaldırıldı.' };
+  }
+  if (d.animal && s.animals.some((a) => a.k === d.animal)) return { s, err: `İçinde hayvanların var; ${d.name.toLocaleLowerCase('tr')} kaldırılamaz.` };
+  return { s: { ...s, coins: s.coins + Math.floor(d.price / 2), places: s.places.filter((_, j) => j !== i) }, msg: `${d.name} kaldırıldı.` };
+}
+
+/** Tarla yapısının hangi `fields` girdisine karşılık geldiği. */
+export const fieldIndexOf = (s: FarmState, placeIndex: number) => s.places.slice(0, placeIndex).filter((x) => x.k === 'tarla').length;
 
 // ================================================================================================
 // Hayvanlar
@@ -372,6 +439,7 @@ export function buyAnimal(s: FarmState, k: AnimalId): Result {
   const def = animal(k);
   if (levelOf(s.xp) < def.level) return { s, err: `${def.name} ${def.level}. seviyede açılır.` };
   if (countAnimals(s, k) >= def.max) return { s, err: `En çok ${def.max} ${def.name.toLocaleLowerCase('tr')} olabilir.` };
+  if (!s.places.some((p) => p.k === PEN_OF[k])) return { s, err: `Önce adana bir ${struct(PEN_OF[k]).name.toLocaleLowerCase('tr')} kur (İnşa et > Yapılar).` };
   if (s.coins < def.cost) return { s, err: `${def.name} için ${def.cost} altın gerekiyor.` };
   return { s: { ...s, coins: s.coins - def.cost, animals: [...s.animals, { k }] }, msg: `${def.name} çiftliğine geldi!` };
 }
@@ -545,14 +613,14 @@ export function realmReward(s: FarmState, realm: string, day: string): Result {
 // ================================================================================================
 export interface Step { text: string; done: (s: FarmState) => boolean; coins: number }
 export const JOURNEY: Step[] = [
-  { text: 'Tarlana bir tohum ek', done: (s) => s.stats.planted >= 1, coins: 5 },
+  { text: 'İnşa et > Yapılar\'dan bir tarla kur ve tohum ek', done: (s) => s.stats.planted >= 1, coins: 5 },
   { text: 'Tohumu sula', done: (s) => s.stats.watered >= 1, coins: 5 },
   { text: 'Ürünü topla', done: (s) => s.stats.harvested >= 1, coins: 10 },
   { text: 'Kasabadaki Pazar\'da bir ürün sat', done: (s) => s.stats.sold >= 1, coins: 10 },
   { text: 'Arsana 10 blok koy', done: (s) => s.stats.blocks >= 10, coins: 15 },
   { text: 'Pazardaki panodan bir sipariş tamamla', done: (s) => s.stats.orders >= 1, coins: 15 },
   { text: '2. seviyeye ulaş', done: (s) => levelOf(s.xp) >= 2, coins: 10 },
-  { text: 'Pazardan bir tavuk al', done: (s) => s.animals.some((a) => a.k === 'tavuk'), coins: 10 },
+  { text: 'Tavuk kümesi kur ve pazardan bir tavuk al', done: (s) => s.animals.some((a) => a.k === 'tavuk'), coins: 10 },
   { text: 'Tavuğunu mısırla besle', done: (s) => s.stats.fed >= 1, coins: 10 },
   { text: 'Yumurtaları topla', done: (s) => s.stats.collected >= 1, coins: 15 },
   { text: 'Macera Kapıları\'ndan birini bitir', done: (s) => s.stats.realms >= 1, coins: 20 },
@@ -582,3 +650,41 @@ export function advanceJourney(s: FarmState): Result & { steps: string[] } {
 
 /** Süre yazısı: 75 → "1:15". */
 export const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
+// ================================================================================================
+// Arabalar
+// ================================================================================================
+export function buyCar(s: FarmState, id: string): Result {
+  const c = carDef(id);
+  if (!c) return { s };
+  if (c.premium) return { s, err: 'Bu özel bir araba. Bir büyüğün ebeveyn bölümünden açabilir.' };
+  if ((s.cars ?? []).includes(id)) return { s: { ...s, car: id }, msg: `${c.name} hazır!` };
+  if (levelOf(s.xp) < c.level) return { s, err: `${c.name} ${c.level}. seviyede açılır.` };
+  if (s.coins < c.price) return { s, err: `${c.name} için ${c.price} altın gerekiyor.` };
+  return { s: { ...s, coins: s.coins - c.price, cars: [...(s.cars ?? []), id], car: id }, msg: `${c.name} senin! Adada "Arabam" düğmesine dokun.` };
+}
+
+// ================================================================================================
+// Mini oyun ödülleri: bazen eve bir eşya, bazen üstüne bir kıyafet (günde en çok 3 eşya), her zaman biraz altın
+// ================================================================================================
+export const MINI_ITEMS_PER_DAY = 3;
+export type MiniPrize = { kind: 'item'; id: string; name: string } | { kind: 'cloth'; key: string } | { kind: 'coins'; n: number };
+
+/**
+ * `clothes`: henüz sahip olunmayan nadir kıyafetlerin anahtarları ("slot:id"); `rnd` 0..1.
+ * Eşya ödülü evin deposuna gider (Evim'de bedava yerleştirilir).
+ */
+export function miniReward(s: FarmState, day: string, clothes: string[], rnd: number, premiumItems: string[] = []): Result & { prize: MiniPrize } {
+  const md = s.miniDay?.day === day ? s.miniDay : { day, n: 0 };
+  const base = gain(s, 15, 6);
+  if (md.n >= MINI_ITEMS_PER_DAY) return { ...base, s: { ...base.s, miniDay: md }, prize: { kind: 'coins', n: 15 } };
+  const next = { ...base.s, miniDay: { day, n: md.n + 1 } };
+  if (clothes.length && rnd < 0.35) {
+    const key = clothes[Math.floor((rnd / 0.35) * clothes.length) % clothes.length];
+    return { ...base, s: next, prize: { kind: 'cloth', key } };
+  }
+  const pool = HOME_ITEMS.filter((i) => i.price > 0 && i.price <= 50 && !i.premium && !premiumItems.includes(i.id));
+  const it = pool[Math.floor(rnd * 9973) % pool.length];
+  const home = normalizeHome(next.home);
+  return { ...base, s: { ...next, home: { ...home, stored: [...home.stored, it.id] } }, prize: { kind: 'item', id: it.id, name: it.name } };
+}

@@ -1,34 +1,60 @@
 /**
- * İnşa alanı (Minecraft gibi): arsadaki blok ızgarası. Bloklar tek çizimde (InstancedMesh) çizilir; kapı, çiçek, ağaç
- * gibi eşyalar küçük modellerdir. Kahraman blokların üstüne zıplayarak çıkar, duvarlardan geçemez.
+ * İnşa (Minecraft gibi): adanın her yerine blok konur. Izgara bütün adayı kaplar (1 hücre = 1,5 birim); her sütun
+ * bulunduğu yerin zemininden yükselir, böylece yokuşlarda da bloklar yere oturur. Bloklar tek çizimde (InstancedMesh)
+ * çizilir; kapı, çiçek, ağaç gibi eşyalar küçük modellerdir. Kahraman blokların üstüne zıplayarak çıkar.
  *
- * Kayıt: her blok 4 harf (3 harf hücre numarası, 36 tabanında + 1 harf blok türü; bkz. economy.ts BLOCKS).
+ * Kayıt: "w|" + her blok 6 harf (5 harf hücre numarası, 36 tabanında + 1 harf blok türü; bkz. economy.ts BLOCKS).
+ * Eski kayıtlar (yalnızca Çiftliğim arsası, "w|" yok) yüklenirken adaya taşınır.
  */
 import * as THREE from 'three';
 import { canvasTexture, mesh, outline, toon, toonGradient } from '../play3d/kit';
 import { blockByCh, blockById, BLOCKS, type BlockDef } from './economy';
+import { HOME } from './layout';
 
 export const CELL = 1.5;
-export const NX = 20, NZ = 20, NY = 12;
-/** Bir kayıtta en çok kaç blok. */
-export const MAX_BLOCKS = 2500;
+/** Bir sütunda en çok kaç blok. */
+export const NY = 24;
+/** Adada en çok kaç blok. */
+export const MAX_BLOCKS = 4000;
+const OFF = 256, SPAN = 512;
 
+/** Hücre: [x sütunu, sütun içi kat, z sütunu]. */
 export type Cell = [number, number, number];
-const idx = (x: number, y: number, z: number) => x + z * NX + y * NX * NZ;
-const cellOf = (i: number): Cell => [i % NX, Math.floor(i / (NX * NZ)), Math.floor(i / NX) % NZ];
-const inBounds = (x: number, y: number, z: number) => x >= 0 && x < NX && z >= 0 && z < NZ && y >= 0 && y < NY;
+const key = (x: number, y: number, z: number) => ((x + OFF) * SPAN + (z + OFF)) * NY + y;
+const cellOf = (k: number): Cell => [Math.floor(k / NY / SPAN) - OFF, k % NY, (Math.floor(k / NY) % SPAN) - OFF];
+const colKey = (x: number, z: number) => (x + OFF) * SPAN + (z + OFF);
+const okCell = (x: number, y: number, z: number) => Math.abs(x) < OFF && Math.abs(z) < OFF && y >= 0 && y < NY;
 
+/** Eski arsa kaydı (20×20, Çiftliğim'in sağında) → ada hücreleri. */
+function decodeLegacy(s: string): Map<number, BlockDef> {
+  const m = new Map<number, BlockDef>();
+  const x0 = HOME.x + 2, z0 = HOME.z - 15;
+  for (let k = 0; k + 4 <= s.length; k += 4) {
+    const i = parseInt(s.slice(k, k + 3), 36);
+    const b = blockByCh(s[k + 3]);
+    if (!b || !Number.isFinite(i)) continue;
+    const lx = i % 20, ly = Math.floor(i / 400), lz = Math.floor(i / 20) % 20;
+    const cx = Math.floor((x0 + (lx + 0.5) * CELL) / CELL), cz = Math.floor((z0 + (lz + 0.5) * CELL) / CELL);
+    if (okCell(cx, ly, cz)) m.set(key(cx, ly, cz), b);
+  }
+  return m;
+}
 export function encode(blocks: Map<number, BlockDef>) {
-  let out = '';
-  for (const [i, b] of blocks) out += i.toString(36).padStart(3, '0') + b.ch;
+  let out = 'w|';
+  for (const [k, b] of blocks) out += k.toString(36).padStart(5, '0') + b.ch;
   return out;
 }
 export function decode(s: string): Map<number, BlockDef> {
+  if (!s) return new Map();
+  if (!s.startsWith('w|')) return decodeLegacy(s);
   const m = new Map<number, BlockDef>();
-  for (let k = 0; k + 4 <= s.length && m.size < MAX_BLOCKS; k += 4) {
-    const i = parseInt(s.slice(k, k + 3), 36);
-    const b = blockByCh(s[k + 3]);
-    if (b && Number.isFinite(i) && i >= 0 && i < NX * NY * NZ) m.set(i, b);
+  for (let k = 2; k + 6 <= s.length && m.size < MAX_BLOCKS; k += 6) {
+    const i = parseInt(s.slice(k, k + 5), 36);
+    const b = blockByCh(s[k + 5]);
+    if (b && Number.isFinite(i) && i >= 0) {
+      const [x, y, z] = cellOf(i);
+      if (okCell(x, y, z)) m.set(i, b);
+    }
   }
   return m;
 }
@@ -191,46 +217,51 @@ function model(b: BlockDef, rotY: number, link: { x: boolean; z: boolean }): THR
 export interface BuildHit { place?: Cell; remove?: Cell }
 
 /**
- * Arsadaki inşa alanı. `x0, z0`: ızgaranın köşesi, `y0`: zemin yüksekliği.
+ * Adanın blokları. `ground(x,z)`: zemin yüksekliği; `canBuild(x,z)`: oraya yapı yapılabilir mi (yoksa nedeni).
  */
-export class BuildArea {
+export class WorldBlocks {
   readonly group = new THREE.Group();
   blocks = new Map<number, BlockDef>();
   /** Hücre → bloğun kök hücresi (çok katlı eşyalar için). */
   private occ = new Map<number, number>();
+  /** Sütun → dolu (geçilemez) katlar: çarpışma için hızlı arama. */
+  private cols = new Map<number, Set<number>>();
+  private bases = new Map<number, number>();
   private meshes: THREE.Object3D[] = [];
   private pickables: THREE.Object3D[] = [];
-  private gridFloor: THREE.Mesh;
   private ghost: THREE.Mesh;
+  private ghostT: ReturnType<typeof setTimeout> | undefined;
 
-  constructor(private scene: THREE.Scene, readonly x0: number, readonly z0: number, readonly y0: number) {
+  constructor(private scene: THREE.Scene, private ground: (x: number, z: number) => number, private canBuild: (x: number, z: number) => string | null) {
     scene.add(this.group);
-    // inşa modunda görünen ızgara zemin (her zaman dokunulabilir)
-    const tex = canvasTexture(64, 64, (c) => {
-      c.fillStyle = 'rgba(255,255,255,0.0)';
-      c.clearRect(0, 0, 64, 64);
-      c.strokeStyle = 'rgba(255,255,255,0.75)';
-      c.lineWidth = 3;
-      c.strokeRect(1, 1, 62, 62);
-    }, [NX, NZ]);
-    this.gridFloor = new THREE.Mesh(new THREE.PlaneGeometry(NX * CELL, NZ * CELL), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
-    this.gridFloor.rotation.x = -Math.PI / 2;
-    this.gridFloor.position.set(x0 + (NX * CELL) / 2, y0 + 0.04, z0 + (NZ * CELL) / 2);
-    this.gridFloor.visible = false;
-    scene.add(this.gridFloor);
     this.ghost = new THREE.Mesh(new THREE.BoxGeometry(CELL * 1.02, CELL * 1.02, CELL * 1.02), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.35, depthWrite: false }));
     this.ghost.visible = false;
     scene.add(this.ghost);
   }
 
-  get center(): [number, number] {
-    return [this.x0 + (NX * CELL) / 2, this.z0 + (NZ * CELL) / 2];
+  /** Sütunun zemini (sabit: arazi değişmez). */
+  base(cx: number, cz: number) {
+    const k = colKey(cx, cz);
+    let b = this.bases.get(k);
+    if (b === undefined) {
+      b = Math.round(this.ground((cx + 0.5) * CELL, (cz + 0.5) * CELL) * 10) / 10;
+      this.bases.set(k, b);
+    }
+    return b;
   }
-  inside(x: number, z: number, pad = 0) {
-    return x >= this.x0 - pad && x < this.x0 + NX * CELL + pad && z >= this.z0 - pad && z < this.z0 + NZ * CELL + pad;
+  toCell(x: number, z: number): [number, number] {
+    return [Math.floor(x / CELL), Math.floor(z / CELL)];
+  }
+  cellCenter(c: Cell) {
+    return new THREE.Vector3((c[0] + 0.5) * CELL, this.base(c[0], c[2]) + (c[1] + 0.5) * CELL, (c[2] + 0.5) * CELL);
+  }
+  /** Bu noktanın yakınında blok var mı (yapı yerleştirirken). */
+  near(x: number, z: number, r: number) {
+    const [a, b] = this.toCell(x - r, z - r), [c, d] = this.toCell(x + r, z + r);
+    for (let i = a; i <= c; i++) for (let j = b; j <= d; j++) if (this.hasAny(i, j)) return true;
+    return false;
   }
   setEditing(on: boolean) {
-    this.gridFloor.visible = on;
     if (!on) this.ghost.visible = false;
   }
 
@@ -244,38 +275,49 @@ export class BuildArea {
   }
   private reindex() {
     this.occ.clear();
-    for (const [i, b] of this.blocks) {
-      const [x, y, z] = cellOf(i);
-      for (let k = 0; k < (b.h ?? 1); k++) if (inBounds(x, y + k, z)) this.occ.set(idx(x, y + k, z), i);
+    this.cols.clear();
+    for (const [k, b] of this.blocks) {
+      const [x, y, z] = cellOf(k);
+      for (let i = 0; i < (b.h ?? 1); i++) {
+        if (!okCell(x, y + i, z)) continue;
+        this.occ.set(key(x, y + i, z), k);
+        const ck = colKey(x, z);
+        const set = this.cols.get(ck) ?? new Set<number>();
+        if (b.solid) set.add(y + i);
+        this.cols.set(ck, set);
+      }
     }
   }
   blockAt(x: number, y: number, z: number): BlockDef | undefined {
-    if (!inBounds(x, y, z)) return undefined;
-    const r = this.occ.get(idx(x, y, z));
+    const r = this.occ.get(key(x, y, z));
     return r === undefined ? undefined : this.blocks.get(r);
   }
-  private solidAt(x: number, y: number, z: number) {
-    return !!this.blockAt(x, y, z)?.solid;
+  private hasAny(x: number, z: number) {
+    return this.cols.has(colKey(x, z));
   }
 
-  /** Bir blok koyar; olmazsa neden. `body`: kahramanın kapladığı hücreler (içine blok konmaz). */
+  /** Bir blok koyar; olmazsa neden. `body`: kahramanın kapladığı hücreler. */
   place(c: Cell, id: string, body: (c: Cell) => boolean = () => false): string | null {
     const b = blockById(id);
     if (!b) return 'yok';
-    if (this.blocks.size >= MAX_BLOCKS) return 'Arsan doldu! Bazı blokları kaldır.';
+    if (this.blocks.size >= MAX_BLOCKS) return 'Adanda çok blok var! Bazılarını kaldır.';
     const [x, y, z] = c;
+    if (!this.hasAny(x, z)) {
+      const err = this.canBuild((x + 0.5) * CELL, (z + 0.5) * CELL);
+      if (err) return err;
+    }
     for (let k = 0; k < (b.h ?? 1); k++) {
-      if (!inBounds(x, y + k, z)) return y + k >= NY ? 'Bu kadar yükseğe yapılamaz.' : 'Arsanın dışına yapılamaz.';
-      if (this.occ.has(idx(x, y + k, z))) return 'Orası dolu.';
+      if (!okCell(x, y + k, z)) return y + k >= NY ? 'Bu kadar yükseğe yapılamaz.' : 'Buraya yapılamaz.';
+      if (this.occ.has(key(x, y + k, z))) return 'Orası dolu.';
       if (b.solid && body([x, y + k, z])) return 'Kendi üstüne blok koyamazsın, biraz kenara çekil.';
     }
-    this.blocks.set(idx(x, y, z), b);
+    this.blocks.set(key(x, y, z), b);
     this.reindex();
     this.rebuild();
     return null;
   }
   remove(c: Cell): BlockDef | null {
-    const r = this.occ.get(idx(...c));
+    const r = this.occ.get(key(...c));
     if (r === undefined) return null;
     const b = this.blocks.get(r)!;
     this.blocks.delete(r);
@@ -283,35 +325,48 @@ export class BuildArea {
     this.rebuild();
     return b;
   }
-  /** Hazır yapıyı boş bir yere kurar; kurulan blok sayısı (yer yoksa 0). */
-  placeBlueprint(id: string, near: [number, number], body: (c: Cell) => boolean): number {
-    const parts = blueprint(id);
+
+  /** Hazır yapıyı `near` noktasına yakın boş bir yere kurar; kurulan blok sayısı (yer yoksa 0). */
+  placeBlueprint(parts: [number, number, number, string][], near: [number, number], body: (c: Cell) => boolean): number {
     if (!parts.length) return 0;
+    const [nx, nz] = this.toCell(...near);
     const minX = Math.min(...parts.map((p) => p[0])), maxX = Math.max(...parts.map((p) => p[0]));
     const minZ = Math.min(...parts.map((p) => p[2])), maxZ = Math.max(...parts.map((p) => p[2]));
-    const [nx, nz] = this.toCell(...near);
-    const fits = (ox: number, oz: number) => parts.every(([x, y, z, b]) => {
-      const def = blockById(b)!;
-      for (let k = 0; k < (def.h ?? 1); k++) {
-        const c: Cell = [ox + x, y + k, oz + z];
-        if (!inBounds(...c) || this.occ.has(idx(...c)) || body(c)) return false;
+    const mx = Math.round((minX + maxX) / 2), mz = Math.round((minZ + maxZ) / 2);
+    const tryAt = (ox: number, oz: number): Map<number, BlockDef> | null => {
+      // yapı, ortasındaki sütunun zemininden yükselir
+      const anchor = this.base(ox + mx, oz + mz);
+      const out = new Map<number, BlockDef>();
+      const checked = new Set<number>();
+      for (const [x, y, z, id] of parts) {
+        const def = blockById(id)!;
+        const cx = ox + x, cz = oz + z;
+        if (!checked.has(colKey(cx, cz))) {
+          if (this.canBuild((cx + 0.5) * CELL, (cz + 0.5) * CELL)) return null;
+          if (Math.abs(this.base(cx, cz) - anchor) > CELL * 1.5) return null;
+          checked.add(colKey(cx, cz));
+        }
+        const yl = Math.max(0, Math.round((anchor + y * CELL - this.base(cx, cz)) / CELL));
+        for (let k = 0; k < (def.h ?? 1); k++) {
+          const c: Cell = [cx, yl + k, cz];
+          if (!okCell(...c) || this.occ.has(key(...c)) || out.has(key(...c)) || body(c)) return null;
+        }
+        out.set(key(cx, yl, cz), def);
       }
-      return true;
-    });
-    // yakından uzağa boş yer ara
-    const cands: [number, number, number][] = [];
-    for (let ox = -minX; ox + maxX < NX; ox++) for (let oz = -minZ; oz + maxZ < NZ; oz++) cands.push([ox, oz, Math.hypot(ox + (maxX + minX) / 2 - nx, oz + (maxZ + minZ) / 2 - nz)]);
-    cands.sort((a, b) => a[2] - b[2]);
-    const at = cands.find(([ox, oz]) => fits(ox, oz));
-    if (!at) return 0;
-    for (const [x, y, z, b] of parts) this.blocks.set(idx(at[0] + x, y, at[1] + z), blockById(b)!);
-    this.reindex();
-    this.rebuild();
-    return parts.length;
-  }
-
-  toCell(x: number, z: number): [number, number] {
-    return [Math.floor((x - this.x0) / CELL), Math.floor((z - this.z0) / CELL)];
+      return out;
+    };
+    // yakından uzağa (halka halka) boş yer ara
+    for (let r = 0; r < 14; r++) for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+      if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+      const got = tryAt(nx + dx - mx, nz + dz - mz);
+      if (!got) continue;
+      if (this.blocks.size + got.size > MAX_BLOCKS) return 0;
+      for (const [k, b] of got) this.blocks.set(k, b);
+      this.reindex();
+      this.rebuild();
+      return got.size;
+    }
+    return 0;
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -319,49 +374,55 @@ export class BuildArea {
   // ----------------------------------------------------------------------------------------------
   /** (x,z)'de, y yüksekliğindeki kahramanın basabileceği en yüksek blok üstü (yoksa null). */
   standY(x: number, z: number, y: number): number | null {
-    if (!this.inside(x, z)) return null;
     const [cx, cz] = this.toCell(x, z);
+    const set = this.cols.get(colKey(cx, cz));
+    if (!set?.size) return null;
+    const b = this.base(cx, cz);
     let best: number | null = null;
-    for (let l = 0; l < NY; l++) {
-      if (!this.solidAt(cx, l, cz)) continue;
-      const top = this.y0 + (l + 1) * CELL;
-      if (top <= y + 0.35) best = top;
+    for (const l of set) {
+      const top = b + (l + 1) * CELL;
+      if (top <= y + 0.35 && (best === null || top > best)) best = top;
     }
     return best;
   }
-  /** Kahramanın gövdesi (y'den 3.1 birim yukarı, 0.45 yarıçap) bir bloğa çarpıyor mu? */
+  /** Kahramanın gövdesi (y'den 3,1 birim yukarı, 0,45 yarıçap) bir bloğa çarpıyor mu? */
   blocked(x: number, z: number, y: number) {
-    if (!this.inside(x, z, 0.5)) return false;
-    const lo = Math.floor((y + 0.36 - this.y0) / CELL), hi = Math.floor((y + 3.1 - this.y0) / CELL);
     for (const [dx, dz] of [[0, 0], [0.45, 0], [-0.45, 0], [0, 0.45], [0, -0.45]]) {
       const [cx, cz] = this.toCell(x + dx, z + dz);
-      for (let l = Math.max(0, lo); l <= Math.min(NY - 1, hi); l++) if (this.solidAt(cx, l, cz)) return true;
+      const set = this.cols.get(colKey(cx, cz));
+      if (!set?.size) continue;
+      const b = this.base(cx, cz);
+      const lo = Math.floor((y + 0.36 - b) / CELL), hi = Math.floor((y + 3.1 - b) / CELL);
+      for (const l of set) if (l >= lo && l <= hi) return true;
     }
     return false;
   }
   /** Kahramanın kapladığı hücreler (blok konmasın). */
   bodyCells(x: number, z: number, y: number) {
     const set = new Set<number>();
-    const lo = Math.floor((y - this.y0) / CELL), hi = Math.floor((y + 3 - this.y0) / CELL);
     for (const [dx, dz] of [[0.4, 0.4], [-0.4, 0.4], [0.4, -0.4], [-0.4, -0.4]]) {
       const [cx, cz] = this.toCell(x + dx, z + dz);
-      for (let l = Math.max(0, lo); l <= hi; l++) if (inBounds(cx, l, cz)) set.add(idx(cx, l, cz));
+      const b = this.base(cx, cz);
+      const lo = Math.floor((y - b) / CELL), hi = Math.floor((y + 3 - b) / CELL);
+      for (let l = Math.max(0, lo); l <= Math.min(NY - 1, hi); l++) set.add(key(cx, l, cz));
     }
-    return (c: Cell) => set.has(idx(...c));
+    return (c: Cell) => set.has(key(...c));
   }
 
   // ----------------------------------------------------------------------------------------------
-  // Dokunma: hangi hücreye konur / hangisi kaldırılır
+  // Dokunma: hangi hücreye konur / hangisi kaldırılır (`terrain`: dokunulabilir arazi)
   // ----------------------------------------------------------------------------------------------
-  hit(ray: THREE.Raycaster): BuildHit | null {
-    const hits = ray.intersectObjects([...this.pickables, this.gridFloor], true);
+  hit(ray: THREE.Raycaster, terrain: THREE.Object3D[]): BuildHit | null {
+    const hits = ray.intersectObjects([...this.pickables, ...terrain], true);
     for (const h of hits) {
-      let o: THREE.Object3D | null = h.object;
-      if (o === this.gridFloor) {
+      if (terrain.includes(h.object)) {
+        if (h.distance > 120) return null;
         const [cx, cz] = this.toCell(h.point.x, h.point.z);
-        if (!inBounds(cx, 0, cz)) return null;
-        return { place: [cx, 0, cz] };
+        let y = 0;
+        while (y < NY && this.occ.has(key(cx, y, cz))) y++;
+        return { place: [cx, y, cz] };
       }
+      let o: THREE.Object3D | null = h.object;
       let cell: number | undefined;
       if ((o as THREE.InstancedMesh).isInstancedMesh && h.instanceId !== undefined) cell = (o.userData.cells as number[])[h.instanceId];
       else while (o && cell === undefined) { cell = o.userData.cell as number | undefined; o = o.parent; }
@@ -369,24 +430,23 @@ export class BuildArea {
       const c = cellOf(cell);
       const n = h.face?.normal.clone().transformDirection(h.object.matrixWorld) ?? new THREE.Vector3(0, 1, 0);
       const b = this.blocks.get(cell);
-      // modellerde (kapı, çiçek…) hep üstüne / yanına: en büyük eksen
       const ax = Math.abs(n.x) > Math.abs(n.y) && Math.abs(n.x) > Math.abs(n.z) ? [Math.sign(n.x), 0, 0] : Math.abs(n.z) > Math.abs(n.y) ? [0, 0, Math.sign(n.z)] : [0, Math.sign(n.y) || 1, 0];
-      const up = ax[1] > 0 ? (b?.h ?? 1) : 1;
-      return { remove: c, place: [c[0] + ax[0], c[1] + (ax[1] > 0 ? up : ax[1]), c[2] + ax[2]] };
+      if (ax[1] !== 0) return { remove: c, place: [c[0], c[1] + (ax[1] > 0 ? (b?.h ?? 1) : -1), c[2]] };
+      // yana: komşu sütunun zeminine göre aynı yükseklik
+      const wy = this.cellCenter(c).y;
+      const nx = c[0] + ax[0], nz = c[2] + ax[2];
+      const yl = Math.max(0, Math.round((wy - this.base(nx, nz) - CELL / 2) / CELL));
+      return { remove: c, place: [nx, yl, nz] };
     }
     return null;
   }
-  /** Koyulacak hücrede kısa bir parıltı kutusu. */
+  /** Koyulan hücrede kısa bir parıltı kutusu. */
   flash(c: Cell, color = '#ffffff') {
-    this.ghost.position.set(this.x0 + (c[0] + 0.5) * CELL, this.y0 + (c[1] + 0.5) * CELL, this.z0 + (c[2] + 0.5) * CELL);
+    this.ghost.position.copy(this.cellCenter(c));
     (this.ghost.material as THREE.MeshBasicMaterial).color.set(color);
     this.ghost.visible = true;
     clearTimeout(this.ghostT);
     this.ghostT = setTimeout(() => (this.ghost.visible = false), 220);
-  }
-  private ghostT: ReturnType<typeof setTimeout> | undefined;
-  cellCenter(c: Cell) {
-    return new THREE.Vector3(this.x0 + (c[0] + 0.5) * CELL, this.y0 + (c[1] + 0.5) * CELL, this.z0 + (c[2] + 0.5) * CELL);
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -399,7 +459,7 @@ export class BuildArea {
         const mm = o as THREE.Mesh;
         if ((mm as THREE.InstancedMesh).isInstancedMesh) {
           mm.geometry.dispose();
-          for (const m of new Set(([] as THREE.Material[]).concat(mm.material))) m.dispose();
+          for (const x of new Set(([] as THREE.Material[]).concat(mm.material))) x.dispose();
           (mm as THREE.InstancedMesh).dispose();
         }
       });
@@ -409,18 +469,18 @@ export class BuildArea {
     const groups = new Map<string, number[]>();
     for (const [i, b] of this.blocks) {
       if (b.kind === 'model') continue;
-      const key = b.kind === 'cube' && !b.top ? 'cube' : `${b.kind}:${b.id}`;
-      const a = groups.get(key);
+      const k = b.kind === 'cube' && !b.top ? 'cube' : `${b.kind}:${b.id}`;
+      const a = groups.get(k);
       if (a) a.push(i);
-      else groups.set(key, [i]);
+      else groups.set(k, [i]);
     }
     const geo = new THREE.BoxGeometry(CELL, CELL, CELL);
     const m4 = new THREE.Matrix4();
     const col = new THREE.Color();
-    for (const [key, cells] of groups) {
+    for (const [k, cells] of groups) {
       const first = this.blocks.get(cells[0])!;
       let mat: THREE.Material | THREE.Material[];
-      if (key === 'cube') mat = new THREE.MeshToonMaterial({ map: texture(), gradientMap: toonGradient() });
+      if (k === 'cube') mat = new THREE.MeshToonMaterial({ map: texture(), gradientMap: toonGradient() });
       else if (first.kind === 'glass') mat = new THREE.MeshToonMaterial({ color: first.color, gradientMap: toonGradient(), transparent: true, opacity: 0.5, depthWrite: false });
       else if (first.kind === 'light') mat = new THREE.MeshToonMaterial({ map: texture(), color: first.color, emissive: new THREE.Color(first.color).multiplyScalar(0.55), gradientMap: toonGradient() });
       else {
@@ -428,14 +488,13 @@ export class BuildArea {
         const top = new THREE.MeshToonMaterial({ map: texture(), color: first.top, gradientMap: toonGradient() });
         mat = [side, side, top, side, side, side];
       }
-      const im = new THREE.InstancedMesh(key === 'cube' ? geo : geo.clone(), mat, cells.length);
+      const im = new THREE.InstancedMesh(k === 'cube' ? geo : geo.clone(), mat, cells.length);
       im.castShadow = first.kind !== 'glass';
       im.receiveShadow = true;
-      cells.forEach((ci, k) => {
-        const [x, y, z] = cellOf(ci);
-        m4.makeTranslation(this.x0 + (x + 0.5) * CELL, this.y0 + (y + 0.5) * CELL, this.z0 + (z + 0.5) * CELL);
-        im.setMatrixAt(k, m4);
-        if (key === 'cube') im.setColorAt(k, col.set(this.blocks.get(ci)!.color));
+      cells.forEach((ci, n) => {
+        m4.makeTranslation(this.cellCenter(cellOf(ci)));
+        im.setMatrixAt(n, m4);
+        if (k === 'cube') im.setColorAt(n, col.set(this.blocks.get(ci)!.color));
       });
       im.userData.cells = cells;
       im.computeBoundingSphere();
@@ -451,10 +510,10 @@ export class BuildArea {
         return !!n && (n.id === b.id || n.kind !== 'model');
       };
       const link = { x: isLink(1, 0) || isLink(-1, 0), z: isLink(0, 1) || isLink(0, -1) };
-      // kapı duvara göre döner; diğerleri arsanın ortasına bakar
-      const rot = b.id === 'kapi' || b.id === 'cit' ? (link.z && !link.x && b.id === 'kapi' ? Math.PI / 2 : 0) : 0;
+      const rot = b.id === 'kapi' ? (link.z && !link.x ? Math.PI / 2 : 0) : 0;
       const o = model(b, rot, link);
-      o.position.set(this.x0 + (x + 0.5) * CELL, this.y0 + y * CELL, this.z0 + (z + 0.5) * CELL);
+      const c = this.cellCenter([x, y, z]);
+      o.position.set(c.x, c.y - CELL / 2, c.z);
       o.userData.cell = i;
       this.group.add(o);
       this.meshes.push(o);
@@ -464,7 +523,7 @@ export class BuildArea {
 
   dispose() {
     clearTimeout(this.ghostT);
-    this.scene.remove(this.group, this.gridFloor, this.ghost);
+    this.scene.remove(this.group, this.ghost);
   }
 }
 

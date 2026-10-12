@@ -62,6 +62,8 @@ Yenilikler:
 • Minecraft gibi blokla ev yap, hazır yapılar kur
 • Macera kapıları: Labirent, Gökyüzü Parkuru, Şeker Diyarı (arkadaşlarla birlikte)
 • Evim: kendi evini kur! 45 eşya, renkler, duvar ve zemin, daha büyük evler; eşyalarla oyna
+• Kendi adanı kur: adanın her yerine blokla inşa et, çiftliğini istediğin yere kur
+• Arabanı al, adayı gez! Butik'te nadir kıyafetler, Oyun Çadırı'nda mini oyunlar ve hediyeler
 • Ekrana dokun, zıpla!
 • Çizimin canlansın: göz kırpar, tekerlek döner, balık yüzer
 • Çizdiğinle oyna artık 3 boyutlu: sağa sola kaç, zıpla, yıldız topla
@@ -87,6 +89,14 @@ Yenilikler:
   oynar: kanepede oturur, yatakta uyur, yemek yapar, piyano çalar, trambolinde zıplar, salıncakta sallanır, havuzda yüzer.
   Şövale resim çizmeye, gardırop Giydir'e, kitaplık hikaye kitabına, çalışma masası derslere götürür; duvardaki
   tablolarda çocuğun kendi resimleri asılı.
+- **Kum havuzu ada:** bloklar adanın her yerine konur (sudan, oyun yerlerinin önünden ve binalardan uzakta). Çiftlik
+  baştan hazır gelmez: İnşa et → Yapılar'dan tarla (ilk 4 bedava), tavuk kümesi, inek ahırı, koyun ağılı, arı bahçesi ve
+  mutfak istenen yere kurulur; kaldırılabilir. Eski kayıtlarda çiftlik ve yapılar kaybolmaz, eski yerlerine taşınır.
+- **Arabalar:** bisiklet, minik araba, jip, karavan, spor araba (altınla, Pazar → Arabalar); "Arabam" düğmesiyle çağrılır,
+  korna çalar; arkadaşlar arabayla gezen çocuğu arabasıyla görür.
+- **Butik:** nadir kıyafetler ve dostlar ada altınıyla. **Oyun Çadırı:** hafıza kartları ve balon patlatma; bitirince altın,
+  günde 3 kez de eve bir eşya ya da yeni bir kıyafet.
+- **Özel paketler (şimdilik kapalı):** her kategoride birkaç özel eşya; yalnızca ebeveyn bölümünden. Bkz. `store/ozel-paketler.md`.
 - **Dokunma:** boş yere dokununca zıplar; bir eşyaya dokununca o iş yapılır (uzaksa yanına yürür).
 - **Adada birlikte oynama:** Çevrimiçi açıksa çocuk, onaylı arkadaşlarının adasına gidebilir ("Yanına git"); bir adada
   sahibi ve en çok 10 arkadaşı. Arkadaşlar birbirinin karakterini, adını, yürüyüşünü ve el sallamasını görür; yazışma yok.

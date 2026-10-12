@@ -58,7 +58,7 @@ describe('yerleştirme', () => {
   });
   it('katalogdaki fiyatlar ve boyutlar mantıklı', () => {
     for (const it of ITEMS) {
-      expect(it.price).toBeGreaterThan(0);
+      if (!it.premium) expect(it.price).toBeGreaterThan(0);
       expect(it.colors.length).toBeGreaterThan(0);
       expect(it.w * it.d).toBeLessThanOrEqual(6);
     }
@@ -81,7 +81,7 @@ describe('plan bütünlüğü', () => {
 
 describe('plan değişimi', () => {
   it('eşyalar odalarıyla taşınır', () => {
-    for (const id of ['b', 'c']) {
+    for (const id of ['b', 'c', 'sato']) {
       const h = changePlan(newHome(), id);
       const P = plan(id);
       const where = (eid: string) => { const p = h.items.find((x) => x.id === eid); return p ? roomAt(P, p.x, p.z) : 'depo'; };

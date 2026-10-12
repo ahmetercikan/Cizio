@@ -1,6 +1,7 @@
 /**
  * Ebeveyn bölümü (basit çarpma sorusuyla korunur): profiller, ses, çizim ayarları, ilerleme ve yedekleme.
  */
+import { ParentPremium } from '../world/ParentPremium';
 import { Download, Lock, Trash2, Upload, Volume2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -263,6 +264,7 @@ export default function Parent() {
       </section>
 
       {PLUS_ENABLED && <ParentPlus />}
+        <ParentPremium />
       {active && <ParentOnline profile={active} toast={showToast} />}
 
       <section className="paper-card settings-card" style={{ marginTop: 16 }}>

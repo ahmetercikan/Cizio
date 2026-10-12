@@ -35,6 +35,14 @@ export class BlockGrid {
       }
     }
   }
+  /** Bir engeli kaldırır (kaldırılan çiftlik yapısı). */
+  remove(b: Blocker) {
+    for (const [k, a] of this.cells) {
+      const i = a.indexOf(b);
+      if (i >= 0) a.splice(i, 1);
+      if (!a.length) this.cells.delete(k);
+    }
+  }
   free(x: number, z: number, r: number) {
     return this.near(x, z).every((b) => Math.hypot(b.x - x, b.z - z) > b.r + r);
   }

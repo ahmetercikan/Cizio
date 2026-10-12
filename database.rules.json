@@ -35,7 +35,7 @@
         },
         "home": {
           ".write": "auth != null && root.child('owners').child($room).val() === auth.uid",
-          ".validate": "newData.isString() && newData.val().length < 20000"
+          ".validate": "newData.isString() && newData.val().length < 40000"
         }
       }
     }

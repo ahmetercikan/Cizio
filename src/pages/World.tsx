@@ -2,7 +2,7 @@
  * Çizio Adası (/ada): 3B oyun dünyası (src/world/island.ts). Şimdilik herkese açık (PLUS_ENABLED = false);
  * ücretli olursa abonelik yoksa tanıtım ve satın alma (ebeveyn kilidi arkasında) gösterilir.
  */
-import { ArrowLeft, BookOpen, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Hand, Home, Images, Loader2, MessageCircle, Music, RotateCcw, Shirt, Sparkles, Sprout, Star, Store, Users, X, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, BookOpen, Car, Megaphone, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Hand, Home, Images, Loader2, MessageCircle, Music, RotateCcw, Shirt, Sparkles, Sprout, Star, Store, Users, X, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AvatarArt } from '../components/Avatars';
@@ -21,12 +21,15 @@ import { coastAt, LAKE, SNOW_PEAK, WORLD_R, ZONES, type Zone } from '../world/la
 import { buyPlus, canBuy, managePlus, PLUS_ENABLED, restorePlus, usePlus } from '../world/plus';
 import { ISLAND_LINES, QUESTS, STARS_GOAL, todayQuests, type QuestId } from '../world/quests';
 import { Gate } from './Parent';
-import { advanceJourney, CROPS, ANIMALS, fillOrders, newFarm, normalizeFarm, realmReward, unlocksAt, type FarmState, type Result } from '../world/economy';
-import { BlueprintPanel, BuildBar, FarmHud, JournalPanel, JourneyChip, KitchenPanel, LevelUp, MarketPanel, OrdersPanel, RealmDone, RealmHud, SeedPanel, type Apply } from '../world/FarmPanels';
+import { advanceJourney, CROPS, ANIMALS, STRUCTS, fillOrders, type PlaceKind, miniReward, MINI_ITEMS_PER_DAY, type MiniPrize, newFarm, normalizeFarm, realmReward, unlocksAt, type FarmState, type Result } from '../world/economy';
+import { ownedCars, BlueprintPanel, BuildBar, FarmHud, JournalPanel, JourneyChip, KitchenPanel, LevelUp, MarketPanel, OrdersPanel, RealmDone, RealmHud, SeedPanel, type Apply } from '../world/FarmPanels';
 import type { FarmBridge, RealmId } from '../world/homestead';
 import type { GhostInfo, HomeScene, SelInfo } from '../world/home';
 import { newHome } from '../world/homeData';
 import { CamButtons, Catalog, GhostCard, HomeTop, SelCard } from '../world/HomePanels';
+import { usePremium } from '../world/premium';
+import { BalloonGame, BoutiquePanel, GamesPanel, MemoryGame, PrizeModal } from '../world/Shops';
+import { RARE, rareKey } from '../lib/rewards';
 import { ISLAND_ONLINE } from '../online/config';
 import { useOnlineView } from '../online/OnlineHost';
 import type { Presence, RoomHandle } from '../online/rt';
@@ -127,12 +130,15 @@ function IslandPlay() {
   const [near, setNear] = useState<Spot | null>(null);
   const [busy, setBusy] = useState(false);
   const [driving, setDriving] = useState(false);
-  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | null>(null);
+  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | 'boutique' | 'games' | 'memory' | 'balloon' | null>(null);
+  const [prize, setPrize] = useState<{ prize: MiniPrize; coins: number } | null>(null);
   // Çiftliğim
   const farm = normalizeFarm(data.farm);
+  const premium = usePremium((x) => x.owned);
+  const myCars = ownedCars(farm, premium);
+  const myCar = farm.car && myCars.includes(farm.car) ? farm.car : myCars[0];
   const [seedField, setSeedField] = useState(0);
   const [levelUp, setLevelUp] = useState<number | null>(null);
-  const [inBuildArea, setInBuildArea] = useState(false);
   const [building, setBuilding] = useState(false);
   const [tool, setTool] = useState('ahsap');
   // Macera kapıları
@@ -252,7 +258,6 @@ function IslandPlay() {
           },
           onRealmProgress: setRealmProg,
           onRealmFinish: (id, bonus, text) => finishRef.current(id, bonus, text),
-          onBuildArea: setInBuildArea,
           sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick() },
         });
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
@@ -365,7 +370,7 @@ function IslandPlay() {
     } else if (id === 'market' || id === 'orders') {
       useApp.getState().farmApply((s) => ({ s: fillOrders(s) }));
       setPanel(id);
-    } else if (id === 'kitchen' || id === 'journal') {
+    } else if (id === 'kitchen' || id === 'journal' || id === 'boutique' || id === 'games') {
       setPanel(id);
     } else if (id === 'build') {
       startBuild();
@@ -442,11 +447,13 @@ function IslandPlay() {
     h.pick(id, 0, fromStore);
   };
 
-  const startBuild = () => {
+  const toolOf = (t: string) => (t === 'erase' ? { erase: true as const } : t.startsWith('struct:') ? { struct: t.slice(7) as PlaceKind } : { block: t });
+  const startBuild = (t = tool) => {
     world.current?.setBuildMode(true);
-    world.current?.setTool({ block: tool });
+    world.current?.setTool(toolOf(t));
+    setTool(t);
     setBuilding(true);
-    flash('Blok koymak için arsaya dokun!');
+    flash(t.startsWith('struct:') ? 'Kurmak istediğin düz bir yere dokun!' : 'Blok koymak için yere dokun! Adanın her yerine yapabilirsin.');
   };
   const stopBuild = () => {
     world.current?.setBuildMode(false);
@@ -455,7 +462,7 @@ function IslandPlay() {
   const pickTool = (t: string) => {
     sfx.select();
     setTool(t);
-    world.current?.setTool(t === 'erase' ? { erase: true } : { block: t });
+    world.current?.setTool(toolOf(t));
   };
   const finish = (id: RealmId, bonus: number, text: string) => {
     const before = bridge.current.get().coins;
@@ -552,6 +559,27 @@ function IslandPlay() {
     }
   };
 
+  /** Butik: nadir kıyafet ada altınıyla. */
+  const buyCloth = (r: (typeof RARE)[number], price: number) => {
+    const res = apply((x) => (x.coins < price ? { s: x, err: `${r.title} için ${price} altın gerekiyor.` } : { s: { ...x, coins: x.coins - price }, msg: `${r.title} senin! Giydir'de giyebilirsin.` }));
+    if (!res.err) {
+      useApp.getState().grantOwned(rareKey(r));
+      sfx.success();
+    }
+  };
+  /** Mini oyun bitti: altın, bazen bir eşya ya da kıyafet. */
+  const miniWon = () => {
+    const owned = useApp.getState().data[profile.id]?.owned ?? [];
+    const clothes = RARE.map(rareKey).filter((k) => !owned.includes(k));
+    const before = bridge.current.get().coins;
+    const r = applyQuiet((x) => miniReward(x, day, clothes, Math.random()));
+    if (r.prize.kind === 'cloth') useApp.getState().grantOwned(r.prize.key);
+    sfx.fanfare();
+    setPanel(null);
+    setPrize({ prize: r.prize, coins: bridge.current.get().coins - before });
+  };
+  const miniLeft = Math.max(0, MINI_ITEMS_PER_DAY - (farm.miniDay?.day === day ? farm.miniDay.n : 0));
+
   const sold = () => {
     sfx.success();
     markDone('sell');
@@ -566,7 +594,7 @@ function IslandPlay() {
 
   const actIcon = (id: string) =>
     id === 'gallery' ? <Images size={22} /> : id === 'home' ? <Shirt size={22} /> : id === 'cizio' ? <MessageCircle size={22} />
-      : id === 'market' ? <Store size={22} /> : id === 'orders' ? <ClipboardList size={22} /> : id === 'kitchen' ? <ChefHat size={22} />
+      : id === 'market' ? <Store size={22} /> : id === 'boutique' ? <Shirt size={22} /> : id === 'games' ? <PartyPopper size={22} /> : id === 'orders' ? <ClipboardList size={22} /> : id === 'kitchen' ? <ChefHat size={22} />
         : id === 'journal' ? <BookOpen size={22} /> : id === 'build' ? <Hammer size={22} /> : id.startsWith('field:') ? <Sprout size={22} />
           : id.startsWith('pen:') ? <Egg size={22} /> : id.startsWith('portal:') ? <DoorOpen size={22} /> : <Sparkles size={22} />;
 
@@ -579,7 +607,7 @@ function IslandPlay() {
           <HomeTop mode={homeMode} coins={farm.coins} onMode={setHomeModeAll} onLeave={leaveHome} />
           <CamButtons home={home.current} />
           {homeMode === 'live' && !homeBusy && <div className="home-hint">Bir eşyaya dokun, onunla oyna! Yere dokununca oraya yürürsün.</div>}
-          {homeMode === 'build' && (ghost ? <GhostCard g={ghost} home={home.current} /> : sel ? <SelCard s={sel} home={home.current} /> : <Catalog home={home.current} coins={farm.coins} onPick={pickHome} />)}
+          {homeMode === 'build' && (ghost ? <GhostCard g={ghost} home={home.current} /> : sel ? <SelCard s={sel} home={home.current} /> : <Catalog home={home.current} coins={farm.coins} onPick={pickHome} onHint={flash} />)}
         </div>
       )}
       {!ready && <div className="alive__wait"><Mascot size={110} mood="think" /><b>Ada hazırlanıyor…</b></div>}
@@ -620,14 +648,22 @@ function IslandPlay() {
               <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><Sparkles size={26} /></button>
             </div>
           )}
-          {driving && <button className="pill pill--yellow island__act rise" onClick={() => world.current?.dismount()}>İn</button>}
+          {driving && (
+            <span className="island__act island__drive rise">
+              <button className="pill pill--yellow" onClick={() => world.current?.dismount()}>İn</button>
+              <button className="pill" onClick={() => world.current?.honk()}><Megaphone size={20} /> Korna</button>
+            </span>
+          )}
+          {!guest && !driving && !busy && !building && !realm && (
+            <button className="island__build rise" aria-label="İnşa et" onClick={() => startBuild()}><Hammer size={24} /><small>İnşa et</small></button>
+          )}
+          {myCar && !driving && !busy && !building && !realm && !near && (
+            <button className="island__car rise" aria-label="Arabam" onClick={() => { sfx.pop(); world.current?.summonCar(myCar); }}><Car size={26} /><small>Arabam</small></button>
+          )}
           {near && !busy && !driving && !building && (
             <button className="pill island__act rise" onClick={() => { sfx.pop(); world.current?.activity(near.id); }}>
               {actIcon(near.id)} {near.label}
             </button>
-          )}
-          {inBuildArea && !guest && !building && !busy && !near && !realm && (
-            <button className="pill pill--yellow island__act rise" onClick={startBuild}><Hammer size={22} /> İnşa et</button>
           )}
           {building && (
             <BuildBar s={farm} tool={tool} onTool={pickTool} onUndo={() => { if (!world.current?.undoBuild()) flash('Geri alınacak bir şey yok.'); }}
@@ -698,7 +734,7 @@ function IslandPlay() {
         </Modal>
       )}
       {panel === 'gallery' && <GalleryPanel profileId={profile.id} onClose={() => setPanel(null)} />}
-      {panel === 'market' && <MarketPanel s={farm} apply={apply} onClose={() => setPanel(null)} onSold={sold} />}
+      {panel === 'market' && <MarketPanel s={farm} apply={apply} onClose={() => setPanel(null)} onSold={sold} onHint={flash} />}
       {panel === 'orders' && <OrdersPanel s={farm} apply={apply} onClose={() => setPanel(null)} onSold={sold} />}
       {panel === 'kitchen' && <KitchenPanel s={farm} apply={apply} onClose={() => setPanel(null)} onCook={() => sfx.success()} />}
       {panel === 'journal' && <JournalPanel s={farm} onClose={() => setPanel(null)} />}
@@ -709,6 +745,16 @@ function IslandPlay() {
           const msg = world.current?.blueprint(id);
           if (msg) flash(msg);
         }} />
+      )}
+      {panel === 'boutique' && (
+        <BoutiquePanel coins={farm.coins} owned={data.owned ?? []} onBuy={buyCloth} onClose={() => setPanel(null)} onHint={flash} onWear={() => nav('/giydir')} />
+      )}
+      {panel === 'games' && <GamesPanel left={miniLeft} onPlay={(g) => setPanel(g)} onClose={() => setPanel(null)} />}
+      {panel === 'memory' && <MemoryGame onWin={miniWon} onClose={() => setPanel('games')} />}
+      {panel === 'balloon' && <BalloonGame onEnd={(won) => (won ? miniWon() : (flash('Az kaldı! Bir daha dene.'), setPanel('games')))} onClose={() => setPanel('games')} />}
+      {prize && (
+        <PrizeModal prize={prize.prize} coins={prize.coins} onClose={() => setPrize(null)}
+          onGo={(w) => { setPrize(null); if (w === 'home') void enterHome(); else nav('/giydir'); }} />
       )}
       {levelUp && <LevelUp level={levelUp} unlocks={unlocksAt(levelUp)} onClose={() => setLevelUp(null)} />}
       {realmDone && (
@@ -724,9 +770,10 @@ function IslandPlay() {
 function guestFarm(data: string | null): FarmBridge {
   const s = newFarm();
   try {
-    const j = JSON.parse(data ?? '{}') as { b?: string; f?: [string, number][]; a?: [string, number][] };
+    const j = JSON.parse(data ?? '{}') as { b?: string; f?: [string, number][]; a?: [string, number][]; p?: [string, number, number][] };
     if (typeof j.b === 'string') s.build = j.b;
     if (Array.isArray(j.f)) s.fields = j.f.slice(0, 16).map(([c, w]) => (CROPS.some((x) => x.id === c) ? { c: c as FarmState['fields'][0]['c'], w: w || undefined } : {}));
+    if (Array.isArray(j.p)) s.places = j.p.slice(0, 40).filter((p) => STRUCTS.some((d) => d.k === p[0]) && Number.isFinite(p[1]) && Number.isFinite(p[2])).map(([k, x, z]) => ({ k: k as PlaceKind, x: +x, z: +z }));
     if (Array.isArray(j.a)) s.animals = j.a.slice(0, 10).filter(([k]) => ANIMALS.some((x) => x.id === k)).map(([k, fed]) => ({ k: k as FarmState['animals'][0]['k'], fed: fed || undefined }));
   } catch {
     /* boş çiftlik */

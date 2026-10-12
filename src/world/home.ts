@@ -58,6 +58,7 @@ export class HomeScene {
   private houseG = new THREE.Group();
   private itemsG = new THREE.Group();
   private wallMeshes: WallMesh[] = [];
+  private towers: { obj: THREE.Object3D; dx: number; dz: number }[] = [];
   private itemObjs: THREE.Object3D[] = [];
   private avatar: Avatar3D;
   private pet: THREE.Mesh | null = null;
@@ -263,6 +264,30 @@ export class HomeScene {
       this.houseG.add(full, stub);
       this.wallMeshes.push({ full, stub, x: w.x, z: w.z, side: w.side, outer: w.outer });
     }
+    // şato: evin köşelerinde kuleler (kameranın uzak tarafındakiler görünür)
+    this.towers = [];
+    if (P.id === 'sato') {
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const t = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 3.4, 16), soft('#d8d2e4'));
+        body.position.y = 1.7;
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(1.0, 1.4, 16), soft('#9775fa'));
+        roof.position.y = 4.1;
+        const flag = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.04), soft('#ff8fb1'));
+        flag.position.set(0.25, 5.0, 0);
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 6), soft('#5b5568'));
+        pole.position.y = 4.95;
+        for (const m of [body, roof]) {
+          m.castShadow = true;
+          m.receiveShadow = true;
+        }
+        t.add(body, roof, flag, pole);
+        const cx = sx < 0 ? L.hx - 0.2 : L.hx + P.w + 0.2, cz = sz < 0 ? L.hz - 0.2 : L.hz + P.d + 0.2;
+        t.position.set(cx - L.w / 2, 0, cz - L.d / 2);
+        this.houseG.add(t);
+        this.towers.push({ obj: t, dx: sx, dz: sz });
+      }
+    }
     this.buildItems();
     this.cutaway();
     // güneş ve gölge alanı
@@ -391,6 +416,7 @@ export class HomeScene {
       w.full.visible = tall;
       w.stub.visible = !tall;
     }
+    for (const t of this.towers) t.obj.visible = t.dx * cx + t.dz * cz < 0;
   }
 
   // ----------------------------------------------------------------------------------------------

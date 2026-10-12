@@ -403,6 +403,74 @@ export function furniture(id: string, color: string, art?: HTMLCanvasElement): T
       add(new THREE.CylinderGeometry(0.2, 0.12, 0.08, 16), color, 0, 0.85, 0);
       break;
     }
+    // özel paketler
+    case 'uzayyatak': {
+      add(rbox(0.95, 0.3, 1.9, 0.08), color, 0, 0.18, 0);
+      add(rbox(0.88, 0.16, 1.8, 0.08), '#e6e9ff', 0, 0.4, 0.02);
+      add(rbox(0.9, 0.08, 1.2, 0.06), '#2d1b69', 0, 0.5, 0.32);
+      for (let i = 0; i < 7; i++) add(new THREE.OctahedronGeometry(0.035), soft('#fff6c9', { emissive: '#ffe066' }), -0.35 + (i % 4) * 0.23, 0.55, 0.0 + Math.floor(i / 4) * 0.4 + (i % 2) * 0.12, false);
+      const nose = add(new THREE.ConeGeometry(0.42, 0.9, 16), '#ff6b6b', 0, 1.05, -0.9);
+      nose.scale.z = 0.4;
+      add(rbox(0.95, 0.6, 0.12, 0.06), '#e9ecf5', 0, 0.5, -0.92);
+      add(new THREE.CircleGeometry(0.14, 16), soft('#9ad0f5', { emissive: '#2a5a88' }), 0, 0.6, -0.855, false);
+      break;
+    }
+    case 'dondurma': {
+      add(rbox(0.8, 1.0, 0.65, 0.1), color, 0, 0.5, -0.1);
+      add(rbox(0.82, 0.12, 0.67, 0.05), '#ffffff', 0, 1.05, -0.1);
+      for (const [x, c] of [[-0.22, '#ff8fb1'], [0, '#fff1c7'], [0.22, '#8b5a3c']] as const) add(new THREE.CylinderGeometry(0.06, 0.08, 0.2, 10), c, x, 1.2, -0.1);
+      add(new THREE.ConeGeometry(0.1, 0.25, 10), '#e2a868', 0, 0.62, 0.26).rotation.x = Math.PI;
+      add(new THREE.SphereGeometry(0.12, 12, 10), '#ff8fb1', 0, 0.8, 0.26);
+      break;
+    }
+    case 'devakvaryum': {
+      add(rbox(1.85, 0.5, 0.7, 0.04), color, 0, 0.25, -0.1);
+      add(rbox(1.8, 0.85, 0.6, 0.06), soft('#8fd8f0', { opacity: 0.55, rough: 0.1 }), 0, 0.95, -0.1, false);
+      for (const [c, x, y] of [['#ff9f43', -0.5, 0.95], ['#ffd43b', 0.3, 1.15], ['#f783ac', 0.6, 0.8]] as const) {
+        const f = add(new THREE.SphereGeometry(0.08, 10, 8), c, x, y, -0.05, false);
+        f.scale.x = 1.6;
+        f.name = 'fish';
+      }
+      add(new THREE.SphereGeometry(0.16, 12, 10), '#b197fc', -0.1, 0.75, -0.1, false);
+      for (let i = 0; i < 4; i++) add(new THREE.CapsuleGeometry(0.03, 0.18, 2, 6), '#b197fc', -0.22 + i * 0.08, 0.6, -0.1, false);
+      break;
+    }
+    case 'gokkusagihali': {
+      const cols = ['#ff6b6b', '#ff9f43', '#ffd43b', '#69db7c', '#4dabf7', '#9775fa'];
+      cols.forEach((c, i) => add(rbox(1.9, 0.03, 0.31, 0.01), c, 0, 0.016, -0.78 + i * 0.315, false));
+      break;
+    }
+    case 'taht': {
+      add(rbox(0.85, 0.45, 0.8, 0.06), '#d4a72c', 0, 0.22, 0);
+      add(rbox(0.7, 0.12, 0.6, 0.05), color, 0, 0.5, 0.05);
+      add(rbox(0.85, 1.25, 0.15, 0.06), '#d4a72c', 0, 0.95, -0.33);
+      add(rbox(0.6, 0.9, 0.05, 0.05), color, 0, 0.95, -0.25);
+      for (const sx of [-1, 1]) add(rbox(0.12, 0.35, 0.7, 0.04), '#d4a72c', sx * 0.38, 0.62, 0);
+      for (let i = 0; i < 3; i++) add(new THREE.ConeGeometry(0.07, 0.2, 6), '#ffd84d', -0.2 + i * 0.2, 1.68, -0.33);
+      break;
+    }
+    case 'kaleyatak': {
+      add(rbox(1.9, 0.35, 1.9, 0.08), '#e9e4dc', 0, 0.2, 0);
+      add(rbox(1.8, 0.18, 1.8, 0.08), '#ffffff', 0, 0.45, 0);
+      add(rbox(1.8, 0.08, 1.2, 0.06), color, 0, 0.56, 0.3);
+      for (const sx of [-0.45, 0.45]) add(rbox(0.6, 0.15, 0.3, 0.07), '#ffffff', sx, 0.6, -0.65);
+      for (const sx of [-0.88, 0.88]) for (const sz of [-0.88, 0.88]) {
+        add(new THREE.CylinderGeometry(0.12, 0.12, 1.8, 10), '#e9e4dc', sx, 0.9, sz);
+        add(new THREE.ConeGeometry(0.2, 0.4, 10), color, sx, 2.0, sz);
+      }
+      add(rbox(1.9, 0.9, 0.12, 0.05), '#e9e4dc', 0, 0.8, -0.92);
+      break;
+    }
+    case 'avize': {
+      add(rbox(0.12, 0.5, 0.12, 0.03), '#d4a72c', 0, 2.0, -0.44);
+      const ring = add(new THREE.TorusGeometry(0.3, 0.035, 8, 20), '#d4a72c', 0, 1.75, -0.25);
+      ring.rotation.x = Math.PI / 2;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        add(new THREE.OctahedronGeometry(0.06), soft(color, { emissive: '#665500', rough: 0.2 }), Math.cos(a) * 0.3, 1.62, -0.25 + Math.sin(a) * 0.3, false);
+      }
+      break;
+    }
     default:
       add(rbox(W * 0.9, 0.6, D * 0.9, 0.06), color, 0, 0.3, 0);
   }

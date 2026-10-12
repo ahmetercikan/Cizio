@@ -189,6 +189,8 @@ interface AppState {
   claimGift(): { streak: number; stars: number; chest: boolean } | null;
   /** Yıldız Dükkanı: bakiye yetmezse false. */
   buyRare(key: string, price: number): boolean;
+  /** Nadir eşyayı yıldız harcamadan verir (Butik'te altınla alınan, mini oyun ödülü). */
+  grantOwned(key: string): void;
   buyChest(price: number): boolean;
   buyFrame(id: string, price: number): boolean;
   setFrame(id?: string): void;
@@ -535,6 +537,14 @@ export const useApp = create<AppState>()(
         if (!paid) return false;
         set({ data: { ...data, [activeId]: { ...paid, owned: [...(d.owned ?? []), key] } } });
         return true;
+      },
+
+      grantOwned(key) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = { ...emptyData(), ...data[activeId] };
+        if ((d.owned ?? []).includes(key)) return;
+        set({ data: { ...data, [activeId]: { ...d, owned: [...(d.owned ?? []), key] } } });
       },
 
       buyChest(price) {

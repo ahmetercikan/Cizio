@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
-  advanceJourney, buyAnimal, buyField, buyPack, canFill, collect, craft, feed, fieldStage, fillOrder, fillOrders, harvest, JOURNEY, levelOf,
+  advanceJourney, buyAnimal, placeStruct, removeStruct, buyPack, canFill, collect, craft, feed, fieldStage, fillOrder, fillOrders, harvest, JOURNEY, levelOf,
   makeOrder, newFarm, normalizeFarm, plant, realmReward, sell, START_COINS, water, xpFor, type FarmState,
 } from '../economy';
 
 const T0 = 1_000_000;
+/** Tarlaları kurulmuş çiftlik (ilk 4 tarla bedava). */
+const withFields = (n = 4, base = newFarm()) => {
+  let s = base;
+  for (let i = 0; i < n; i++) s = placeStruct(s, 'tarla', i * 5, 0).s;
+  return s;
+};
 
 describe('tarla', () => {
   it('ek, sula, büyü, topla', () => {
-    let s = newFarm();
+    let s = withFields();
     let r = plant(s, 0, 'havuc');
     expect(r.err).toBeUndefined();
     s = r.s;
@@ -23,17 +29,30 @@ describe('tarla', () => {
     expect(r.s.xp).toBeGreaterThan(0);
   });
   it('seviyesi yetmeyen ürün ve parası yetmeyen tohum ekilemez', () => {
-    expect(plant(newFarm(), 0, 'kabak').err).toMatch(/seviyede/);
-    expect(plant({ ...newFarm(), coins: 1 }, 0, 'havuc').err).toMatch(/altın/);
-    expect(plant(plant(newFarm(), 0, 'havuc').s, 0, 'bugday').err).toMatch(/dolu/);
+    expect(plant(withFields(), 0, 'kabak').err).toMatch(/seviyede/);
+    expect(plant({ ...withFields(), coins: 1 }, 0, 'havuc').err).toMatch(/altın/);
+    expect(plant(plant(withFields(), 0, 'havuc').s, 0, 'bugday').err).toMatch(/dolu/);
   });
-  it('yeni tarla açmak giderek pahalanır', () => {
-    let s = { ...newFarm(), coins: 1000 };
-    const c0 = s.coins;
-    s = buyField(s).s;
-    s = buyField(s).s;
+  it('ilk 4 tarla bedava, sonrası giderek pahalanır; ekili tarla kaldırılamaz', () => {
+    let s = withFields(4, { ...newFarm(), coins: 1000 });
+    expect(s.coins).toBe(1000);
+    s = placeStruct(s, 'tarla', 50, 0).s;
+    s = placeStruct(s, 'tarla', 55, 0).s;
     expect(s.fields.length).toBe(6);
-    expect(c0 - s.coins).toBe(15 + 25);
+    expect(1000 - s.coins).toBe(15 + 25);
+    s = plant(s, 1, 'havuc').s;
+    expect(removeStruct(s, 1).err).toMatch(/ürün/);
+    const r = removeStruct(s, 0);
+    expect(r.s.fields.length).toBe(5);
+    expect(r.s.fields[0].c).toBe('havuc');
+  });
+  it('ağıl olmadan hayvan alınmaz, aynı yapı iki kez kurulmaz', () => {
+    let s = { ...newFarm(), coins: 500, xp: xpFor(3) };
+    expect(buyAnimal(s, 'tavuk').err).toMatch(/kümesi/);
+    s = placeStruct(s, 'kumes', 10, 10).s;
+    expect(placeStruct(s, 'kumes', 30, 10).err).toMatch(/Zaten/);
+    expect(buyAnimal(s, 'tavuk').err).toBeUndefined();
+    expect(placeStruct(s, 'kovan', 0, 0).err).toMatch(/seviyede/);
   });
 });
 
@@ -53,7 +72,7 @@ describe('seviye', () => {
 });
 
 describe('hayvanlar', () => {
-  const rich = (xp = xpFor(3)): FarmState => ({ ...newFarm(), coins: 500, xp });
+  const rich = (xp = xpFor(3)): FarmState => ({ ...newFarm(), coins: 500, xp, places: [{ k: 'kumes', x: 0, z: 0 }, { k: 'ahir', x: 20, z: 0 }, { k: 'agil', x: 40, z: 0 }, { k: 'kovan', x: 60, z: 0 }] });
   it('al, besle, bekle, topla', () => {
     let s = buyAnimal(rich(), 'tavuk').s;
     s = buyAnimal(s, 'tavuk').s;
@@ -115,7 +134,7 @@ describe('siparişler', () => {
 
 describe('defter ve macera', () => {
   it('biten adımlar sırayla ödüllenir', () => {
-    let s = newFarm();
+    let s = withFields(1);
     s = plant(s, 0, 'havuc').s;
     s = water(s, 0, T0).s;
     const r = advanceJourney(s);
@@ -133,15 +152,22 @@ describe('defter ve macera', () => {
   it('eski kayıt tamamlanır', () => {
     const s = normalizeFarm({ coins: 5 } as Partial<FarmState>);
     expect(s.coins).toBe(5);
-    expect(s.fields.length).toBe(4);
+    expect(s.fields.length).toBe(0);
+    expect(s.places).toEqual([]);
     expect(s.stats.blocks).toBe(0);
+    // hazır çiftlik zamanından kalma, kullanılmış kayıt: yapılar eski yerlerine kurulur
+    const old = normalizeFarm({ fields: [{ c: 'havuc' }, {}, {}, {}], animals: [{ k: 'tavuk' }], stats: { planted: 1 } } as unknown as Partial<FarmState>);
+    expect(old.places.filter((p) => p.k === 'tarla').length).toBe(4);
+    expect(old.places.some((p) => p.k === 'kumes')).toBe(true);
+    // hiç kullanılmamış eski kayıt: boş başlar
+    expect(normalizeFarm({ fields: [{}, {}, {}, {}] } as unknown as Partial<FarmState>).fields).toEqual([]);
   });
 });
 
 describe('toplu işler', () => {
   it('hepsine ek, hepsini sula, hepsini topla', async () => {
     const { plantAll, waterAll, harvestAll } = await import('../economy');
-    let s = { ...newFarm(), coins: 5 };
+    let s = withFields(4, { ...newFarm(), coins: 5 });
     let r = plantAll(s, 'havuc');
     expect(r.s.fields.filter((f) => f.c).length).toBe(2); // 5 altın: 2 tohum
     s = waterAll(r.s, T0).s;
@@ -149,6 +175,40 @@ describe('toplu işler', () => {
     r = harvestAll(s, T0 + 60_000);
     expect(r.s.inv.havuc).toBe(6);
     expect(r.msg).toMatch(/6 havuç/);
-    expect(plantAll({ ...newFarm(), coins: 0 }, 'havuc').err).toMatch(/altın/);
+    expect(plantAll(withFields(2, { ...newFarm(), coins: 0 }), 'havuc').err).toMatch(/altın/);
+  });
+});
+
+describe('arabalar', () => {
+  it('altınla alınır, seçilir; özel araba altınla alınmaz', async () => {
+    const { buyCar, xpFor: xf } = await import('../economy');
+    let s = { ...newFarm(), coins: 1000, xp: xf(3) };
+    let r = buyCar(s, 'jip');
+    expect(r.s.cars).toEqual(['jip']);
+    expect(r.s.car).toBe('jip');
+    expect(r.s.coins).toBe(1000 - 320);
+    s = r.s;
+    expect(buyCar(s, 'spor').err).toMatch(/seviyede/);
+    expect(buyCar(s, 'unicorn').err).toMatch(/ebeveyn/);
+    r = buyCar(s, 'jip');
+    expect(r.s.coins).toBe(s.coins);
+  });
+});
+
+describe('mini oyun ödülü', () => {
+  it('günde 3 eşya, sonra yalnızca altın; eşya evin deposuna gider', async () => {
+    const { miniReward } = await import('../economy');
+    let s = newFarm();
+    const prizes: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const r = miniReward(s, '2026-10-12', ['hat:yildiztac'], 0.9);
+      prizes.push(r.prize.kind);
+      s = r.s;
+    }
+    expect(prizes).toEqual(['item', 'item', 'item', 'coins', 'coins']);
+    expect(s.home?.stored.length).toBe(3);
+    expect(s.coins).toBeGreaterThan(START_COINS + 70);
+    expect(miniReward(newFarm(), 'g', ['hat:yildiztac'], 0.1).prize).toEqual({ kind: 'cloth', key: 'hat:yildiztac' });
+    expect(miniReward(s, '2026-10-13', [], 0.9).prize.kind).toBe('item');
   });
 });

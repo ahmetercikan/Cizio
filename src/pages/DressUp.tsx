@@ -10,7 +10,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { AppShell } from '../components/AppShell';
 import { useToast } from '../components/ui';
 import {
-  BACKS, BGS, BOTTOMS, CLOTH_COLORS, DRESSES, FACES, GLASSES, HAIR_COLORS, HAIRS, HANDS, HATS, PATTERNS, PETS, PRESETS, SHOES, SKINS, THEME_GOAL, TOPS,
+  BACKS, BGS, BOTTOMS, CLOTH_COLORS, SHINY_COLORS, DRESSES, FACES, GLASSES, HAIR_COLORS, HAIRS, HANDS, HATS, PATTERNS, PETS, PRESETS, SHOES, SKINS, THEME_GOAL, TOPS,
   randomOutfit, themeMatches, todayTheme, type DollState, type Gender, type Item,
 } from '../dressup/catalog';
 import { Doll, REGIONS } from '../dressup/Doll';
@@ -22,6 +22,8 @@ import { dayKey, uid } from '../lib/util';
 import { useApp, useProfile, useProfileData } from '../store/useApp';
 import { ownsRare, RARE } from '../lib/rewards';
 import { BuyRareModal } from './Shop';
+import { Crown } from 'lucide-react';
+import { PREMIUM_HINT, usePremium } from '../world/premium';
 import { ART_PREFIX, useArtPet } from '../dressup/artPets';
 import { getLesson } from '../lessons';
 import { listArtworks, type Artwork } from '../lib/gallery';
@@ -186,6 +188,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
   const [shake, setShake] = useState(0);
   const [flash, setFlash] = useState(false);
   const [buying, setBuying] = useState<(typeof RARE)[number] | null>(null);
+  const shiny = usePremium((x) => x.owned.includes('renk'));
   const stageRef = useRef<HTMLDivElement>(null);
 
   const theme = todayTheme(profile.id);
@@ -338,6 +341,16 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
               {cat.colors.map((c) => (
                 <button key={c} type="button" className={`swatch ${d[cat.color!] === c ? 'on' : ''}`} style={{ background: c }} aria-label="Renk"
                   onClick={() => { sfx.select(); update({ ...d, [cat.color!]: c }); }} />
+              ))}
+              {cat.colors === CLOTH_COLORS && SHINY_COLORS.map((c) => (
+                <button key={c} type="button" className={`swatch swatch--shiny ${d[cat.color!] === c ? 'on' : ''}`} style={{ background: c }} aria-label="Parıltılı renk"
+                  onClick={() => {
+                    if (!shiny) return showToast(PREMIUM_HINT);
+                    sfx.select();
+                    update({ ...d, [cat.color!]: c });
+                  }}>
+                  {!shiny && <Crown size={12} />}
+                </button>
               ))}
             </div>
           )}

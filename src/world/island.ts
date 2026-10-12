@@ -16,14 +16,19 @@ import { isWater, WORLD_R } from './layout';
 import { petCard } from './puppet';
 import { BlockGrid, buildHorizon, buildTerrain, buildVegetation } from './terrain';
 import { buildZones, starPlaces, WorldBuilder, type Activity, type SpotDef, type Vehicle } from './zones';
-import { buildMarket, buildPortals, Homestead, REALMS, type FarmBridge, type RealmId } from './homestead';
+import { buildMarket, buildPortals, buildShops, Homestead, REALMS, type FarmBridge, type RealmId } from './homestead';
 import { makeRealm, type Hero, type Realm } from './realms';
-import { blockById, buyBlueprint, placedBlocks, type FarmState } from './economy';
+import { blockById, buyBlueprint, placedBlocks, placeStruct, removeStruct, struct, type FarmState, type PlaceKind } from './economy';
+import { blueprint as blueprintParts } from './build';
 import type { Cell } from './build';
+import { car as carDef, carModel } from './cars';
 import type { Live } from '../online/rt';
 
+/** İnşa aracı: blok, silgi ya da çiftlik yapısı. */
+export type Tool = { block: string } | { erase: true } | { struct: PlaceKind };
+
 /** Adadaki bir arkadaş (çok oyunculu). */
-interface Remote { av: Avatar3D; tag: THREE.Sprite; look: string; pos: THREE.Vector3; target: THREE.Vector3; h: number; th: number; pose: Pose; speed: number; seen: number; w: string }
+interface Remote { av: Avatar3D; tag: THREE.Sprite; look: string; pos: THREE.Vector3; target: THREE.Vector3; h: number; th: number; pose: Pose; speed: number; seen: number; w: string; car: THREE.Object3D | null; carId: string }
 
 function nameTag(name: string) {
   const c = document.createElement('canvas');
@@ -150,15 +155,16 @@ export class Island {
   private lastPose: Pose = 'walk';
   // inşa
   private building = false;
-  private tool: { block: string } | { erase: true } = { block: 'ahsap' };
+  private tool: Tool = { block: 'ahsap' };
   private undo: string[] = [];
-  private inBuild = false;
   // macera kapıları
   private realm: Realm | null = null;
   private realmBack = new THREE.Vector3();
   private seed = 1;
   /** Evim'deyken arkadaşlar adada görmesin. */
   away = false;
+  /** Benim arabam (adada park eder, çağrılınca yanıma gelir). */
+  private myCar: { id: string; spot: SpotDef } | null = null;
 
   constructor(private canvas: HTMLCanvasElement, private o: IslandOptions, private ev: IslandEvents) {
     this.renderer = makeRenderer(canvas);
@@ -196,8 +202,9 @@ export class Island {
       },
       { note: (i) => this.ev.sound.note(i), kick: () => this.ev.sound.kick(), pop: () => this.ev.sound.pop(), star: (i) => this.ev.sound.star(i) });
     buildZones(this.wb, o.taken);
-    this.home = new Homestead(this.wb, o.farm);
+    this.home = new Homestead(this.wb, o.farm, (x, z) => this.canBuildAt(x, z));
     buildMarket(this.wb);
+    buildShops(this.wb);
     buildPortals(this.wb, (id) => this.enterRealm(id));
     buildVegetation(this.scene, this.grid, this.wb.keepOut);
     this.spots = this.wb.spots;
@@ -235,7 +242,7 @@ export class Island {
       const taken = this.o.taken.includes(s.id);
       const p = { x: s.x, z: s.z };
       this.grid.push(p, 1.2);
-      if (this.home.build.inside(p.x, p.z, 2)) continue;
+      if (this.home.build.near(p.x, p.z, 2)) continue;
       const obj = star();
       obj.scale.setScalar(1.4);
       obj.position.set(p.x, this.wb.ground(p.x, p.z) + 1.4, p.z);
@@ -382,10 +389,60 @@ export class Island {
         break;
       }
     }
-    const [x, z] = best ?? [v.pos.x + 2, v.pos.z];
+    let [x, z] = best ?? [v.pos.x + 2, v.pos.z];
+    if (v.land || v.fly) {
+      // arabanın soluna in
+      x = v.pos.x + Math.cos(v.heading) * 2.4;
+      z = v.pos.z - Math.sin(v.heading) * 2.4;
+      if (this.wb.ground(x, z) < 0.1 && best) [x, z] = best;
+    }
     this.pos.set(x, Math.max(-0.55, this.wb.ground(x, z)), z);
+    this.hero.vy = 0;
+    this.hero.grounded = true;
     this.drive = null;
     this.ev.onDrive(false);
+  }
+
+  /** Arabamı çağır: yanıma gelir ve binerim. */
+  summonCar(id: string) {
+    const def = carDef(id);
+    if (!def || this.act || this.realm) return;
+    if (this.drive) this.dismount();
+    if (this.myCar && this.myCar.id !== id) {
+      this.scene.remove(this.myCar.spot.vehicle!.model);
+      this.spots.splice(this.spots.indexOf(this.myCar.spot), 1);
+      this.myCar = null;
+    }
+    if (!this.myCar) {
+      const model = carModel(id);
+      this.scene.add(model);
+      const v = { model, pos: new THREE.Vector3(), heading: this.heading, speed: def.speed, water: false, seatY: def.seatY, land: !def.fly, fly: def.fly };
+      const spot: SpotDef = { id: 'car', x: 0, z: 0, r: 4, label: `${def.name} ile gez`, vehicle: v };
+      this.spots.push(spot);
+      this.myCar = { id, spot };
+    }
+    const v = this.myCar.spot.vehicle!;
+    // kahramanın yanında boş bir kara parçası
+    let px = this.pos.x + Math.cos(this.heading) * 3, pz = this.pos.z - Math.sin(this.heading) * 3;
+    if (!def.fly && this.wb.ground(px, pz) < 0.2) [px, pz] = [this.pos.x, this.pos.z];
+    v.pos.set(px, this.carY(v, px, pz), pz);
+    v.heading = this.heading;
+    v.model.position.copy(v.pos);
+    v.model.rotation.set(0, v.heading, 0);
+    this.fx.burst(v.pos.clone().setY(v.pos.y + 1.5), 16);
+    this.mount(this.myCar.spot);
+  }
+  get carId() {
+    return this.myCar?.id ?? null;
+  }
+  /** Korna. */
+  honk() {
+    this.ev.sound.note(4);
+    setTimeout(() => this.ev.sound.note(4), 160);
+  }
+  private carY(v: { fly?: boolean }, x: number, z: number) {
+    const g = this.wb.ground(x, z);
+    return v.fly ? Math.max(g, 0) + 2.2 : Math.max(g, -0.2);
   }
   /** Haritadan hızlı gidiş. */
   teleport(x: number, z: number) {
@@ -411,8 +468,40 @@ export class Island {
       this.pending = null;
     }
   }
-  setTool(t: { block: string } | { erase: true }) {
+  setTool(t: Tool) {
     this.tool = t;
+  }
+  /** Buraya yapı (blok, çiftlik) kurulabilir mi? Kurulamazsa nedeni. */
+  canBuildAt(x: number, z: number, farm = false): string | null {
+    if (this.wb.ground(x, z) < 0.3 || isWater(x, z)) return 'Suya yapı yapılamaz.';
+    if (Math.hypot(x, z) > WORLD_R - 30) return 'Kıyıya bu kadar yakın yapılamaz.';
+    if (!this.grid.free(x, z, 0.3)) return 'Burada başka bir şey var.';
+    for (const s of this.wb.spots) {
+      if (s.vehicle || (farm && /^(field:|pen:|kitchen)/.test(s.id))) continue;
+      if (Math.hypot(s.x - x, s.z - z) < Math.max(3.2, s.r + 0.6)) return 'Burası bir oyun yerinin önü; biraz öteye yap.';
+    }
+    return null;
+  }
+  /** Çiftlik yapısı kur: alan boş, düz ve karada olmalı. */
+  private placeStructAt(k: PlaceKind, x: number, z: number) {
+    const r = struct(k).r;
+    const g0 = this.wb.ground(x, z);
+    for (let i = 0; i <= 8; i++) {
+      const a = (i / 8) * Math.PI * 2, rr = i ? r * 0.85 : 0;
+      const px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr;
+      const err = this.canBuildAt(px, pz, true);
+      if (err) return this.ev.onMessage(err);
+      if (Math.abs(this.wb.ground(px, pz) - g0) > 1.6) return this.ev.onMessage('Burası çok engebeli. Daha düz bir yer seç.');
+    }
+    if (this.home.build.near(x, z, r)) return this.ev.onMessage('Burada blokların var. Başka bir yer seç.');
+    if (!this.home.placeFree(x, z, r)) return this.ev.onMessage('Burada başka bir çiftlik yapın var.');
+    const res = this.o.farm.apply((s) => placeStruct(s, k, Math.round(x * 2) / 2, Math.round(z * 2) / 2));
+    if (res.err) return this.ev.onMessage(res.err);
+    this.home.refresh();
+    this.fx.burst(new THREE.Vector3(x, g0 + 2, z), 24);
+    this.ev.sound.star(4);
+    if (res.msg) this.ev.onMessage(res.msg);
+    this.ev.onDone('build');
   }
   get buildMode() {
     return this.building;
@@ -422,11 +511,27 @@ export class Island {
     this.o.farm.apply((s) => placedBlocks(s, str, delta));
   }
   private buildTap() {
-    const h = this.home.build.hit(this.ray);
-    if (!h) return this.ev.onMessage('İnşa alanının içine dokun.');
+    if ('struct' in this.tool) {
+      const hit = this.ray.intersectObject(this.land)[0];
+      if (!hit || hit.distance > 120) return this.ev.onMessage('Yere dokun.');
+      return this.placeStructAt(this.tool.struct, hit.point.x, hit.point.z);
+    }
+    const h = this.home.build.hit(this.ray, [this.land]);
+    if (!h) return this.ev.onMessage('Karada bir yere dokun.');
     const before = this.home.build.save();
     if ('erase' in this.tool) {
-      if (!h.remove) return;
+      if (!h.remove) {
+        // blok yoksa çiftlik yapısını kaldır
+        const p = this.ray.intersectObject(this.land)[0]?.point;
+        const i = p ? this.home.placeAt(p.x, p.z) : -1;
+        if (i < 0) return;
+        const res = this.o.farm.apply((s) => removeStruct(s, i));
+        if (res.err) return this.ev.onMessage(res.err);
+        this.home.refresh();
+        this.ev.sound.pop();
+        if (res.msg) this.ev.onMessage(res.msg);
+        return;
+      }
       const b = this.home.build.remove(h.remove);
       if (b) {
         this.undo.push(before);
@@ -461,15 +566,17 @@ export class Island {
     const check = buyBlueprint(this.o.farm.get(), id);
     if (check.err) return check.err;
     const before = this.home.build.save();
-    const n = this.home.build.placeBlueprint(id, this.home.build.center, this.home.build.bodyCells(this.pos.x, this.pos.z, this.pos.y));
-    if (!n) return 'Arsanda bunun için yeterli boş yer yok. Biraz yer aç!';
+    // kahramanın önünde, biraz ileride
+    const at: [number, number] = [this.pos.x + Math.sin(this.heading) * 9, this.pos.z + Math.cos(this.heading) * 9];
+    const n = this.home.build.placeBlueprint(blueprintParts(id), at, this.home.build.bodyCells(this.pos.x, this.pos.z, this.pos.y));
+    if (!n) return 'Burada yeterli boş ve düz yer yok. Çayır gibi geniş bir yere git!';
     this.undo.push(before);
     const str = this.home.build.save();
     const r = this.o.farm.apply((s) => {
       const b = buyBlueprint(s, id);
       return b.err ? b : { ...placedBlocks(b.s, str, n), msg: b.msg };
     });
-    this.fx.burst(new THREE.Vector3(...this.home.build.center, 0).set(this.home.build.center[0], this.home.build.y0 + 4, this.home.build.center[1]), 30);
+    this.fx.burst(new THREE.Vector3(at[0], this.wb.ground(...at) + 4, at[1]), 30);
     this.ev.sound.star(5);
     this.ev.onDone('build');
     return r.err ?? r.msg ?? '';
@@ -502,7 +609,7 @@ export class Island {
   /** Kendi çiftliğimin paylaşılacak özeti (arkadaşlar görür). */
   homeSnapshot(): string {
     const s: FarmState = this.o.farm.get();
-    return JSON.stringify({ b: s.build, f: s.fields.map((f) => [f.c ?? '', f.w ?? 0]), a: s.animals.map((a) => [a.k, a.fed ?? 0]) });
+    return JSON.stringify({ b: s.build, f: s.fields.map((f) => [f.c ?? '', f.w ?? 0]), a: s.animals.map((a) => [a.k, a.fed ?? 0]), p: s.places.map((p) => [p.k, p.x, p.z]) });
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -688,11 +795,6 @@ export class Island {
       [near, best, label] = [s, d, l];
     }
     this.setNear(near, label);
-    const inB = this.home.build.inside(this.pos.x, this.pos.z, 1);
-    if (inB !== this.inBuild) {
-      this.inBuild = inB;
-      this.ev.onBuildArea?.(inB);
-    }
   }
 
   private setNear(s: SpotDef | null, label = '') {
@@ -728,9 +830,29 @@ export class Island {
       v.heading += angDiff(Math.atan2(dir.x, dir.z), v.heading) * Math.min(1, dt * 3);
       const f = new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading));
       const next = v.pos.clone().addScaledVector(f, v.speed * mag * dt);
-      if ((!v.water || (isWater(next.x, next.z) && this.wb.ground(next.x, next.z) < -0.4)) && Math.hypot(next.x, next.z) < WORLD_R) v.pos.copy(next);
-      if (Math.random() < dt * 8) this.sparkles.burst(v.pos.clone().addScaledVector(f, -1.5).setY(0.2), 2, '#ffffff');
+      if (v.land) {
+        // karada: suya girmez, engellerden ve bloklardan geçmez
+        this.grid.push(next, 1.3);
+        if (this.wb.ground(next.x, next.z) > 0.05 && Math.hypot(next.x, next.z) < WORLD_R && !this.home.build.blocked(next.x, next.z, v.pos.y)) v.pos.set(next.x, v.pos.y, next.z);
+        for (const w of v.model.children) if (w.name === 'wheel') w.rotation.x += v.speed * mag * dt * 1.6;
+      } else if (v.fly) {
+        if (Math.hypot(next.x, next.z) < WORLD_R) v.pos.set(next.x, v.pos.y, next.z);
+      } else if ((isWater(next.x, next.z) && this.wb.ground(next.x, next.z) < -0.4) && Math.hypot(next.x, next.z) < WORLD_R) v.pos.copy(next);
+      if (Math.random() < dt * 8) this.sparkles.burst(v.pos.clone().addScaledVector(f, -1.5).setY(v.land ? v.pos.y + 0.3 : v.fly ? v.pos.y - 0.2 : 0.2), 2, v.fly ? '#ffd1e8' : '#ffffff');
       if (this.clock - this.lastDrag > 1.2) this.camYawGoal += angDiff(v.heading + Math.PI, this.camYawGoal) * Math.min(1, dt * 1.5);
+    }
+    if (v.land || v.fly) {
+      // yokuşlarda burun yukarı / aşağı
+      const f = new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading));
+      const ty = this.carY(v, v.pos.x, v.pos.z) + (v.fly ? Math.sin(this.clock * 2) * 0.25 : 0);
+      v.pos.y += (ty - v.pos.y) * Math.min(1, dt * 10);
+      const pitch = v.fly ? 0 : -Math.atan2(this.wb.ground(v.pos.x + f.x * 1.5, v.pos.z + f.z * 1.5) - this.wb.ground(v.pos.x - f.x * 1.5, v.pos.z - f.z * 1.5), 3);
+      v.model.position.copy(v.pos);
+      v.model.rotation.set(pitch, v.heading, 0, 'YXZ');
+      this.speed = 0;
+      this.pos.set(v.pos.x, v.pos.y + v.seatY, v.pos.z);
+      this.heading = v.heading;
+      return;
     }
     this.speed = 0;
     this.pos.set(v.pos.x, v.pos.y + v.seatY + Math.sin(this.clock * 3) * 0.05, v.pos.z);
@@ -781,7 +903,7 @@ export class Island {
     // araçlar: binilmeyenler suda sallanır
     for (const s of this.spots) {
       const v = s.vehicle;
-      if (!v) continue;
+      if (!v || v.land || v.fly) continue;
       v.pos.y = Math.sin(this.clock * 2 + v.pos.x) * 0.08;
       v.model.position.copy(v.pos);
       v.model.rotation.y = v.heading;
@@ -900,7 +1022,7 @@ export class Island {
   // ----------------------------------------------------------------------------------------------
   /** Gönderilecek kendi durumum (konum, yön, poz, hangi dünyada). */
   liveState(): Omit<Live, 'n'> {
-    return { x: this.pos.x, z: this.pos.z, y: this.pos.y, h: this.heading, p: this.lastPose, w: this.away ? 'home' : this.realm?.id ?? '' };
+    return { x: this.pos.x, z: this.pos.z, y: this.pos.y, h: this.heading, p: this.lastPose, w: this.away ? 'home' : this.realm?.id ?? '', v: this.myCar && this.drive === this.myCar.spot.vehicle ? this.myCar.id : '' };
   }
 
   /** Odadaki arkadaşların görünüşü ve canlı durumu (sunucudan geldikçe). */
@@ -909,6 +1031,7 @@ export class Island {
       if (!peers[pid]?.live || !peers[pid]?.look) {
         r.av.root.parent?.remove(r.av.root);
         r.tag.parent?.remove(r.tag);
+        r.car?.parent?.remove(r.car);
         r.av.dispose();
         this.remotes.delete(pid);
       }
@@ -920,6 +1043,7 @@ export class Island {
       if (r && r.look !== lk) {
         r.av.root.parent?.remove(r.av.root);
         r.tag.parent?.remove(r.tag);
+        r.car?.parent?.remove(r.car);
         r.av.dispose();
         r = undefined;
       }
@@ -928,7 +1052,7 @@ export class Island {
         const tag = nameTag(p.live.n || 'Arkadaşın');
         this.stage.add(av.root, tag);
         const v = new THREE.Vector3(p.live.x, p.live.y ?? this.wb.ground(p.live.x, p.live.z), p.live.z);
-        r = { av, tag, look: lk, pos: v.clone(), target: v, h: p.live.h, th: p.live.h, pose: p.live.p as Pose, speed: 0, seen: this.clock, w: p.live.w ?? '' };
+        r = { av, tag, look: lk, pos: v.clone(), target: v, h: p.live.h, th: p.live.h, pose: p.live.p as Pose, speed: 0, seen: this.clock, w: p.live.w ?? '', car: null, carId: '' };
         this.remotes.set(pid, r);
       }
       const w = p.live.w ?? '';
@@ -938,6 +1062,14 @@ export class Island {
       r.th = p.live.h;
       r.pose = (p.live.p as Pose) || 'walk';
       r.seen = this.clock;
+      // arkadaşın arabası
+      const cid = carDef(p.live.v ?? '') ? p.live.v! : '';
+      if (cid !== r.carId) {
+        r.car?.parent?.remove(r.car);
+        r.car = cid ? carModel(cid) : null;
+        if (r.car) this.stage.add(r.car);
+        r.carId = cid;
+      }
     }
   }
 
@@ -966,6 +1098,11 @@ export class Island {
       r.av.root.rotation.y = r.h;
       r.av.update(dt, this.clock, r.pose, r.pose === 'walk' || r.pose === 'hold' ? r.speed : r.pose === 'climb' ? 0.8 : 0);
       r.tag.position.set(r.pos.x, r.pos.y + 4.1, r.pos.z);
+      if (r.car) {
+        r.car.visible = vis;
+        r.car.position.set(r.pos.x, r.pos.y - (carDef(r.carId)?.seatY ?? 0.8), r.pos.z);
+        r.car.rotation.y = r.h;
+      }
     }
   }
 

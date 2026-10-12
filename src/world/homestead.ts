@@ -6,13 +6,14 @@
  */
 import * as THREE from 'three';
 import { mesh, outline, toon } from '../play3d/kit';
-import { BuildArea, CELL, NX, NZ } from './build';
+import { WorldBlocks } from './build';
 import {
-  animal, ANIMALS, clock, collect, crop, feed, fieldStage, FIELDS_MAX, fieldPrice, buyField, ITEM_EMOJI, ITEM_NAME,
-  levelOf, stationStage, waterAll, harvestAll, type AnimalId, type FarmState, type Result,
+  animal, clock, collect, crop, feed, fieldStage, ITEM_EMOJI, ITEM_NAME, levelOf, PEN_OF, stationStage, struct, waterAll, harvestAll,
+  type AnimalId, type FarmState, type Result,
 } from './economy';
 import { HOME, zone } from './layout';
-import { sign, house, type Activity, type WorldBuilder } from './zones';
+import { sign, house, type Activity, type SpotDef, type WorldBuilder } from './zones';
+import type { Blocker } from './terrain';
 
 export interface FarmBridge {
   get(): FarmState;
@@ -200,158 +201,126 @@ function tool(kind: 'can' | 'bucket' | 'basket' | 'shears' | 'scoop') {
 }
 
 // ------------------------------------------------------------------------------------------------
-// Çiftliğim
+// Çiftlik yapıları: çocuğun adaya kurduğu tarla, kümes, ahır, ağıl, arı bahçesi ve mutfak
 // ------------------------------------------------------------------------------------------------
-interface FieldView { x: number; z: number; tile: THREE.Mesh; plants: THREE.Group; key: string; bub: THREE.Sprite | null; sign: THREE.Object3D | null }
-interface PenView { k: AnimalId; x: number; z: number; w: number; d: number; models: { obj: THREE.Group; pos: THREE.Vector3; to: THREE.Vector3; wait: number; hop: number }[]; bub: THREE.Sprite | null; key: string; sign: THREE.Object3D }
+interface FieldView { x: number; z: number; tile: THREE.Mesh; plants: THREE.Group; key: string; bub: THREE.Sprite | null }
+interface PenView { k: AnimalId; x: number; z: number; w: number; d: number; models: { obj: THREE.Group; pos: THREE.Vector3; to: THREE.Vector3; wait: number; hop: number }[]; bub: THREE.Sprite | null; key: string }
 
 export class Homestead {
-  readonly build: BuildArea;
+  readonly build: WorldBlocks;
   private fields: FieldView[] = [];
   private pens: PenView[] = [];
+  private smoke: THREE.Vector3[] = [];
+  private objs: THREE.Object3D[] = [];
+  private ownSpots: SpotDef[] = [];
+  private blockers: Blocker[] = [];
   private timer = 0;
-  private lastFields = -1;
-
+  private sig = '';
   /** Arkadaşın adasındaysak onun adı (çiftlik yalnızca görülür). */
   private guest: string | null = null;
 
-  constructor(private b: WorldBuilder, private farm: FarmBridge) {
+  constructor(private b: WorldBuilder, private farm: FarmBridge, canBuild: (x: number, z: number) => string | null) {
     const C = HOME;
     b.keepOut.push({ x: C.x, z: C.z, r: 58 });
-    // giriş tabelası ve yol
-    b.place(sign('Çiftliğim', '#c5f2b0'), C.x - 36, C.z + 4, -Math.PI / 2);
-    const path = mesh(new THREE.BoxGeometry(30, 0.1, 4), toon('#e8d3a3'), false);
-    b.place(path, C.x - 22, C.z, 0, 0.02);
-
-    // tarlalar: 4×4 (açık olanlar toprak, diğerleri satın alınabilir çimen)
-    const tileGeo = new THREE.BoxGeometry(3.8, 0.3, 3.8);
-    for (let i = 0; i < FIELDS_MAX; i++) {
-      const col = i % 4, row = Math.floor(i / 4);
-      const x = C.x - 30 + col * 4.7, z = C.z - 26 + row * 4.7;
-      const tile = mesh(tileGeo, toon('#9b6b43'), false);
-      b.place(tile, x, z, 0, 0.12);
-      const plants = new THREE.Group();
-      b.place(plants, x, z, 0, 0.27);
-      const fv: FieldView = { x, z, tile, plants, key: '', bub: null, sign: null };
-      this.fields.push(fv);
-      b.spot({
-        id: `field:${i}`, x, z, r: 2.4, label: '',
-        dyn: () => this.fieldLabel(i),
-        use: () => this.fieldUse(i),
-      });
-    }
-    b.place(sign('Tarlalar', '#fff1c7'), C.x - 34, C.z - 30, -Math.PI / 4);
-
-    // ambar ve mutfak
-    const barn = house('#d9534f', 0.9, '#7a4a3a');
-    b.place(barn, C.x - 6, C.z - 26, 0);
-    b.block(C.x - 6, C.z - 26, 4.2);
-    b.place(sign('Ambar', '#ffffff'), C.x - 6, C.z - 20.5);
-    const kitchen = house('#fff1c7', 0.7, '#ff8f6b');
-    const chimney = outline(mesh(new THREE.BoxGeometry(0.9, 2.4, 0.9), toon('#c8553d')), 1.04);
-    chimney.position.set(1.8, 6, -1);
-    kitchen.add(chimney);
-    b.place(kitchen, C.x - 6, C.z - 12, 0);
-    b.block(C.x - 6, C.z - 12, 3.2);
-    b.tick((_dt, t) => {
-      if (Math.floor(t * 2) !== Math.floor((t - 0.016) * 2)) b.sparkles.burst(new THREE.Vector3(C.x - 6 + 1.26, b.h(C.x - 6, C.z - 12) + 6.5, C.z - 12 - 0.7), 1, '#dddddd');
-    });
-    b.spot({
-      id: 'kitchen', x: C.x - 6, z: C.z - 8.6, r: 2.6, label: 'Mutfak',
-      dyn: () => (this.guest ? null : levelOf(this.farm.get().xp) >= 3 ? 'Mutfakta yemek yap' : 'Mutfak 3. seviyede açılır'),
-      use: () => (levelOf(this.farm.get().xp) >= 3 ? 'page' : { msg: 'Mutfak 3. seviyede açılır. Ürün topla ve sat, seviye atla!' }),
-    });
-
-    // çiftçi defteri panosu
-    const board = new THREE.Group();
-    const pnl = outline(mesh(new THREE.BoxGeometry(2.6, 1.8, 0.2), toon('#c98a4b')), 1.04);
-    pnl.position.y = 2;
-    const paper = mesh(new THREE.PlaneGeometry(2.1, 1.3), toon('#fffaf0'), false);
-    paper.position.set(0, 2, 0.11);
-    for (const x of [-1, 1]) {
-      const leg = mesh(new THREE.BoxGeometry(0.16, 2, 0.16), toon('#8a5a35'));
-      leg.position.set(x, 1, 0);
-      board.add(leg);
-    }
-    board.add(pnl, paper);
-    b.place(board, C.x - 28, C.z + 4, Math.PI / 2);
-    b.block(C.x - 28, C.z + 4, 1.2);
-    b.spot({ id: 'journal', x: C.x - 25.5, z: C.z + 4, r: 2.6, label: 'Çiftçi defterine bak', page: true, dyn: () => (this.guest ? null : 'Çiftçi defterine bak') });
-
-    // hayvan ağılları
-    const penAt: Record<AnimalId, [number, number]> = { tavuk: [C.x - 28, C.z + 20], inek: [C.x - 16, C.z + 20], koyun: [C.x - 4, C.z + 20], ari: [C.x - 16, C.z + 32] };
-    for (const a of ANIMALS) {
-      const [x, z] = penAt[a.id];
-      const w = 9, d = 8;
-      const f = fence(w, d, '#f4f1ea', 2.4);
-      b.place(f, x, z, Math.PI);
-      for (const [px, pz] of [[-w / 2, 0], [w / 2, 0]]) b.block(x + px, z + pz, 0.3);
-      if (a.id === 'tavuk') {
-        const coop = house('#ffcc80', 0.35, '#e05a4f');
-        b.place(coop, x + 2.6, z + 2.2, Math.PI);
-      } else if (a.id !== 'ari') {
-        const trough = outline(mesh(new THREE.BoxGeometry(2.2, 0.5, 0.7), toon('#8a5a35')), 1.05);
-        b.place(trough, x - 2.4, z + 3, 0, 0.25);
-      }
-      const sg = sign(`${a.name}`, '#fff1c7');
-      b.place(sg, x - 3, z - 4.6, Math.PI);
-      const pv: PenView = { k: a.id, x, z, w, d, models: [], bub: null, key: '', sign: sg };
-      this.pens.push(pv);
-      b.spot({
-        id: `pen:${a.id}`, x, z: z - 4.8, r: 3, label: '',
-        dyn: () => this.penLabel(a.id),
-        use: () => this.penUse(a.id),
-      });
-    }
-
-    // inşa alanı: sağdaki büyük düz arsa (köşesi)
-    const x0 = C.x + 2, z0 = C.z - (NZ * CELL) / 2;
-    const y0 = b.h(C.x + 2 + (NX * CELL) / 2, C.z);
-    const plot = mesh(new THREE.BoxGeometry(NX * CELL + 0.6, 0.3, NZ * CELL + 0.6), toon('#8fd16f'), false);
-    b.place(plot, x0 + (NX * CELL) / 2, C.z, 0, 0);
-    plot.position.y = y0 - 0.14;
-    b.decks.push({ x: x0 + (NX * CELL) / 2, z: C.z, w: NX * CELL, d: NZ * CELL, y: y0 });
-    this.build = new BuildArea(b.scene, x0, z0, y0);
-    for (const [x, z] of [[x0, z0], [x0 + NX * CELL, z0], [x0, z0 + NZ * CELL], [x0 + NX * CELL, z0 + NZ * CELL]]) {
-      const post = outline(mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.6, 8), toon('#ffc83d')), 1.06);
-      b.place(post, x, z, 0, 0.8);
-    }
-    b.place(sign('İnşa alanı', '#c5f2b0'), x0 - 1.4, C.z + 3, -Math.PI / 2);
-    b.spot({ id: 'build', x: x0 - 1.6, z: C.z, r: 2.8, label: 'İnşa etmeye başla', page: true, dyn: () => (this.guest ? null : 'İnşa etmeye başla') });
-
+    b.place(sign('Büyük Çayır', '#c5f2b0'), C.x - 36, C.z + 4, -Math.PI / 2);
+    this.build = new WorldBlocks(b.scene, (x, z) => b.ground(x, z), canBuild);
     this.build.load(farm.get().build);
     this.refresh();
+  }
+
+  private add<T extends THREE.Object3D>(o: T, x: number, z: number, rot = 0, dy = 0): T {
+    this.b.place(o, x, z, rot, dy);
+    this.objs.push(o);
+    return o;
+  }
+  private spot(s: SpotDef) {
+    this.b.spot(s);
+    this.ownSpots.push(s);
+  }
+  private blocker(x: number, z: number, r: number) {
+    const bl = { x, z, r };
+    this.b.grid.add(bl);
+    this.blockers.push(bl);
+  }
+
+  /** Yapılar değişince sahnedeki çiftliği baştan kurar. */
+  private layout(s: FarmState) {
+    for (const o of this.objs) this.b.scene.remove(o);
+    for (const p of this.pens) for (const m of p.models) this.b.scene.remove(m.obj);
+    for (const f of this.fields) if (f.bub) this.b.scene.remove(f.bub);
+    for (const p of this.pens) if (p.bub) this.b.scene.remove(p.bub);
+    for (const sp of this.ownSpots) {
+      const i = this.b.spots.indexOf(sp);
+      if (i >= 0) this.b.spots.splice(i, 1);
+    }
+    for (const bl of this.blockers) this.b.grid.remove(bl);
+    this.objs = [];
+    this.ownSpots = [];
+    this.blockers = [];
+    this.fields = [];
+    this.pens = [];
+    this.smoke = [];
+    const tileGeo = new THREE.BoxGeometry(3.8, 0.3, 3.8);
+    for (const p of s.places) {
+      const { x, z } = p;
+      if (p.k === 'tarla') {
+        const i = this.fields.length;
+        const tile = this.add(mesh(tileGeo, toon('#9b6b43'), false), x, z, 0, 0.12);
+        const plants = this.add(new THREE.Group(), x, z, 0, 0.27);
+        this.fields.push({ x, z, tile, plants, key: '', bub: null });
+        this.spot({ id: `field:${i}`, x, z, r: 2.4, label: '', dyn: () => this.fieldLabel(i), use: () => this.fieldUse(i) });
+        continue;
+      }
+      if (p.k === 'mutfak') {
+        const kitchen = house('#fff1c7', 0.7, '#ff8f6b');
+        const chimney = outline(mesh(new THREE.BoxGeometry(0.9, 2.4, 0.9), toon('#c8553d')), 1.04);
+        chimney.position.set(1.8, 6, -1);
+        kitchen.add(chimney);
+        this.add(kitchen, x, z, 0);
+        this.blocker(x, z, 3.2);
+        this.smoke.push(new THREE.Vector3(x + 1.26, this.b.h(x, z) + 6.5, z - 0.7));
+        this.spot({
+          id: 'kitchen', x, z: z + 3.4, r: 2.6, label: 'Mutfak',
+          dyn: () => (this.guest ? null : 'Mutfakta yemek yap'),
+          use: () => 'page',
+        });
+        continue;
+      }
+      const k = (Object.keys(PEN_OF) as AnimalId[]).find((a) => PEN_OF[a] === p.k)!;
+      const a = animal(k);
+      const w = 9, d = 8;
+      this.add(fence(w, d, '#f4f1ea', 2.4), x, z, Math.PI);
+      if (k === 'tavuk') this.add(house('#ffcc80', 0.35, '#e05a4f'), x + 2.6, z + 2.2, Math.PI);
+      else if (k !== 'ari') this.add(outline(mesh(new THREE.BoxGeometry(2.2, 0.5, 0.7), toon('#8a5a35')), 1.05), x - 2.4, z + 3, 0, 0.25);
+      this.add(sign(a.name, '#fff1c7'), x - 3, z - 4.6, Math.PI);
+      this.pens.push({ k, x, z, w, d, models: [], bub: null, key: '' });
+      this.spot({ id: `pen:${k}`, x, z: z - 4.8, r: 3, label: '', dyn: () => this.penLabel(k), use: () => this.penUse(k) });
+    }
   }
 
   /** Çiftlik durumu değişince (React'tan da çağrılır). */
   refresh() {
     const s = this.farm.get();
-    const now = Date.now();
-    if (s.fields.length !== this.lastFields) {
-      this.lastFields = s.fields.length;
-      this.fields.forEach((f, i) => {
-        const open = i < s.fields.length;
-        f.tile.material = toon(open ? '#9b6b43' : '#a8d98a');
-        f.tile.scale.y = open ? 1 : 0.4;
-        if (f.sign) { f.sign.parent?.remove(f.sign); f.sign = null; }
-        if (i === s.fields.length) {
-          f.sign = bubble('➕', 1.4);
-          f.sign.position.set(f.x, this.b.h(f.x, f.z) + 1.6, f.z);
-          this.b.scene.add(f.sign);
-        }
-      });
+    const sig = JSON.stringify(s.places);
+    if (sig !== this.sig) {
+      this.sig = sig;
+      this.layout(s);
     }
+    const now = Date.now();
     this.fields.forEach((f, i) => {
       const fs = s.fields[i];
       const st = fs ? fieldStage(fs, now) : null;
       const bucket = !st ? 'none' : st.stage === 'growing' ? `g${Math.min(2, Math.floor(st.u * 3))}` : st.stage;
-      const key = `${fs?.c ?? ''}|${bucket}`;
+      const key = `${fs?.c ?? ''}|${bucket}|${fs?.w ? 1 : 0}`;
       if (key === f.key) return;
-      const wasEmpty = f.key.startsWith('|') || f.key === '';
+      const wasEmpty = f.key === '' || f.key.startsWith('|');
       f.key = key;
       f.plants.clear();
-      if (f.bub) { f.bub.parent?.remove(f.bub); f.bub = null; }
-      if (fs) f.tile.material = toon(fs.w ? '#7a5235' : '#9b6b43');
+      if (f.bub) {
+        this.b.scene.remove(f.bub);
+        f.bub = null;
+      }
+      f.tile.material = toon(fs?.w ? '#7a5235' : '#9b6b43');
       if (!fs?.c || !st) return;
       const k = st.stage === 'thirsty' ? 0 : st.stage === 'ready' ? 1 : Math.max(0.35, st.u);
       for (const [dx, dz] of [[-0.85, -0.85], [0.85, -0.85], [-0.85, 0.85], [0.85, 0.85]]) {
@@ -378,10 +347,12 @@ export class Homestead {
         this.b.sparkles.burst(pos.clone().setY(this.b.h(pos.x, pos.z) + 1), 12);
       }
       const st = stationStage(s, p.k, now);
-      const key = st.stage;
-      if (key !== p.key) {
-        p.key = key;
-        if (p.bub) { p.bub.parent?.remove(p.bub); p.bub = null; }
+      if (st.stage !== p.key) {
+        p.key = st.stage;
+        if (p.bub) {
+          this.b.scene.remove(p.bub);
+          p.bub = null;
+        }
         const def = animal(p.k);
         if (st.stage === 'hungry') p.bub = bubble(ITEM_EMOJI[def.eats], 1.4);
         if (st.stage === 'ready') p.bub = bubble(ITEM_EMOJI[def.product], 1.6);
@@ -393,13 +364,14 @@ export class Homestead {
     }
   }
 
-  /** Her kare: hayvanlar ağılda dolaşır, baloncuklar sallanır; yarım saniyede bir durum güncellenir. */
+  /** Her kare: hayvanlar ağılda dolaşır, baloncuklar sallanır, mutfak tüter; yarım saniyede bir durum güncellenir. */
   update(dt: number, t: number) {
     this.timer -= dt;
     if (this.timer <= 0) {
       this.timer = 0.5;
       this.refresh();
     }
+    if (Math.floor(t * 2) !== Math.floor((t - dt) * 2)) for (const s of this.smoke) this.b.sparkles.burst(s, 1, '#dddddd');
     for (const p of this.pens) {
       for (const m of p.models) {
         if (p.k === 'ari') {
@@ -431,14 +403,28 @@ export class Homestead {
     for (const f of this.fields) if (f.bub) f.bub.position.y = this.b.h(f.x, f.z) + 2.6 + Math.sin(t * 3 + f.x) * 0.12;
   }
 
+  /** Dokunulan noktadaki çiftlik yapısı (kaldırmak için). */
+  placeAt(x: number, z: number): number {
+    const s = this.farm.get();
+    let best = -1, bd = Infinity;
+    s.places.forEach((p, i) => {
+      const d = Math.hypot(p.x - x, p.z - z);
+      if (d < struct(p.k).r + 0.5 && d < bd) [best, bd] = [i, d];
+    });
+    return best;
+  }
+  /** Bir yapının kapladığı alan boş mu (diğer yapılar). */
+  placeFree(x: number, z: number, r: number) {
+    return this.farm.get().places.every((p) => Math.hypot(p.x - x, p.z - z) > (struct(p.k).r + r) * 0.85);
+  }
+
   // ----------------------------------------------------------------------------------------------
   // Tarla düğmeleri
   // ----------------------------------------------------------------------------------------------
   private fieldLabel(i: number): string | null {
     if (this.guest) return null;
     const s = this.farm.get();
-    if (i > s.fields.length) return null;
-    if (i === s.fields.length) return s.fields.length < FIELDS_MAX ? `Yeni tarla aç (${fieldPrice(s)} altın)` : null;
+    if (!s.fields[i]) return null;
     const st = fieldStage(s.fields[i], Date.now());
     const name = s.fields[i].c ? crop(s.fields[i].c!).name : '';
     if (st.stage === 'empty') return 'Tohum ek';
@@ -450,12 +436,7 @@ export class Homestead {
   private fieldUse(i: number): Activity | 'page' | { msg: string } | null {
     const s = this.farm.get();
     const f = this.fields[i];
-    if (i === s.fields.length) {
-      const r = this.farm.apply(buyField);
-      if (!r.err) this.refresh();
-      return { msg: r.err ?? r.msg ?? '' };
-    }
-    if (i > s.fields.length) return null;
+    if (!s.fields[i] || !f) return null;
     const st = fieldStage(s.fields[i], Date.now());
     if (st.stage === 'empty') return 'page';
     if (st.stage === 'growing') return { msg: `Biraz bekle, ${clock(st.left)} sonra toplayabilirsin.` };
@@ -518,7 +499,8 @@ export class Homestead {
     const st = stationStage(s, k, Date.now());
     if (st.stage === 'none') return { msg: levelOf(s.xp) >= def.level ? `Kasabadaki Pazar'dan ${def.name.toLocaleLowerCase('tr')} alabilirsin (${def.cost} altın).` : `${def.name} ${def.level}. seviyede açılır.` };
     if (st.stage === 'busy') return { msg: `${ITEM_NAME[def.product]} için ${clock(st.left)} kaldı.` };
-    const p = this.pens.find((x) => x.k === k)!;
+    const p = this.pens.find((x) => x.k === k);
+    if (!p) return null;
     const m0 = p.models[0];
     const target = m0?.pos ?? new THREE.Vector3(p.x, 0, p.z);
     const h = () => this.b.h(target.x, target.z);
@@ -555,9 +537,7 @@ export class Homestead {
   setBridge(bridge: FarmBridge, guest: string | null) {
     this.farm = bridge;
     this.guest = guest;
-    this.lastFields = -1;
-    for (const f of this.fields) f.key = '-';
-    for (const p of this.pens) p.key = '-';
+    this.sig = '-';
     this.build.load(bridge.get().build);
     this.refresh();
   }
@@ -688,4 +668,65 @@ export function buildPortals(b: WorldBuilder, enter: (id: RealmId) => void) {
       },
     });
   });
+}
+
+// ------------------------------------------------------------------------------------------------
+// Kasabada Butik ve Oyun Çadırı
+// ------------------------------------------------------------------------------------------------
+export function buildShops(b: WorldBuilder) {
+  // Butik: pembe tenteli küçük dükkân, vitrinde elbise
+  {
+    const x = -2, z = 27;
+    const ang = b.facing(x, z, 0, 0);
+    const g = house('#ffd1e8', 0.75, '#e9487d');
+    for (let i = 0; i < 6; i++) {
+      const s = mesh(new THREE.BoxGeometry(1, 0.12, 2.2), toon(i % 2 ? '#ffffff' : '#ff8fb1'));
+      s.position.set(-2.5 + i, 3.7, 3.4);
+      s.rotation.x = 0.3;
+      g.add(s);
+    }
+    const dress = new THREE.Group();
+    const skirt = outline(mesh(new THREE.ConeGeometry(0.55, 1.1, 12), toon('#9b6bff')), 1.06);
+    skirt.position.y = 0.9;
+    const top = outline(mesh(new THREE.CylinderGeometry(0.25, 0.32, 0.6, 10), toon('#9b6bff')), 1.06);
+    top.position.y = 1.7;
+    const pole = mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 6), toon('#5b5f6b'));
+    pole.position.y = 1.1;
+    dress.add(pole, skirt, top);
+    dress.position.set(2.6, 0, 3.6);
+    g.add(dress);
+    b.place(g, x, z, ang);
+    b.block(x, z, 3.6);
+    b.place(sign('Butik', '#ffd1e8'), x + Math.sin(ang) * 4.4 - Math.cos(ang) * 2.6, z + Math.cos(ang) * 4.4 + Math.sin(ang) * 2.6, ang);
+    b.spot({ id: 'boutique', x: x + Math.sin(ang) * 4.2, z: z + Math.cos(ang) * 4.2, r: 3, label: 'Butik: kıyafetler', page: true });
+  }
+  // Oyun Çadırı: çizgili sirk çadırı ve bayrak
+  {
+    const x = 24, z = 22;
+    const ang = b.facing(x, z, 0, 0);
+    const g = new THREE.Group();
+    const cols = ['#ef4b4b', '#ffffff'];
+    for (let i = 0; i < 12; i++) {
+      const seg = mesh(new THREE.CylinderGeometry(3.6, 3.6, 2.6, 2, 1, true, (i / 12) * Math.PI * 2, Math.PI / 6), toon(cols[i % 2]));
+      (seg.material as THREE.Material).side = THREE.DoubleSide;
+      seg.position.y = 1.3;
+      g.add(seg);
+      const roof = mesh(new THREE.ConeGeometry(4.0, 2.6, 2, 1, true, (i / 12) * Math.PI * 2, Math.PI / 6), toon(cols[(i + 1) % 2]));
+      (roof.material as THREE.Material).side = THREE.DoubleSide;
+      roof.position.y = 3.9;
+      g.add(roof);
+    }
+    const door = mesh(new THREE.PlaneGeometry(1.8, 2.1), toon('#3a2b27'), false);
+    door.position.set(0, 1.05, 3.62);
+    const flagPole = mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.6, 6), toon('#5b5f6b'));
+    flagPole.position.y = 5.9;
+    const flag = mesh(new THREE.BoxGeometry(0.9, 0.5, 0.05), toon('#ffc83d'));
+    flag.position.set(0.45, 6.4, 0);
+    g.add(door, flagPole, flag);
+    b.place(g, x, z, ang);
+    b.block(x, z, 3.8);
+    b.tick((_dt, t) => (flag.rotation.y = Math.sin(t * 3) * 0.3));
+    b.place(sign('Oyun Çadırı', '#fff1c7'), x + Math.sin(ang) * 5 + Math.cos(ang) * 3, z + Math.cos(ang) * 5 - Math.sin(ang) * 3, ang);
+    b.spot({ id: 'games', x: x + Math.sin(ang) * 4.6, z: z + Math.cos(ang) * 4.6, r: 3, label: 'Mini oyun oyna', page: true });
+  }
 }

@@ -13,7 +13,7 @@ export interface Room { id: string; name: string; x: number; z: number; w: numbe
 /** Kapı: (x,z) karosunun `side` kenarında. */
 export interface Door { x: number; z: number; side: Side }
 export type Side = 'n' | 'e' | 's' | 'w';
-export interface Plan { id: string; name: string; price: number; w: number; d: number; rooms: Room[]; doors: Door[]; front: Door }
+export interface Plan { id: string; name: string; price: number; w: number; d: number; rooms: Room[]; doors: Door[]; front: Door; /** Özel paket (premium.ts). */ premium?: string }
 
 /** Bahçe payı: evin çevresinde kaç karo. */
 export const YARD = 4;
@@ -57,6 +57,19 @@ export const PLANS: Plan[] = [
     ],
     doors: [{ x: 2, z: 2, side: 's' }, { x: 6, z: 3, side: 'n' }, { x: 3, z: 4, side: 'w' }, { x: 2, z: 7, side: 'e' }, { x: 8, z: 7, side: 'e' }, { x: 8, z: 3, side: 'e' }],
     front: { x: 5, z: 8, side: 's' },
+  },
+  {
+    id: 'sato', name: 'Şato evi', price: 0, premium: 'sato', w: 12, d: 10,
+    rooms: [
+      { id: 'mutfak', name: 'Mutfak', x: 0, z: 0, w: 4, d: 3 },
+      { id: 'yatak', name: 'Yatak odası', x: 4, z: 0, w: 4, d: 4 },
+      { id: 'cocuk', name: 'Oyun odası', x: 8, z: 0, w: 4, d: 4 },
+      { id: 'atolye', name: 'Kütüphane', x: 0, z: 3, w: 4, d: 3 },
+      { id: 'salon', name: 'Taht salonu', x: 4, z: 4, w: 8, d: 6 },
+      { id: 'banyo', name: 'Banyo', x: 0, z: 6, w: 4, d: 4 },
+    ],
+    doors: [{ x: 1, z: 2, side: 's' }, { x: 3, z: 4, side: 'e' }, { x: 5, z: 3, side: 's' }, { x: 9, z: 3, side: 's' }, { x: 3, z: 7, side: 'e' }],
+    front: { x: 7, z: 9, side: 's' },
   },
 ];
 export const plan = (id: string) => PLANS.find((p) => p.id === id) ?? PLANS[0];
@@ -153,6 +166,8 @@ export interface Item {
   /** Üstünden yürünür (halı). */
   flat?: boolean;
   use?: Use;
+  /** Yalnızca özel paketle (premium.ts); açılınca bedava konur. */
+  premium?: string;
 }
 
 export const ITEMS: Item[] = [
@@ -197,6 +212,14 @@ export const ITEMS: Item[] = [
   { id: 'raf', name: 'Raf', cat: 'duvar', price: 8, w: 1, d: 1, wall: true, colors: ['#d9b48a', '#ffffff'] },
   { id: 'saat', name: 'Saat', cat: 'duvar', price: 12, w: 1, d: 1, wall: true, colors: ['#ffffff', '#f6d68e', '#b8b4e6'] },
   { id: 'ayna', name: 'Ayna', cat: 'duvar', price: 15, w: 1, d: 1, wall: true, colors: ['#d9b48a', '#ffffff', '#f2b8a2'], use: { kind: 'look', msg: 'Bugün çok şıksın!' } },
+  // özel paketler
+  { id: 'uzayyatak', name: 'Uzay yatağı', cat: 'yatak', price: 0, premium: 'sihir', w: 1, d: 2, colors: ['#5b4bb7', '#2d1b69'], use: { kind: 'sleep', msg: 'Yıldızların arasında uyudun!' } },
+  { id: 'dondurma', name: 'Dondurma makinesi', cat: 'mutfak', price: 0, premium: 'sihir', w: 1, d: 1, colors: ['#ffd1e8', '#cfe8ff'], use: { kind: 'snack', msg: 'Çilekli dondurma, mmm!' } },
+  { id: 'devakvaryum', name: 'Dev akvaryum', cat: 'oyun', price: 0, premium: 'sihir', w: 2, d: 1, colors: ['#ffffff', '#d9b48a'], use: { kind: 'look', msg: 'Ahtapot sana el salladı!' } },
+  { id: 'gokkusagihali', name: 'Gökkuşağı halı', cat: 'oturma', price: 0, premium: 'sihir', w: 2, d: 2, flat: true, colors: ['#ffffff'], use: { kind: 'dance', msg: 'Gökkuşağında dans ettin!' } },
+  { id: 'taht', name: 'Taht', cat: 'oturma', price: 0, premium: 'sato', w: 1, d: 1, colors: ['#e9487d', '#7c5cff', '#2bb673'], use: { kind: 'sit', msg: 'Tahtına kuruldun, majesteleri!' } },
+  { id: 'kaleyatak', name: 'Kale yatak', cat: 'yatak', price: 0, premium: 'sato', w: 2, d: 2, colors: ['#f5a3c7', '#9ad0f5'], use: { kind: 'sleep', msg: 'Kale yatağında prens gibi uyudun!' } },
+  { id: 'avize', name: 'Kristal avize', cat: 'duvar', price: 0, premium: 'sato', w: 1, d: 1, wall: true, colors: ['#cfeaff', '#ffe9a8'], use: { kind: 'look', msg: 'Pırıl pırıl!' } },
   // bahçe
   { id: 'agac', name: 'Ağaç', cat: 'bahce', price: 20, w: 1, d: 1, out: true, colors: ['#9c8fd8', '#7cc790', '#f5a3c7'] },
   { id: 'cicek', name: 'Çiçek tarhı', cat: 'bahce', price: 12, w: 2, d: 1, out: true, colors: ['#ff8fb1', '#ffd43b', '#9775fa'], use: { kind: 'water', msg: 'Çiçekler sana gülümsedi!' } },

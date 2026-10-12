@@ -3,7 +3,8 @@
  * (resimli kartlar, kategoriler, depo), yerleştirme kartı (renk, döndür, koy), seçili eşya kartı (döndür, renk,
  * taşı, sat), duvar ve zemin renkleri, ev planları.
  */
-import { Check, Coins, LogOut, Minus, Move, Plus, RotateCcw, RotateCw, Sofa, Sparkles, X } from 'lucide-react';
+import { Check, Coins, Crown, LogOut, Minus, Move, Plus, RotateCcw, RotateCw, Sofa, Sparkles, X } from 'lucide-react';
+import { PREMIUM_HINT, usePremium } from './premium';
 import { useMemo, useState } from 'react';
 import { CATS, FLOORS, ITEMS, PLANS, WALLS, item, type Cat } from './homeData';
 import type { GhostInfo, HomeScene, SelInfo } from './home';
@@ -34,7 +35,8 @@ export function CamButtons({ home }: { home: HomeScene }) {
 
 type Tab = Cat | 'finish' | 'plan' | 'store';
 
-export function Catalog({ home, coins, onPick }: { home: HomeScene; coins: number; onPick: (id: string, fromStore: boolean) => void }) {
+export function Catalog({ home, coins, onPick, onHint }: { home: HomeScene; coins: number; onPick: (id: string, fromStore: boolean) => void; onHint: (t: string) => void }) {
+  const premium = usePremium((x) => x.owned);
   const [tab, setTab] = useState<Tab>('oturma');
   const [, force] = useState(0);
   const stored = home.state.stored;
@@ -71,12 +73,14 @@ export function Catalog({ home, coins, onPick }: { home: HomeScene; coins: numbe
       ) : tab === 'plan' ? (
         <div className="home-cat__cards">
           {PLANS.map((p) => {
-            const own = home.state.plans.includes(p.id), now = home.state.plan === p.id;
+            const own = home.state.plans.includes(p.id) || (!!p.premium && premium.includes(p.premium)), now = home.state.plan === p.id;
+            const locked = !!p.premium && !premium.includes(p.premium);
             return (
               <div key={p.id} className={`home-card home-card--plan ${now ? 'on' : ''}`}>
                 <span className="home-card__plan">{p.rooms.length} oda · {p.w}×{p.d}</span>
                 <b>{p.name}</b>
-                {now ? <small>Şu an buradasın</small> : (
+                {locked && <span className="crown-tag"><Crown size={14} /></span>}
+                {now ? <small>Şu an buradasın</small> : locked ? <button className="btn-outline btn-outline--sm" onClick={() => onHint(PREMIUM_HINT)}><Crown size={14} /> Özel</button> : (
                   <button className="pill pill--sm" disabled={!own && coins < p.price} onClick={() => onPick(`@plan:${p.id}`, false)}>
                     {own ? 'Taşın' : <><Coins size={16} /> {p.price}</>}
                   </button>
@@ -88,10 +92,12 @@ export function Catalog({ home, coins, onPick }: { home: HomeScene; coins: numbe
       ) : (
         <div className="home-cat__cards">
           {(tab === 'store' ? stored.map((id) => item(id)!).filter(Boolean) : items).map((it, k) => (
-            <button key={`${it.id}${k}`} className="home-card" disabled={tab !== 'store' && coins < it.price} onClick={() => onPick(it.id, tab === 'store')}>
+            <button key={`${it.id}${k}`} className={`home-card ${it.premium ? 'home-card--premium' : ''}`} disabled={tab !== 'store' && !it.premium && coins < it.price}
+              onClick={() => (it.premium && !premium.includes(it.premium) && tab !== 'store' ? onHint(PREMIUM_HINT) : onPick(it.id, tab === 'store'))}>
+              {it.premium && <span className="crown-tag"><Crown size={14} /></span>}
               <img src={home.thumbnail(it.id)} alt="" />
               <b>{it.name}</b>
-              <small>{tab === 'store' ? 'Depoda' : <><Coins size={13} /> {it.price}</>}</small>
+              <small>{tab === 'store' ? 'Depoda' : it.premium ? (premium.includes(it.premium) ? 'Senin' : 'Özel') : <><Coins size={13} /> {it.price}</>}</small>
             </button>
           ))}
         </div>
@@ -106,7 +112,7 @@ export function GhostCard({ g, home }: { g: GhostInfo; home: HomeScene }) {
     <div className="home-ghost rise">
       <div className="home-ghost__head">
         <b>{it.name}</b>
-        <small>{g.moving ? 'Taşınıyor' : <><Coins size={13} /> {g.price}</>}</small>
+        <small>{g.moving ? 'Taşınıyor' : g.price ? <><Coins size={13} /> {g.price}</> : 'Bedava'}</small>
       </div>
       {it.colors.length > 1 && (
         <div className="home-sw">{it.colors.map((c, i) => <button key={c} aria-label={`Renk ${i + 1}`} style={{ background: c }} onClick={() => home.ghostColor(i)} />)}</div>
