@@ -6,7 +6,7 @@ export type QuestId =
   | 'balloon' | 'fish' | 'icecream' | 'flowers' | 'lighthouse' | 'treasure' | 'goal' | 'music'
   | 'coaster' | 'waterslide' | 'swan' | 'swim' | 'jetski' | 'surf' | 'snorkel' | 'sandcastle' | 'lifeguard'
   | 'campfire' | 'tent' | 'treehouse' | 'harvest' | 'tractor' | 'snowman' | 'sled' | 'fossil' | 'egg' | 'castle' | 'rocket'
-  | 'farm' | 'sell' | 'build' | 'maze' | 'sky' | 'candy';
+  | 'farm' | 'sell' | 'build' | 'maze' | 'sky' | 'candy' | 'decorate';
 
 export const STARS_GOAL = 5;
 /** Yıldız avı dışında her gün kaç görev. */
@@ -19,7 +19,7 @@ export const QUESTS: Record<QuestId, string> = {
   dance: 'Dans pistinde dans et',
   boat: 'Tekneyle adanın etrafını gez',
   gallery: 'Sanat galerisinde resimlerine bak',
-  home: 'Evine gidip kıyafetini değiştir',
+  home: 'Evindeki gardıroptan kıyafetini değiştir',
   ferris: 'Dönme dolaba bin',
   carousel: 'Atlıkarıncaya bin',
   trampoline: 'Trambolinde zıpla',
@@ -57,6 +57,7 @@ export const QUESTS: Record<QuestId, string> = {
   maze: 'Labirentteki hazineyi bul',
   sky: 'Gökyüzü Parkuru’nu bitir',
   candy: 'Şeker Diyarı’nda şeker topla',
+  decorate: 'Evine yeni bir eşya koy',
 };
 
 /** Bugünün görevleri: yıldız avı hep var, diğer üçü güne göre değişir. */

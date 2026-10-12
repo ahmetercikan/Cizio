@@ -316,7 +316,7 @@ function buildTown(b: WorldBuilder) {
   }
   b.place(house('#ffd166'), ...homeAt, b.facing(...homeAt, 0, 0));
   b.block(...homeAt, 4.6);
-  b.spot({ id: 'home', x: -21.8, z: -16.8, r: 3.2, label: 'Kıyafetimi değiştir', page: true });
+  b.spot({ id: 'home', x: -21.8, z: -16.8, r: 3.2, label: 'Evime gir', page: true });
   b.place(sign('Evim', '#fff1c7'), -20, -14, b.facing(-20, -14, 0, 0));
   // sanat galerisi
   const gx = 26, gz = -20;

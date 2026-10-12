@@ -6,6 +6,7 @@
  * Bloklar ve süs eşyaları da burada tanımlıdır (inşa: src/world/build.ts).
  */
 import { hashStr } from '../lib/util';
+import type { HomeState } from './homeData';
 
 // ================================================================================================
 // Ürünler
@@ -193,6 +194,8 @@ export interface FarmState {
   stats: FarmStats;
   /** Macera kapılarının günlük ilk bitiş ödülü. */
   realmDay?: { day: string; done: string[] };
+  /** Evim: plan, eşyalar, renkler (homeData.ts). */
+  home?: HomeState;
 }
 
 export const FIELDS_START = 4;

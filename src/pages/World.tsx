@@ -24,6 +24,9 @@ import { Gate } from './Parent';
 import { advanceJourney, CROPS, ANIMALS, fillOrders, newFarm, normalizeFarm, realmReward, unlocksAt, type FarmState, type Result } from '../world/economy';
 import { BlueprintPanel, BuildBar, FarmHud, JournalPanel, JourneyChip, KitchenPanel, LevelUp, MarketPanel, OrdersPanel, RealmDone, RealmHud, SeedPanel, type Apply } from '../world/FarmPanels';
 import type { FarmBridge, RealmId } from '../world/homestead';
+import type { GhostInfo, HomeScene, SelInfo } from '../world/home';
+import { newHome } from '../world/homeData';
+import { CamButtons, Catalog, GhostCard, HomeTop, SelCard } from '../world/HomePanels';
 import { ISLAND_ONLINE } from '../online/config';
 import { useOnlineView } from '../online/OnlineHost';
 import type { Presence, RoomHandle } from '../online/rt';
@@ -136,6 +139,14 @@ function IslandPlay() {
   const [realm, setRealm] = useState<{ id: RealmId; name: string; goal: string } | null>(null);
   const [realmProg, setRealmProg] = useState('');
   const [realmDone, setRealmDone] = useState<{ id: RealmId; name: string; text: string; coins: number } | null>(null);
+  // Evim
+  const home = useRef<HomeScene | null>(null);
+  const [homeOn, setHomeOn] = useState(false);
+  const [homeMode, setHomeMode] = useState<'live' | 'build'>('live');
+  const [ghost, setGhost] = useState<GhostInfo | null>(null);
+  const [sel, setSel] = useState<SelInfo | null>(null);
+  const [homeBusy, setHomeBusy] = useState(false);
+  const media = useRef<{ pet: HTMLCanvasElement | null; art: HTMLCanvasElement[] }>({ pet: null, art: [] });
   const [toast, setToast] = useState<string | null>(null);
   const [me, setMe] = useState({ x: 0, z: 12, h: 0 });
   // Birlikte oynama (Realtime Database): oda = adanın sahibinin pid'i
@@ -213,6 +224,7 @@ function IslandPlay() {
           Promise.all(CARD_IDS.map(async (id) => [id, await tex.lessonCanvas(id)] as const)),
         ]);
         if (!alive || !ref.current) return;
+        media.current = { pet, art };
         world.current = new Island(ref.current, {
           doll, pet, art, tex: { ...Object.fromEntries(cards), maskot: mascot }, taken: island.stars, starSeed: hashStr(`${day}|${profile.id}|yildiz`),
           farm: bridge.current,
@@ -245,6 +257,15 @@ function IslandPlay() {
         });
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
         setReady(true);
+        // evdeki bir eşyadan (gardırop, şövale…) başka sayfaya gidip dönünce eve geri gel
+        try {
+          if (sessionStorage.getItem('cizio-home-return')) {
+            sessionStorage.removeItem('cizio-home-return');
+            setTimeout(() => homeRef.current(), 300);
+          }
+        } catch {
+          /* yok say */
+        }
         if (import.meta.env.DEV) Object.assign(window, { __island: world.current, __app: useApp });
         say(ISLAND_LINES.welcome);
       } catch (e) {
@@ -254,6 +275,8 @@ function IslandPlay() {
     })();
     return () => {
       alive = false;
+      home.current?.dispose();
+      home.current = null;
       world.current?.dispose();
       world.current = null;
     };
@@ -338,8 +361,7 @@ function IslandPlay() {
       setPanel('quests');
       say(allDone ? (island.rewarded ? ISLAND_LINES.doneToday : ISLAND_LINES.allDone) : ISLAND_LINES.hello);
     } else if (id === 'home') {
-      markDone('home');
-      nav('/giydir');
+      void enterHome();
     } else if (id === 'market' || id === 'orders') {
       useApp.getState().farmApply((s) => ({ s: fillOrders(s) }));
       setPanel(id);
@@ -352,6 +374,74 @@ function IslandPlay() {
       setPanel('seed');
     }
   };
+  /** Evime gir: ada durur, aynı çizicide ev açılır. */
+  const enterHome = async () => {
+    const w = world.current;
+    if (!w || home.current || !ref.current) return;
+    const { HomeScene } = await import('../world/home');
+    const h = new HomeScene(w.gl, ref.current, { doll: data.doll ?? PRESETS[0], pet: media.current.pet, art: media.current.art }, {
+      get: () => normalizeFarm(useApp.getState().data[profile.id]?.farm).home ?? newHome(),
+      coins: () => bridge.current.get().coins,
+      save: (next, coins) => applyQuiet((s) => (coins < 0 && s.coins < -coins ? { s, err: `Bunun için ${-coins} altın gerekiyor. Çiftlikte ürün yetiştirip pazarda satabilirsin!` } : { s: { ...s, coins: s.coins + coins, home: next } })).err ?? null,
+    }, {
+      onMessage: flash,
+      onPage: (pg) => {
+        if (pg === 'giydir') markDone('home');
+        try {
+          sessionStorage.setItem('cizio-home-return', '1');
+        } catch {
+          /* yok say */
+        }
+        nav(`/${pg}`);
+      },
+      onGhost: setGhost,
+      onSelect: setSel,
+      onBusy: setHomeBusy,
+      onPlaced: () => markDone('decorate'),
+      sound: { pop: () => sfx.pop(), star: (i) => sfx.star(i), note: (i) => sfx.note(i) },
+    });
+    w.suspend();
+    w.away = true;
+    stopBuild();
+    setPanel(null);
+    home.current = h;
+    h.start();
+    setHomeMode('live');
+    setHomeOn(true);
+    if (import.meta.env.DEV) Object.assign(window, { __home: h });
+    flash('Evine hoş geldin! Bir eşyaya dokun, onunla oyna.');
+  };
+  const homeRef = useRef(enterHome);
+  homeRef.current = enterHome;
+  const leaveHome = () => {
+    home.current?.dispose();
+    home.current = null;
+    setHomeOn(false);
+    setGhost(null);
+    setSel(null);
+    const w = world.current;
+    if (w) {
+      w.away = false;
+      w.resume();
+    }
+  };
+  const setHomeModeAll = (m: 'live' | 'build') => {
+    sfx.tab();
+    home.current?.setMode(m);
+    setHomeMode(m);
+  };
+  const pickHome = (id: string, fromStore: boolean) => {
+    const h = home.current;
+    if (!h) return;
+    if (id.startsWith('@plan:')) {
+      const msg = h.setPlan(id.slice(6));
+      if (msg) flash(msg);
+      return;
+    }
+    sfx.select();
+    h.pick(id, 0, fromStore);
+  };
+
   const startBuild = () => {
     world.current?.setBuildMode(true);
     world.current?.setTool({ block: tool });
@@ -391,18 +481,24 @@ function IslandPlay() {
   };
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
-    if (!d) return;
+    if (!d) {
+      if (e.pointerType === 'mouse') home.current?.hover(e.clientX, e.clientY);
+      return;
+    }
     const dx = e.clientX - d.x;
     if (!d.moved && Math.abs(dx) > 10) d.moved = true;
     if (d.moved) {
-      world.current?.rotateCamera(dx);
+      if (home.current) home.current.rotate(dx);
+      else world.current?.rotateCamera(dx);
       d.x = e.clientX;
     }
   };
   const onUp = (e: React.PointerEvent) => {
     const d = drag.current;
     drag.current = null;
-    if (d && !d.moved) world.current?.tapTo(e.clientX, e.clientY);
+    if (!d || d.moved) return;
+    if (home.current) home.current.tap(e.clientX, e.clientY, e.pointerType === 'mouse');
+    else world.current?.tapTo(e.clientX, e.clientY);
   };
 
   if (failed) {
@@ -476,8 +572,18 @@ function IslandPlay() {
 
   return (
     <div className={`island ${building ? 'island--building' : ''}`}>
-      <canvas ref={ref} className="island__canvas" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => (drag.current = null)} />
+      <canvas ref={ref} className="island__canvas" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => (drag.current = null)}
+        onWheel={(e) => home.current?.zoom(e.deltaY > 0 ? 1.1 : 1 / 1.1)} />
+      {homeOn && home.current && (
+        <div className="home-ui">
+          <HomeTop mode={homeMode} coins={farm.coins} onMode={setHomeModeAll} onLeave={leaveHome} />
+          <CamButtons home={home.current} />
+          {homeMode === 'live' && !homeBusy && <div className="home-hint">Bir eşyaya dokun, onunla oyna! Yere dokununca oraya yürürsün.</div>}
+          {homeMode === 'build' && (ghost ? <GhostCard g={ghost} home={home.current} /> : sel ? <SelCard s={sel} home={home.current} /> : <Catalog home={home.current} coins={farm.coins} onPick={pickHome} />)}
+        </div>
+      )}
       {!ready && <div className="alive__wait"><Mascot size={110} mood="think" /><b>Ada hazırlanıyor…</b></div>}
+      {!homeOn && <>
       <header className="island__top">
         <button className="round-btn round-btn--light" aria-label="Adadan çık" onClick={() => nav('/')}><ArrowLeft size={26} strokeWidth={2.6} /></button>
         {realm ? (
@@ -529,6 +635,7 @@ function IslandPlay() {
           )}
         </>
       )}
+      </>}
       {toast && <div className="island__toast pop-in">{toast}</div>}
       {panel === 'quests' && (
         <Modal onClose={() => setPanel(null)}>

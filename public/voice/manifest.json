@@ -7,7 +7,7 @@
     "gemini-3.8-flash-lite-tts",
     "gemini-2.5-flash-preview-tts"
   ],
-  "version": "c4575fb7",
+  "version": "62aa6038",
   "lines": {
     "10452175": "Color the plane.",
     "10479234": "Three! Rex eats three ice creams.",
@@ -303,6 +303,7 @@
     "10ee6c37": "That's the sun.",
     "1118a7ea": "Güzel deneme! Dikenler kısmına bir daha bak.",
     "112d42dc": "Where is the frog?",
+    "1134da94": "Evindeki gardıroptan kıyafetini değiştir",
     "11454c3c": "Muhteşem! Yılbaşı Ağacı çok güzel oldu!",
     "114d74c7": "Çok iyi! Kaide biraz eksik kaldı.",
     "11553eb7": "Güzel deneme! Küpe kısmına bir daha bak.",
@@ -530,6 +531,7 @@
     "23d9040d": "Who Is Hiding?",
     "23e82d69": "Güzel deneme! Dik çubuk kısmına bir daha bak.",
     "23ef897b": "Çok iyi! İç alev biraz eksik kaldı.",
+    "23ff8b8e": "Evine yeni bir eşya koy",
     "2411c915": "Çok iyi! Sağ ip biraz eksik kaldı.",
     "242a7a3c": "This is a big tree.",
     "243562d8": "Gövdenin ortasına açık renkli bir karın, altına da iki minik ayak çiz.",
@@ -3407,7 +3409,6 @@
     "f3e1b71e": "Pembe yanaklar, hortumun yanına gülen bir ağız, kafanın tepesine de üç minik tüy çiz.",
     "f3ee278a": "Güzel deneme! Sağ çizme kısmına bir daha bak.",
     "f408b415": "Find all the green hearts!",
-    "f40f4982": "Evine gidip kıyafetini değiştir",
     "f42b6176": "Çok iyi! Minik damla biraz eksik kaldı.",
     "f433664c": "Çok iyi! Sol damar biraz eksik kaldı.",
     "f4483d24": "Color the big sail.",

@@ -61,6 +61,7 @@ Yenilikler:
 • Çiftliğim: tohum ek, sula, topla; tavuk, inek, koyun ve arı besle; pazarda sat, seviye atla
 • Minecraft gibi blokla ev yap, hazır yapılar kur
 • Macera kapıları: Labirent, Gökyüzü Parkuru, Şeker Diyarı (arkadaşlarla birlikte)
+• Evim: kendi evini kur! 45 eşya, renkler, duvar ve zemin, daha büyük evler; eşyalarla oyna
 • Ekrana dokun, zıpla!
 • Çizimin canlansın: göz kırpar, tekerlek döner, balık yüzer
 • Çizdiğinle oyna artık 3 boyutlu: sağa sola kaç, zıpla, yıldız topla
@@ -80,6 +81,12 @@ Yenilikler:
 - **İnşa:** 20×20 arsada 35 çeşit blok ve eşya, 4 hazır yapı. Karakter zıplayarak blokların üstüne çıkar.
 - **Macera kapıları:** her gün değişen Labirent (aynı adadaki arkadaşlar aynı labirenti görür), Gökyüzü Parkuru
   (kayan platformlar, zıplatan mantarlar, kontrol noktaları), Şeker Diyarı (75 saniyede 20 şeker).
+- **Evim:** kasabadaki evin kapısından girilen, bebek evi gibi kesit görünümlü 3B ev. 45 eşya (resimli katalog, renk
+  seçimi, döndürme, yeşil/kırmızı yerleştirme önizlemesi, taşıma, satma), oda oda duvar ve zemin renkleri, 3 ev planı
+  (Sevimli ev, Bahçeli ev 250, Büyük ev 600 altın; eşyalar odalarıyla taşınır). Eşyaya dokununca karakter yürür ve
+  oynar: kanepede oturur, yatakta uyur, yemek yapar, piyano çalar, trambolinde zıplar, salıncakta sallanır, havuzda yüzer.
+  Şövale resim çizmeye, gardırop Giydir'e, kitaplık hikaye kitabına, çalışma masası derslere götürür; duvardaki
+  tablolarda çocuğun kendi resimleri asılı.
 - **Dokunma:** boş yere dokununca zıplar; bir eşyaya dokununca o iş yapılır (uzaksa yanına yürür).
 - **Adada birlikte oynama:** Çevrimiçi açıksa çocuk, onaylı arkadaşlarının adasına gidebilir ("Yanına git"); bir adada
   sahibi ve en çok 10 arkadaşı. Arkadaşlar birbirinin karakterini, adını, yürüyüşünü ve el sallamasını görür; yazışma yok.

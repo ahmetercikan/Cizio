@@ -41,8 +41,8 @@ export class BlockGrid {
 }
 
 const COL = {
-  grass: new THREE.Color('#8fd16f'),
-  grass2: new THREE.Color('#7cc760'),
+  grass: new THREE.Color('#a6d98a'),
+  grass2: new THREE.Color('#94cf7c'),
   sand: new THREE.Color('#f3dca2'),
   snow: new THREE.Color('#f4f9ff'),
   dirt: new THREE.Color('#d9a066'),

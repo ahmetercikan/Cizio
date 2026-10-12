@@ -92,7 +92,7 @@ export interface IslandOptions {
 
 const WALK = 8, RUN = 15;
 const GRAVITY = 32, JUMP = 12.5;
-const SKY = new THREE.Color('#a9e4ff');
+const SKY = new THREE.Color('#bde6f7');
 const DEEP = new THREE.Color('#1f86b8');
 
 const angDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
@@ -157,12 +157,17 @@ export class Island {
   private realm: Realm | null = null;
   private realmBack = new THREE.Vector3();
   private seed = 1;
+  /** Evim'deyken arkadaşlar adada görmesin. */
+  away = false;
 
   constructor(private canvas: HTMLCanvasElement, private o: IslandOptions, private ev: IslandEvents) {
     this.renderer = makeRenderer(canvas);
+    // yumuşak, pastel görünüm (Evim ile aynı)
+    this.renderer.toneMapping = THREE.NeutralToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
     this.scene.background = SKY.clone();
     this.scene.fog = new THREE.Fog(SKY.clone(), 140, 420);
-    this.scene.add(new THREE.HemisphereLight('#ffffff', '#7fbf6a', 1.15));
+    this.scene.add(new THREE.HemisphereLight('#fffaf2', '#b9d9a0', 1.2));
     this.sun = new THREE.DirectionalLight('#fff4dc', 1.5);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
@@ -473,6 +478,23 @@ export class Island {
   farmChanged() {
     this.home.refresh();
   }
+  /** Evim açılınca ada durur (aynı çizici evde kullanılır). */
+  get gl() {
+    return this.renderer;
+  }
+  suspend() {
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
+    this.resizeObs.disconnect();
+  }
+  resume() {
+    if (this.raf) return;
+    this.resizeObs.observe(this.canvas);
+    this.resize();
+    this.last = performance.now();
+    this.raf = requestAnimationFrame(this.frame);
+  }
+
   /** Arkadaşın adasında onun çiftliği ve yapıları gösterilir (null: kendi çiftliğim). */
   setHomeView(bridge: FarmBridge | null, guest: string | null) {
     this.home.setBridge(bridge ?? this.o.farm, guest);
@@ -878,7 +900,7 @@ export class Island {
   // ----------------------------------------------------------------------------------------------
   /** Gönderilecek kendi durumum (konum, yön, poz, hangi dünyada). */
   liveState(): Omit<Live, 'n'> {
-    return { x: this.pos.x, z: this.pos.z, y: this.pos.y, h: this.heading, p: this.lastPose, w: this.realm?.id ?? '' };
+    return { x: this.pos.x, z: this.pos.z, y: this.pos.y, h: this.heading, p: this.lastPose, w: this.away ? 'home' : this.realm?.id ?? '' };
   }
 
   /** Odadaki arkadaşların görünüşü ve canlı durumu (sunucudan geldikçe). */
