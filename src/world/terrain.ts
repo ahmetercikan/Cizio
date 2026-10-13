@@ -4,7 +4,7 @@
  */
 import * as THREE from 'three';
 import { canvasTexture, toon } from '../play3d/kit';
-import { groundKind, heightAt, isWater, LAND_R, WORLD_R, ZONES } from './layout';
+import { groundKind, heightAt, isWater, LAND_R, roadDist, WORLD_R, ZONES } from './layout';
 
 export interface Blocker { x: number; z: number; r: number }
 
@@ -120,7 +120,7 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const forest = ZONES.find((z) => z.id === 'forest')!;
   const okSpot = (x: number, z: number, r: number) =>
-    !isWater(x, z) && heightAt(x, z) > 0.8 && Math.hypot(x, z) < LAND_R - 10 && grid.free(x, z, r + 1.2) &&
+    !isWater(x, z) && heightAt(x, z) > 0.8 && Math.hypot(x, z) < LAND_R - 10 && grid.free(x, z, r + 1.2) && roadDist(x, z) > r + 3.5 &&
     keepOut.every((k) => Math.hypot(k.x - x, k.z - z) > k.r + r);
 
   const trees: { x: number; z: number; s: number; kind: 0 | 1 | 2 }[] = [];
@@ -185,7 +185,7 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
       const a = rnd() * Math.PI * 2, r = 8 + Math.sqrt(rnd()) * (LAND_R - 20);
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
       const h = heightAt(x, z);
-      if (h < 1 || h > 14) continue;
+      if (h < 1 || h > 14 || roadDist(x, z) < 3) continue;
       list.push({ x, y: h + 0.2, z, s: 0.8 + rnd() * 0.6 });
     }
     const f = inst(new THREE.SphereGeometry(0.18, 6, 5), toon(col), list);

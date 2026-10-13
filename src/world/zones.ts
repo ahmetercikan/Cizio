@@ -70,6 +70,12 @@ export interface Wanderer { obj: THREE.Object3D; pos: THREE.Vector3; target: THR
 type Tick = (dt: number, t: number, a: Actor) => void;
 
 const sm = (u: number) => u * u * (3 - 2 * u);
+/** Etkinlik adımında `period` saniyelik bir vuruş bu karede geçildi mi (sesleri zamanlamak için). */
+const beat = (t: number, dt: number, period: number, off = 0) => t >= off && Math.floor((t - off) / period) !== Math.floor((t - dt - off) / period);
+// lunapark melodileri (gam derecesi, -1 = sus)
+const WALTZ = [4, 2, 4, 7, 4, 2, 3, 1, 3, 6, 4, 3, 4, 2, 4, 7, 9, 7, 6, 4, 3, 2, -1, -1, 2, 4, 2, 5, 4, 3, 3, 5, 3, 6, 5, 4, 4, 2, 0, 1, 2, 3, 2, 1, 6, 0, -1, -1];
+const WALTZ_BASS = [0, 0, 4, 4, 0, 0, 4, 0, 4, 1, 4, 0, 0, 4, 4, 0];
+const MUSICBOX = [0, 2, 4, 7, 4, 2, 0, -1, 3, 5, 7, 9, 7, 5, 4, -1, 2, 4, 6, 8, 6, 4, 2, -1, 4, 2, 1, 0, -1, -1, -1, -1];
 
 export class WorldBuilder {
   spots: SpotDef[] = [];
@@ -92,7 +98,7 @@ export class WorldBuilder {
     public art: HTMLCanvasElement[],
     /** Pasif görev bitti (gol, müzik…) ve kısa mesaj. */
     public done: (quest: string, msg?: string) => void,
-    public sound: { note: (i: number) => void; kick: () => void; pop: () => void; star: (i: number) => void; whoosh?: () => void },
+    public sound: { note: (i: number) => void; kick: () => void; pop: () => void; star: (i: number) => void; whoosh?: () => void; fx?: (name: string, i?: number) => void },
   ) {}
 
   /** Zemin yüksekliği (iskele / ada güvertesi dahil). */
@@ -408,10 +414,14 @@ function buildTown(b: WorldBuilder) {
     b.place(l, Math.cos(a) * 10, Math.sin(a) * 10, 0, 3.5);
   }
   // yol tabelaları (bölgelere)
-  for (const zid of ['fun', 'lake', 'beach', 'forest', 'farm', 'snow', 'dino', 'castle', 'rocket']) {
+  const placed: number[] = [];
+  for (const zid of ['fun', 'lake', 'beach', 'forest', 'farm', 'snow', 'dino', 'castle', 'rocket', 'city', 'village', 'zoo', 'airport', 'picnic']) {
     const zn = zone(zid);
     const a = Math.atan2(zn.z, zn.x);
-    const [x, z] = b.polar(a, 13.5);
+    // yönleri çok yakın olan tabelalar iç içe girmesin: ikinci halkaya
+    const near = placed.some((p) => Math.abs(Math.atan2(Math.sin(p - a), Math.cos(p - a))) < 0.3);
+    placed.push(a);
+    const [x, z] = b.polar(a, near ? 17.5 : 13.5);
     b.place(sign(zn.name, '#fff1c7'), x, z, b.facing(x, z, 0, 0) + Math.PI);
   }
 }
@@ -715,6 +725,7 @@ function buildFun(b: WorldBuilder) {
           c.add(stick, fluff);
           c.name = 'held';
           a.hand.add(c);
+          b.sound.fx?.('yay');
           return 'Mmm, pamuk şeker!';
         },
       },
@@ -745,6 +756,7 @@ function buildFun(b: WorldBuilder) {
           c.add(string, bl);
           c.name = 'held';
           a.hand.add(c);
+          b.sound.fx?.('yay');
           return 'Balonun çok güzel!';
         },
       },
@@ -814,7 +826,13 @@ function buildFun(b: WorldBuilder) {
       act: {
         dur: 14, pose: 'sit', cam: [12, 5],
         start: () => void (spin = 0.9),
-        step(_t, _u, a) {
+        step(t, _u, a, dt) {
+          if (beat(t, dt, 0.34)) {
+            const k = Math.floor(t / 0.34);
+            const n = WALTZ[k % WALTZ.length];
+            if (n >= 0) b.sound.fx?.('organ', n);
+            if (k % 3 === 0) b.sound.fx?.('oom', WALTZ_BASS[Math.floor(k / 3) % WALTZ_BASS.length]);
+          }
           horses[0].getWorldPosition(p);
           a.pos.set(p.x, p.y + 1.1, p.z);
           a.heading = top.rotation.y + Math.PI;
@@ -911,7 +929,11 @@ function buildFun(b: WorldBuilder) {
           });
           speed = 0.32;
         },
-        step(_t, _u, a) {
+        step(t, _u, a, dt) {
+          if (beat(t, dt, 0.42)) {
+            const n = MUSICBOX[Math.floor(t / 0.42) % MUSICBOX.length];
+            if (n >= 0) b.sound.fx?.('musicbox', n);
+          }
           cabins[seat].getWorldPosition(p);
           a.pos.set(p.x, p.y - 2.4, p.z);
           a.heading = yaw;
@@ -1036,7 +1058,7 @@ function buildFun(b: WorldBuilder) {
       return (lo + (t - times[lo]) / Math.max(1e-6, times[hi] - times[lo])) * ds;
     };
     const s0 = 4.6; // vagonlar istasyonda
-    let crest = false;
+    let crest = false, braked = false;
     placeTrain(s0);
     const [x, z] = L(-6.8, 12.5);
     b.spot({
@@ -1044,12 +1066,22 @@ function buildFun(b: WorldBuilder) {
       act: {
         dur: tSum + 1.5,
         follow: true,
-        start: () => void (crest = false),
+        start: () => {
+          crest = false;
+          braked = false;
+        },
         cam: [6, 4.4],
         pose: (u) => (u * (tSum + 1.5) > times[topI] + 0.6 && u < 0.93 ? 'cheer' : 'sit'),
-        step(t, _u, a) {
+        step(t, _u, a, dt) {
           const s = s0 + sAt(Math.max(0, t - 0.6));
           placeTrain(s);
+          if (t - 0.6 < times[topI]) {
+            if (t > 0.6 && beat(t, dt, 0.22)) b.sound.fx?.('clack');
+          } else if (t < tSum - 0.6 && beat(t, dt, 0.36)) b.sound.fx?.('rumble');
+          if (t > tSum - 1 && !braked) {
+            braked = true;
+            b.sound.fx?.('spray');
+          }
           // en arka vagonda oturur: kamera arkadan bütün treni görür
           cars[2].updateMatrixWorld();
           const seatP = cars[2].localToWorld(new THREE.Vector3(0, -0.25, -0.2));
@@ -1060,11 +1092,13 @@ function buildFun(b: WorldBuilder) {
           if (t - 0.6 > times[topI] && !crest) {
             crest = true;
             b.sound.whoosh?.();
+            b.sound.fx?.('wee');
             b.sparkles.burst(seatP.clone().setY(seatP.y + 1.5), 14);
           }
         },
         end: () => {
           placeTrain(s0);
+          b.sound.fx?.('yay');
           return 'Vaaay! Hız treni çok heyecanlıydı!';
         },
       },
@@ -1127,7 +1161,7 @@ function buildFun(b: WorldBuilder) {
     g.add(head);
     put(g, cx, cz);
     blk(cx, cz, 7.4);
-    let w = 0.35, goal = 0.35;
+    let w = 0.35, goal = 0.35, cheered = false;
     b.tick((dt) => {
       w += (goal - w) * Math.min(1, dt * 0.6);
       head.rotation.y += dt * w;
@@ -1144,16 +1178,25 @@ function buildFun(b: WorldBuilder) {
         dur: 16, pose: 'sit', cam: [20, 9],
         start: () => {
           goal = 1.6;
+          cheered = false;
           chains[0].children[2].getWorldPosition(prev);
         },
-        step(t, u, a) {
+        step(t, u, a, dt) {
           if (u > 0.78) goal = 0.35;
           chains[0].children[2].getWorldPosition(p);
           a.pos.set(p.x, p.y - 0.75, p.z);
           // gidiş yönüne bakar
           if (p.distanceToSquared(prev) > 1e-6) a.heading = Math.atan2(p.x - prev.x, p.z - prev.z);
           prev.copy(p);
-          if (Math.floor(t * 2) !== Math.floor((t - 0.02) * 2) && w > 1.2) b.sound.whoosh?.();
+          if (beat(t, dt, 0.34)) {
+            const k = Math.floor(t / 0.34), n = WALTZ[(k + 24) % WALTZ.length];
+            if (n >= 0) b.sound.fx?.('organ', n + 2);
+          }
+          if (w > 1.2 && beat(t, dt, 1.6)) b.sound.whoosh?.();
+          if (w > 1.45 && !cheered) {
+            cheered = true;
+            b.sound.fx?.('wee');
+          }
         },
         end: () => {
           goal = 0.35;
@@ -1207,7 +1250,7 @@ function buildFun(b: WorldBuilder) {
         dur: 13, cam: [22, 6],
         pose: (u) => (u > 0.6 && u < 0.85 ? 'cheer' : 'sit'),
         start: () => void (fell = landed = false),
-        step(t, _u, a) {
+        step(t, _u, a, dt) {
           let y = 1.2;
           if (t < 6.5) y = 1.2 + (H - 3.5) * sm(t / 6.5); // yavaşça çıkar
           else if (t < 8) y = H - 2.3; // tepede bekler... heyecan!
@@ -1218,12 +1261,16 @@ function buildFun(b: WorldBuilder) {
           seats[0].getWorldPosition(p);
           a.pos.set(p.x, p.y - 0.8, p.z);
           a.heading = Math.atan2(p.x - tx, p.z - tz); // dışarı bakar
+          if (t < 6.5 && beat(t, dt, 0.24)) b.sound.fx?.('ratchet');
+          if (t > 6.5 && t < 8 && beat(t, dt, 0.5, 6.5)) b.sound.fx?.('heart');
           if (t >= 8 && !fell) {
             fell = true;
             b.sound.whoosh?.();
+            b.sound.fx?.('wee');
           }
           if (t >= 9.3 && !landed) {
             landed = true;
+            b.sound.fx?.('thump');
             b.sparkles.burst(p.clone().setY(p.y + 1), 16);
           }
         },
@@ -1277,7 +1324,7 @@ function buildFun(b: WorldBuilder) {
     put(g, cx, cz);
     for (const sz of [-2.5, 2.5]) blk(cx, cz + sz, 1.6);
     for (const dx of [-8.5, -5, 0, 5, 8.5]) blk(cx + dx, cz, 2);
-    let amp = 0.18, ampGoal = 0.18, ph = 0;
+    let amp = 0.18, ampGoal = 0.18, ph = 0, ph0 = 0;
     b.tick((dt) => {
       amp += (ampGoal - amp) * Math.min(1, dt * 0.35);
       ph += dt * 1.6;
@@ -1296,7 +1343,14 @@ function buildFun(b: WorldBuilder) {
           ship.localToWorld(p.set(-4, -0.6, 0));
           a.pos.copy(p);
           a.heading = yaw + Math.PI / 2;
-          if (Math.abs(Math.sin(ph)) > 0.97 && amp > 0.6 && Math.random() < 0.08) b.sound.whoosh?.();
+          // uçlarda gıcırtı, ortadan geçerken vuuş, en yüksekte çığlık
+          const k = Math.floor(ph / Math.PI + 0.5), k0 = Math.floor(ph0 / Math.PI + 0.5);
+          if (k !== k0) {
+            b.sound.fx?.('creak');
+            if (amp > 0.85) b.sound.fx?.('wee');
+          }
+          if (Math.floor(ph / Math.PI) !== Math.floor(ph0 / Math.PI) && amp > 0.5) b.sound.whoosh?.();
+          ph0 = ph;
         },
         end: () => {
           ampGoal = 0.18;
@@ -1354,9 +1408,10 @@ function buildFun(b: WorldBuilder) {
     put(g, cx, cz);
     for (const [x, z] of [[-W / 2, -D / 2], [W / 2, -D / 2], [-W / 2, D / 2], [W / 2, D / 2]]) blk(cx + x, cz + z, 0.4);
     blk(cx, cz, 6);
-    let riding = false;
+    let riding = false, bumpT = 0;
     const me = bcars[0];
     b.tick((dt) => {
+      bumpT -= dt;
       for (const c of bcars) {
         if (c === me && riding) continue;
         c.h += (Math.random() - 0.5) * dt * 2;
@@ -1385,7 +1440,10 @@ function buildFun(b: WorldBuilder) {
           B.z += (dz / d) * push;
           A.h = Math.atan2(-dx, -dz);
           B.h = Math.atan2(dx, dz);
-          if (riding && (A === me || B === me)) b.sound.kick();
+          if (riding && (A === me || B === me) && bumpT <= 0) {
+            b.sound.fx?.('bonk');
+            bumpT = 0.3;
+          }
         }
       }
       for (const c of bcars) {
@@ -1404,6 +1462,7 @@ function buildFun(b: WorldBuilder) {
           me.v = 3.6;
         },
         step(t, _u, a, dt) {
+          if (beat(t, dt, 0.5)) b.sound.fx?.('buzz');
           // kendi kendine dolaşır ama sık sık başka arabalara doğru döner: bol çarpışma!
           const other = bcars[1 + (Math.floor(t / 2.5) % 4)];
           const want = Math.atan2(other.x - me.x, other.z - me.z);
@@ -1444,8 +1503,9 @@ function buildFun(b: WorldBuilder) {
       id: 'trampoline', x: sx, z: sz, r: 2.2, label: 'Tramboline zıpla',
       act: {
         dur: 6, pose: 'jump', cam: [16, 8],
-        step(t, _u, a) {
+        step(t, _u, a, dt) {
           const hop = Math.abs(Math.sin(t * 2.4));
+          if (beat(t, dt, Math.PI / 2.4)) b.sound.fx?.('boing');
           a.pos.set(x, g0 + 0.85 + hop * 5, z);
           mat.position.y = g0 + 0.85 - (hop < 0.15 ? (0.15 - hop) * 2 : 0);
           a.heading += 0.08;
@@ -1497,12 +1557,19 @@ function buildFun(b: WorldBuilder) {
       return v.add(new THREE.Vector3(x0, g0, z0));
     };
     const [sx, sz] = L(px - 3.5, pz - 3.4);
+    let slid = false;
     b.spot({
       id: 'slide', x: sx, z: sz, r: 2.2, label: 'Kaydıraktan kay',
       act: {
+        start: () => void (slid = false),
         dur: 3.2, pose: (u) => (u < 0.45 ? 'climb' : 'cheer'),
-        step(_t, u, a) {
+        step(_t, u, a, dt) {
           const foot = local(0, 0, -1.8), top = local(0, 3.15, 0.2), bottom = local(0, 0.2, 5.8);
+          if (u < 0.45 && beat(_t, dt, 0.3)) b.sound.fx?.('step');
+          if (u >= 0.45 && !slid) {
+            slid = true;
+            b.sound.fx?.('whistle');
+          }
           if (u < 0.45) a.pos.lerpVectors(foot, top, u / 0.45);
           else a.pos.lerpVectors(top, bottom, ((u - 0.45) / 0.55) ** 1.6);
           a.heading = yaw;
@@ -1553,8 +1620,9 @@ function buildFun(b: WorldBuilder) {
       id: 'swing', x: wx, z: wz, r: 2.2, label: 'Salıncakta sallan',
       act: {
         dur: 7, pose: 'sit',
-        step(t, _u, a) {
+        step(t, _u, a, dt) {
           const ang = Math.sin(t * 2.4) * 0.8 * Math.min(1, t / 1.5) * Math.min(1, (7 - t) * 1.2);
+          if (t > 1 && beat(t, dt, Math.PI / 2.4, Math.PI / 4.8)) b.sound.fx?.('creak');
           seats[0].rotation.x = ang;
           seats[0].children[0].getWorldPosition(p);
           a.pos.set(p.x, Math.max(gs, p.y - 0.8), p.z);

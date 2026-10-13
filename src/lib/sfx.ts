@@ -126,6 +126,149 @@ function bubble(at: number, from: number, to: number, gain: number) {
   o.stop(t + 0.16);
 }
 
+/** Perdesi kayan osilatör (titreşim ve filtre isteğe bağlı): kaydırak düdüğü, siren, yay sesi… */
+function sweep(type: OscillatorType, f0: number, f1: number, at: number, dur: number, gain: number, o: { vib?: number; vibRate?: number; lp?: number; mid?: number; wet?: number } = {}) {
+  const a = ac();
+  if (!a) return;
+  const t = a.currentTime + at;
+  const osc = a.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(f0, t);
+  if (o.mid) {
+    osc.frequency.exponentialRampToValueAtTime(o.mid, t + dur * 0.45);
+    osc.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  } else osc.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  if (o.vib) {
+    const lfo = a.createOscillator();
+    const lg = a.createGain();
+    lfo.frequency.value = o.vibRate ?? 6;
+    lg.gain.value = o.vib;
+    lfo.connect(lg).connect(osc.frequency);
+    lfo.start(t);
+    lfo.stop(t + dur + 0.05);
+  }
+  const g = a.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + Math.min(0.03, dur / 4));
+  g.gain.setValueAtTime(gain, t + dur * 0.7);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  let node: AudioNode = osc;
+  if (o.lp) {
+    const f = a.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = o.lp;
+    node = osc.connect(f);
+  }
+  node.connect(g);
+  out(a, g, o.wet ?? 0.3);
+  osc.start(t);
+  osc.stop(t + dur + 0.05);
+}
+
+/** Müzik ve uzun sesler için ana kanala bağlı bir kazanç (yoksa null: ses kapalı). */
+export function audioBus(): { ctx: AudioContext; bus: GainNode } | null {
+  const a = ac();
+  if (!a) return null;
+  const bus = a.createGain();
+  bus.connect(master!);
+  return { ctx: a, bus };
+}
+
+// Ada ve lunapark sesleri: hepsi sentez, dosya yok
+const NOTE = (i: number) => 523.25 * 2 ** ([0, 2, 4, 5, 7, 9, 11][((i % 7) + 7) % 7] / 12 + Math.floor(i / 7));
+const RIDE: Record<string, (i: number) => void> = {
+  /** Zincirli tırmanış: tak tak. */
+  clack: () => {
+    noise(0, 0.03, 0.12, 2200, 2200, 3);
+    fm(180, 0, 0.05, 0.08, 1.5, 2, 0);
+  },
+  /** Raylarda tekerlek gürültüsü. */
+  rumble: () => noise(0, 0.42, 0.13, 180, 260, 0.8),
+  /** Çocuk sevinç çığlığı "viiii!" */
+  wee: () => {
+    sweep('triangle', 620, 760, 0, 1.0, 0.09, { mid: 1150, vib: 25, vibRate: 7, lp: 2400, wet: 0.4 });
+    sweep('sine', 1240, 1520, 0, 1.0, 0.04, { mid: 2300, vib: 40, vibRate: 7, wet: 0.4 });
+  },
+  /** Atlıkarınca orgu (i: notanın sırası). */
+  organ: (i) => {
+    fm(NOTE(i), 0, 0.3, 0.07, 2, 1.2, 0.5);
+    fm(NOTE(i) * 2, 0, 0.25, 0.03, 1, 0.8, 0.5);
+  },
+  /** Org eşliği: alçak "um". */
+  oom: (i) => fm(NOTE(i) / 4, 0, 0.22, 0.08, 1, 1.5, 0.2),
+  /** Dönme dolap: müzik kutusu. */
+  musicbox: (i) => fm(NOTE(i) * 2, 0, 0.9, 0.06, 3.5, 1.8, 1),
+  /** Tahta gıcırtısı (korsan gemisi, salıncak, değirmen). */
+  creak: () => sweep('sawtooth', 95, 70, 0, 0.45, 0.04, { vib: 30, vibRate: 23, lp: 900, wet: 0.2 }),
+  /** Trambolin: boyiiing. */
+  boing: () => sweep('sine', 140, 420, 0, 0.35, 0.14, { vib: 60, vibRate: 18, wet: 0.2 }),
+  /** Kaydırak düdüğü (inişte). */
+  whistle: () => sweep('sine', 1500, 520, 0, 0.9, 0.07, { vib: 12, vibRate: 6, wet: 0.4 }),
+  /** Çarpışan araba: lastik çarpma. */
+  bonk: () => {
+    sweep('sine', 320, 110, 0, 0.18, 0.18, { wet: 0.1 });
+    noise(0, 0.06, 0.1, 400, 400, 1);
+  },
+  /** Çarpışan araba: elektrik vızıltısı. */
+  buzz: () => sweep('sawtooth', 112, 108, 0, 0.5, 0.025, { lp: 500, wet: 0 }),
+  /** Serbest düşüş kulesi çıkarken cırcır. */
+  ratchet: () => noise(0, 0.02, 0.1, 3200, 3200, 4),
+  /** Kalp atışı (tepede beklerken heyecan, hastanede muayene). */
+  heart: () => {
+    fm(62, 0, 0.12, 0.25, 1, 1, 0);
+    fm(58, 0.16, 0.12, 0.18, 1, 1, 0);
+  },
+  /** Yere iniş: güm. */
+  thump: () => {
+    fm(70, 0, 0.3, 0.3, 1, 2, 0.2);
+    noise(0, 0.2, 0.12, 300, 120, 0.8);
+  },
+  /** Ambulans / itfaiye sireni. */
+  siren: () => {
+    sweep('triangle', 960, 960, 0, 0.42, 0.05, { lp: 2500 });
+    sweep('triangle', 770, 770, 0.45, 0.42, 0.05, { lp: 2500 });
+  },
+  /** Okul zili. */
+  bell: () => {
+    for (let k = 0; k < 6; k++) fm(1568, k * 0.08, 0.5, 0.05, 3.5, 2.4, 0.6);
+  },
+  /** Kitap sayfası. */
+  page: () => noise(0, 0.22, 0.08, 1800, 5000, 0.9, 0.2),
+  /** Market kasası: bip bip. */
+  cash: () => {
+    sweep('square', 1800, 1800, 0, 0.09, 0.03, { lp: 4000, wet: 0 });
+    sweep('square', 2400, 2400, 0.14, 0.12, 0.03, { lp: 4000, wet: 0 });
+  },
+  /** Su fışkırması (itfaiye hortumu, kuyu). */
+  spray: () => noise(0, 0.6, 0.1, 2500, 1400, 0.6, 0.2),
+  /** Su sıçraması. */
+  splash: () => {
+    noise(0, 0.35, 0.16, 900, 300, 0.7, 0.3);
+    bubble(0.05, 300, 900, 0.12);
+  },
+  /** Uçak motoru. */
+  engine: () => {
+    sweep('sawtooth', 92, 96, 0, 0.6, 0.035, { vib: 4, vibRate: 15, lp: 600, wet: 0 });
+    noise(0, 0.6, 0.05, 700, 700, 0.5);
+  },
+  /** Fil borusu. */
+  trumpet: () => sweep('sawtooth', 330, 420, 0, 0.9, 0.06, { mid: 620, vib: 18, vibRate: 9, lp: 1800, wet: 0.4 }),
+  /** Aslan kükremesi (sevimli). */
+  roar: () => {
+    noise(0, 0.9, 0.18, 260, 160, 1.5, 0.3);
+    sweep('sawtooth', 110, 80, 0, 0.9, 0.05, { vib: 20, vibRate: 30, lp: 500, wet: 0.3 });
+  },
+  /** Kısa sevinç: üç nota yukarı. */
+  yay: () => [0, 2, 4].forEach((k) => fm(NOTE(k + 7), k * 0.09, 0.4, 0.08, 3.5, 1.6, 1)),
+  /** Ayak sesi / tahta basamak. */
+  step: () => noise(0, 0.05, 0.08, 700, 500, 1.2),
+};
+
+/** Ada sesleri: `name` RIDE tablosundan; i nota sırası gibi isteğe bağlı bir sayı. */
+export function rideSound(name: string, i = 0) {
+  RIDE[name]?.(i);
+}
+
 // C majör pentatonik (C6 D6 E6 G6 A6 C7): seçimler sırayla bu notalarda ilerler
 const PENTA = [1046.5, 1174.7, 1318.5, 1568.0, 1760.0, 2093.0];
 let step = 0;

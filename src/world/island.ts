@@ -15,6 +15,7 @@ import type { DollState } from '../dressup/catalog';
 import { isWater, WORLD_R } from './layout';
 import { petCard } from './puppet';
 import { BlockGrid, buildHorizon, buildTerrain, buildVegetation } from './terrain';
+import { buildPlaces } from './places';
 import { buildZones, starPlaces, WorldBuilder, type Activity, type SpotDef, type Vehicle } from './zones';
 import { buildMarket, buildPortals, buildShops, Homestead, REALMS, type FarmBridge, type RealmId } from './homestead';
 import { makeRealm, type Hero, type Realm } from './realms';
@@ -78,7 +79,7 @@ export interface IslandEvents {
   onRealmFinish?: (id: RealmId, bonus: number, text: string) => void;
   /** Kahraman inşa alanında mı (İnşa düğmesi için). */
   onBuildArea?: (inside: boolean) => void;
-  sound: { star: (i: number) => void; pop: () => void; note: (i: number) => void; kick: () => void; whoosh?: () => void };
+  sound: { star: (i: number) => void; pop: () => void; note: (i: number) => void; kick: () => void; whoosh?: () => void; fx?: (name: string, i?: number) => void };
 }
 
 export interface IslandOptions {
@@ -227,8 +228,9 @@ export class Island {
         if (msg) this.ev.onMessage(msg);
         this.ev.onDone(quest);
       },
-      { note: (i) => this.ev.sound.note(i), kick: () => this.ev.sound.kick(), pop: () => this.ev.sound.pop(), star: (i) => this.ev.sound.star(i), whoosh: () => this.ev.sound.whoosh?.() });
+      { note: (i) => this.ev.sound.note(i), kick: () => this.ev.sound.kick(), pop: () => this.ev.sound.pop(), star: (i) => this.ev.sound.star(i), whoosh: () => this.ev.sound.whoosh?.(), fx: (n, i) => this.ev.sound.fx?.(n, i) });
     buildZones(this.wb, o.taken);
+    buildPlaces(this.wb);
     mark('bölgeler');
     buildMarket(this.wb);
     buildShops(this.wb);
@@ -276,7 +278,7 @@ export class Island {
     const map = new Map<string, { g: THREE.Group; x: number; z: number }>();
     const box = new THREE.Box3(), sph = new THREE.Sphere();
     for (const o of [...this.scene.children]) {
-      if (moving.has(o) || o === this.land || o === this.sea || o === this.pick || o === this.sun || o === this.sun.target) continue;
+      if (moving.has(o) || o.userData.moving || o === this.land || o === this.sea || o === this.pick || o === this.sun || o === this.sun.target) continue;
       if ((o as THREE.Light).isLight || (o as THREE.InstancedMesh).isInstancedMesh || (o as THREE.Sprite).isSprite) continue;
       box.setFromObject(o).getBoundingSphere(sph);
       if (!Number.isFinite(sph.radius) || sph.radius > 50 || Math.hypot(sph.center.x, sph.center.z) > WORLD_R) continue;

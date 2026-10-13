@@ -116,6 +116,15 @@ Yenilikler:
   tırmanış, büyük iniş, kamera arkadan izler), 12 kabinli dönme dolap, dönen salıncak, serbest düşüş kulesi, korsan
   gemisi, çarpışan arabalar, atlıkarınca, trambolin, dans pisti ve oyun parkı (düzgün salıncak ve kaydırak). Hepsi ayrı
   yerde, hiçbiri iç içe değil; ampuller yanıp söner.
+- **Fon müziği:** adada kısık sesle neşeli bir şarkı çalar (uygulamanın kendi bestesi, dosya yok); oyuncağa binince
+  kısılır, uygulama arka plana geçince durur; sol kenardaki nota düğmesiyle kapatılır. Ses ayarı kapalıysa çalmaz.
+- **Lunapark sesleri:** hız treninde zincir takırtısı, ray gürültüsü ve "viii!", atlıkarıncada org valsi, dönme dolapta
+  müzik kutusu, serbest düşüşte cırcır ve kalp atışı, korsan gemisinde gıcırtı, çarpışan arabada vızıltı ve "bonk",
+  trambolinde "boyiiing", kaydırakta düdük.
+- **Yeni yerler ve yollar:** Şehir (hastane ve ambulans turu, okul: derse gir, basket, seksek; market, kütüphane,
+  pastane, itfaiye: yangın söndürme), Köy (evler, yel değirmeni, kuyu, taş fırın, çınar, tavuklar, ördekli gölet),
+  Hayvanat Bahçesi (aslan, fil, zürafa, panda, kaplumbağa, penguen; beslenebilir), Havalimanı (uçakla bütün adanın
+  üstünden tur), Piknik Tepesi (uçurtma, hamak, piknik). Kasabadan bütün bölgelere lambalı yollar.
 - **Daha büyük ada:** kara ~1,25 kat genişledi (alan ~1,6 kat); bölgeler arası daha çok yer, daha çok ağaç ve çiçek.
   Kasaba, Çiftliğim, Pazar ve Macera Kapıları yerinde kaldı (yapılanlar bozulmaz).
 - **Araçtan inme:** kuğu/jet skiden inince karakter binme alanının dışına iner, aynı düğmeye dokunup yeniden binmez.

@@ -2,7 +2,7 @@
  * Çizio Adası (/ada): 3B oyun dünyası (src/world/island.ts). Şimdilik herkese açık (PLUS_ENABLED = false);
  * ücretli olursa abonelik yoksa tanıtım ve satın alma (ebeveyn kilidi arkasında) gösterilir.
  */
-import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Loader2, MessageCircle, RotateCcw, Shirt, Sprout, Star, Store, X, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Loader2, MessageCircle, Music, VolumeX, RotateCcw, Shirt, Sprout, Star, Store, X, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { create } from 'zustand';
@@ -14,7 +14,8 @@ import { Modal } from '../components/ui';
 import { PRESETS } from '../dressup/catalog';
 import { Doll } from '../dressup/Doll';
 import { listArtworks, type Artwork } from '../lib/gallery';
-import { sfx } from '../lib/sfx';
+import { rideSound, sfx } from '../lib/sfx';
+import { music } from '../lib/music';
 import { speak } from '../lib/speech';
 import { dayKey, hashStr } from '../lib/util';
 import { ISLAND_REWARD, useApp, useProfile, useProfileData } from '../store/useApp';
@@ -118,7 +119,7 @@ function IslandArt() {
 // Oyun
 // ------------------------------------------------------------------------------------------------
 /** Adada dolaşan kâğıt kartların ders çizimleri. */
-const CARD_IDS = ['ayi', 'tilki', 'tavsan', 'baykus', 'kedi', 'kopek', 'penguen', 'trex', 'triceratops', 'uzun-boyun', 'stegozor', 'ucan-dinozor', 'dino-yumurta', 'prenses', 'sovalye', 'balik', 'denizyildizi', 'ahtapot', 'denizati', 'yengec'];
+const CARD_IDS = ['ayi', 'tilki', 'tavsan', 'baykus', 'kedi', 'kopek', 'penguen', 'trex', 'triceratops', 'uzun-boyun', 'stegozor', 'ucan-dinozor', 'dino-yumurta', 'prenses', 'sovalye', 'balik', 'denizyildizi', 'ahtapot', 'denizati', 'yengec', 'aslan', 'fil', 'zurafa', 'panda', 'kaplumbaga', 'kelebek'];
 
 function IslandPlay() {
   const nav = useNavigate();
@@ -154,6 +155,31 @@ function IslandPlay() {
       return !o;
     });
   };
+  // fon müziği (kısık; kapatılırsa hatırlanır)
+  const [musicOn, setMusicOn] = useState(() => {
+    try {
+      return localStorage.getItem('cizio-ada-muzik') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const toggleMusic = () => {
+    sfx.pop();
+    setMusicOn((o) => {
+      try {
+        localStorage.setItem('cizio-ada-muzik', o ? '0' : '1');
+      } catch {
+        /* yok say */
+      }
+      return !o;
+    });
+  };
+  useEffect(() => {
+    if (!ready || !musicOn || !settings.sfx) return;
+    music.start();
+    return () => music.stop();
+  }, [ready, musicOn, settings.sfx]);
+  useEffect(() => music.duck(busy), [busy]);
   // Çiftliğim
   const farm = normalizeFarm(data.farm);
   const premium = usePremium((x) => x.owned);
@@ -282,7 +308,7 @@ function IslandPlay() {
           },
           onRealmProgress: setRealmProg,
           onRealmFinish: (id, bonus, text) => finishRef.current(id, bonus, text),
-          sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick(), whoosh: () => sfx.whoosh() },
+          sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick(), whoosh: () => sfx.whoosh(), fx: (n, i) => rideSound(n, i) },
         });
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
         setReady(true);
@@ -665,6 +691,11 @@ function IslandPlay() {
             <small>{quests.filter(questDone).length}/{quests.length}</small>
           </button>
           <JourneyNote s={farm} open={noteOpen} onToggle={toggleNote} onOpen={() => setPanel('journal')} />
+          {settings.sfx && (
+            <button className="hud-side__btn hud-side__btn--sm" aria-label={musicOn ? 'Müziği kapat' : 'Müziği aç'} onClick={toggleMusic}>
+              {musicOn ? <Music size={20} /> : <VolumeX size={20} />}
+            </button>
+          )}
         </div>
       )}
       {ready && (

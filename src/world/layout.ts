@@ -34,6 +34,11 @@ export const ZONES: Zone[] = [
   { id: 'home', name: 'Çiftliğim', x: 124, z: 44, color: '#7cc760', spawn: [88, 44] },
   { id: 'market', name: 'Pazar', x: -20, z: 18, color: '#ff9f43', spawn: [-12, 13] },
   { id: 'portal', name: 'Macera Kapıları', x: -74, z: -36, color: '#c86bff', spawn: [-52, -26] },
+  { id: 'city', name: 'Şehir', x: -22, z: -140, color: '#5b8def', spawn: [-17, -106] },
+  { id: 'village', name: 'Köy', x: -120, z: 205, color: '#d9a066', spawn: [-103, 176] },
+  { id: 'zoo', name: 'Hayvanat Bahçesi', x: 80, z: -178, color: '#f08c3a', spawn: [66, -147] },
+  { id: 'airport', name: 'Havalimanı', x: 272, z: -30, color: '#8d99ae', spawn: [238, -26] },
+  { id: 'picnic', name: 'Piknik Tepesi', x: -238, z: -80, color: '#ff8fb1', spawn: [-206, -69] },
 ];
 /** Çiftliğim: arsanın düzlüğü daha geniş (tarla, ahır ve inşa alanı). */
 export const HOME = zone_('home');
@@ -46,6 +51,44 @@ const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
+
+/**
+ * Kasabadan bölgelere giden yollar (kırık çizgiler; uçları bölge girişleri). Ağaçlar yolların üstüne gelmez.
+ * Şehrin ana caddesi bölgenin içinden geçer (şehir girişinden güney çıkışına), sonra Dinozor Vadisi'ne gider.
+ */
+export const ROADS: [number, number][][] = [
+  [[0, 0], [112, -64]],
+  [[0, 0], [-17, -106]],
+  [[-27, -174], [-45, -210]],
+  [[0, 0], [60, -110], [188, -188]],
+  [[60, -110], [66, -147]],
+  [[60, -110], [20, -215], [70, -278]],
+  [[0, 0], [-52, -26], [-155, -120]],
+  [[-52, -26], [-206, -69]],
+  [[0, 0], [-238, 15]],
+  [[0, 0], [-86, 66]],
+  [[0, 0], [-103, 176]],
+  [[0, 0], [0, 268]],
+  [[0, 0], [45, 150], [175, 115]],
+  [[0, 0], [88, 44]],
+  [[0, 0], [238, -26]],
+];
+/** Kasaba meydanının içinde yol çizilmez. */
+export const ROAD_START = 26;
+
+/** Noktanın en yakın yola uzaklığı. */
+export function roadDist(x: number, z: number) {
+  let best = Infinity;
+  for (const r of ROADS) {
+    for (let i = 1; i < r.length; i++) {
+      const [ax, az] = r[i - 1], [bx, bz] = r[i];
+      const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2));
+      best = Math.min(best, Math.hypot(x - ax - dx * t, z - az - dz * t));
+    }
+  }
+  return Math.hypot(x, z) < ROAD_START ? Infinity : best;
+}
 
 /** Kıyı çizgisinin yarıçapı (açıya göre girintili çıkıntılı). */
 export function coastAt(ang: number) {
@@ -61,7 +104,7 @@ function flatMask(x: number, z: number) {
   for (const f of FLAT_SPOTS) m = Math.max(m, 1 - smooth(f.a, f.b, Math.hypot(x - f.x, z - f.z)));
   for (const zn of ZONES) {
     if (zn.id === 'snow' || zn.id === 'dino') continue;
-    const [a, b] = zn.id === 'home' ? [50, 72] : [34, 58];
+    const [a, b] = zn.id === 'home' ? [50, 72] : zn.id === 'airport' ? [44, 66] : [34, 58];
     m = Math.max(m, 1 - smooth(a, b, Math.hypot(x - zn.x, z - zn.z)));
   }
   return m;
