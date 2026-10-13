@@ -259,7 +259,7 @@ export class MazeRealm extends Realm {
         this.found++;
         this.sparkles.burst(s.obj.position.clone(), 12);
         this.ev.sound.star(this.found);
-        this.ev.progress(`⭐ ${this.found}/${this.stars.length}`);
+        this.ev.progress(`${this.found}/${this.stars.length}`);
       }
     }
     if (!this.done && Math.hypot(hero.pos.x - this.chest.position.x, hero.pos.z - this.chest.position.z) < 2.2) {
@@ -444,7 +444,7 @@ export class SkyRealm extends Realm {
         this.found++;
         this.sparkles.burst(s.obj.position.clone(), 12);
         this.ev.sound.star(this.found);
-        this.ev.progress(`⭐ ${this.found}/${this.stars.length}`);
+        this.ev.progress(`${this.found}/${this.stars.length}`);
       }
     }
     if (!this.done && hero.grounded && Math.hypot(hero.pos.x - this.flag.x, hero.pos.z - this.flag.z) < 4 && Math.abs(hero.pos.y - this.flag.y) < 0.6) {
@@ -556,7 +556,7 @@ export class CandyRealm extends Realm {
     if (!this.done) {
       const before = Math.ceil(this.left);
       this.left -= dt;
-      if (Math.ceil(this.left) !== before) this.ev.progress(`🍬 ${this.got}/${CANDY_GOAL}  ⏱ ${Math.max(0, Math.ceil(this.left))}`);
+      if (Math.ceil(this.left) !== before) this.ev.progress(`${this.got}/${CANDY_GOAL} · ${Math.max(0, Math.ceil(this.left))} sn`);
       if (this.left <= 0) {
         this.done = true;
         this.ev.finish(this.got, this.got >= CANDY_GOAL ? 'Bütün şekerleri topladın!' : `Süre bitti! ${this.got} şeker topladın.`);
@@ -573,7 +573,7 @@ export class CandyRealm extends Realm {
         this.got++;
         this.sparkles.burst(c.obj.position.clone(), 10, '#ffd1e8');
         this.ev.sound.star(this.got);
-        this.ev.progress(`🍬 ${this.got}/${CANDY_GOAL}  ⏱ ${Math.max(0, Math.ceil(this.left))}`);
+        this.ev.progress(`${this.got}/${CANDY_GOAL} · ${Math.max(0, Math.ceil(this.left))} sn`);
         if (this.got >= CANDY_GOAL) {
           this.done = true;
           this.ev.finish(this.got, `${CANDY_GOAL} şekerin hepsini topladın!`);

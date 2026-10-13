@@ -19,36 +19,36 @@ export type ProductId = 'yumurta' | 'sut' | 'yun' | 'bal';
 export type GoodId = 'ekmek' | 'peynir' | 'recel' | 'kazak' | 'pasta';
 export type ItemId = CropId | ProductId | GoodId;
 
-export interface CropDef { id: CropId; name: string; emoji: string; level: number; seed: number; grow: number; yield: number; color: string }
-export interface AnimalDef { id: AnimalId; name: string; emoji: string; level: number; cost: number; eats: CropId; eatN: number; time: number; product: ProductId; max: number; verb: string }
-export interface RecipeDef { id: GoodId; name: string; emoji: string; level: number; needs: Partial<Record<ItemId, number>> }
+export interface CropDef { id: CropId; name: string; icon: string; level: number; seed: number; grow: number; yield: number; color: string }
+export interface AnimalDef { id: AnimalId; name: string; icon: string; level: number; cost: number; eats: CropId; eatN: number; time: number; product: ProductId; max: number; verb: string }
+export interface RecipeDef { id: GoodId; name: string; icon: string; level: number; needs: Partial<Record<ItemId, number>> }
 
 /** Tarla ürünleri. grow: saniye (sulandıktan sonra), yield: hasatta kaç tane. */
 export const CROPS: CropDef[] = [
-  { id: 'havuc', name: 'Havuç', emoji: '🥕', level: 1, seed: 2, grow: 45, yield: 3, color: '#ff8a3d' },
-  { id: 'bugday', name: 'Buğday', emoji: '🌾', level: 1, seed: 2, grow: 60, yield: 3, color: '#f2c94c' },
-  { id: 'misir', name: 'Mısır', emoji: '🌽', level: 2, seed: 3, grow: 90, yield: 3, color: '#ffd43b' },
-  { id: 'domates', name: 'Domates', emoji: '🍅', level: 3, seed: 4, grow: 120, yield: 3, color: '#ef4b4b' },
-  { id: 'aycicegi', name: 'Ayçiçeği', emoji: '🌻', level: 4, seed: 5, grow: 150, yield: 2, color: '#ffc83d' },
-  { id: 'cilek', name: 'Çilek', emoji: '🍓', level: 5, seed: 6, grow: 180, yield: 3, color: '#ff4d6d' },
-  { id: 'kabak', name: 'Bal kabağı', emoji: '🎃', level: 6, seed: 10, grow: 240, yield: 1, color: '#ff8c1a' },
+  { id: 'havuc', name: 'Havuç', icon: 'havuc', level: 1, seed: 2, grow: 45, yield: 3, color: '#ff8a3d' },
+  { id: 'bugday', name: 'Buğday', icon: 'bugday', level: 1, seed: 2, grow: 60, yield: 3, color: '#f2c94c' },
+  { id: 'misir', name: 'Mısır', icon: 'misir', level: 2, seed: 3, grow: 90, yield: 3, color: '#ffd43b' },
+  { id: 'domates', name: 'Domates', icon: 'domates', level: 3, seed: 4, grow: 120, yield: 3, color: '#ef4b4b' },
+  { id: 'aycicegi', name: 'Ayçiçeği', icon: 'aycicegi', level: 4, seed: 5, grow: 150, yield: 2, color: '#ffc83d' },
+  { id: 'cilek', name: 'Çilek', icon: 'cilek', level: 5, seed: 6, grow: 180, yield: 3, color: '#ff4d6d' },
+  { id: 'kabak', name: 'Bal kabağı', icon: 'kabak', level: 6, seed: 10, grow: 240, yield: 1, color: '#ff8c1a' },
 ];
 
 /** Hayvanlar: yedikleri ürün, ürünü ne zaman verdikleri (saniye), en çok kaç tane. */
 export const ANIMALS: AnimalDef[] = [
-  { id: 'tavuk', name: 'Tavuk', emoji: '🐔', level: 2, cost: 25, eats: 'misir', eatN: 1, time: 60, product: 'yumurta', max: 4, verb: 'Yumurtaları topla' },
-  { id: 'inek', name: 'İnek', emoji: '🐄', level: 3, cost: 60, eats: 'bugday', eatN: 2, time: 90, product: 'sut', max: 2, verb: 'İneği sağ' },
-  { id: 'koyun', name: 'Koyun', emoji: '🐑', level: 4, cost: 70, eats: 'havuc', eatN: 2, time: 120, product: 'yun', max: 2, verb: 'Koyunun yününü kırp' },
-  { id: 'ari', name: 'Arı kovanı', emoji: '🐝', level: 5, cost: 90, eats: 'aycicegi', eatN: 1, time: 150, product: 'bal', max: 2, verb: 'Balı topla' },
+  { id: 'tavuk', name: 'Tavuk', icon: 'tavuk', level: 2, cost: 25, eats: 'misir', eatN: 1, time: 60, product: 'yumurta', max: 4, verb: 'Yumurtaları topla' },
+  { id: 'inek', name: 'İnek', icon: 'inek', level: 3, cost: 60, eats: 'bugday', eatN: 2, time: 90, product: 'sut', max: 2, verb: 'İneği sağ' },
+  { id: 'koyun', name: 'Koyun', icon: 'koyun', level: 4, cost: 70, eats: 'havuc', eatN: 2, time: 120, product: 'yun', max: 2, verb: 'Koyunun yününü kırp' },
+  { id: 'ari', name: 'Arı kovanı', icon: 'ari', level: 5, cost: 90, eats: 'aycicegi', eatN: 1, time: 150, product: 'bal', max: 2, verb: 'Balı topla' },
 ];
 
 /** Mutfak ve atölye: ürünlerden yapılanlar. */
 export const RECIPES: RecipeDef[] = [
-  { id: 'ekmek', name: 'Ekmek', emoji: '🍞', level: 3, needs: { bugday: 3 } },
-  { id: 'peynir', name: 'Peynir', emoji: '🧀', level: 4, needs: { sut: 2 } },
-  { id: 'recel', name: 'Çilek reçeli', emoji: '🍯', level: 5, needs: { cilek: 3 } },
-  { id: 'kazak', name: 'Yün kazak', emoji: '🧶', level: 5, needs: { yun: 2 } },
-  { id: 'pasta', name: 'Çilekli pasta', emoji: '🎂', level: 6, needs: { yumurta: 2, sut: 1, bugday: 2, cilek: 2 } },
+  { id: 'ekmek', name: 'Ekmek', icon: 'ekmek', level: 3, needs: { bugday: 3 } },
+  { id: 'peynir', name: 'Peynir', icon: 'peynir', level: 4, needs: { sut: 2 } },
+  { id: 'recel', name: 'Çilek reçeli', icon: 'recel', level: 5, needs: { cilek: 3 } },
+  { id: 'kazak', name: 'Yün kazak', icon: 'kazak', level: 5, needs: { yun: 2 } },
+  { id: 'pasta', name: 'Çilekli pasta', icon: 'pasta', level: 6, needs: { yumurta: 2, sut: 1, bugday: 2, cilek: 2 } },
 ];
 
 /** Pazarda satış fiyatı (altın). */
@@ -63,11 +63,8 @@ export const ITEM_NAME: Record<ItemId, string> = {
   yumurta: 'Yumurta', sut: 'Süt', yun: 'Yün', bal: 'Bal',
   ...Object.fromEntries(RECIPES.map((r) => [r.id, r.name])),
 } as Record<ItemId, string>;
-export const ITEM_EMOJI: Record<ItemId, string> = {
-  ...Object.fromEntries(CROPS.map((c) => [c.id, c.emoji])),
-  yumurta: '🥚', sut: '🥛', yun: '🧶', bal: '🍯',
-  ...Object.fromEntries(RECIPES.map((r) => [r.id, r.emoji])),
-} as Record<ItemId, string>;
+/** Ürünlerin simgesi (gameIcons.ts adları ürün kimlikleriyle aynı). */
+export const ITEM_ICON: Record<ItemId, string> = Object.fromEntries((Object.keys({ ...Object.fromEntries(CROPS.map((c) => [c.id, 1])), yumurta: 1, sut: 1, yun: 1, bal: 1, ...Object.fromEntries(RECIPES.map((r) => [r.id, 1])) }) as ItemId[]).map((k) => [k, k])) as Record<ItemId, string>;
 export const ITEMS = Object.keys(PRICE) as ItemId[];
 
 export const crop = (id: CropId) => CROPS.find((c) => c.id === id)!;
@@ -141,24 +138,24 @@ export const BLOCKS: BlockDef[] = [
 export const blockById = (id: string) => BLOCKS.find((b) => b.id === id);
 export const blockByCh = (ch: string) => BLOCKS.find((b) => b.ch === ch);
 
-export interface PackDef { id: string; name: string; emoji: string; price: number; level: number }
+export interface PackDef { id: string; name: string; icon: string; price: number; level: number }
 export const PACKS: PackDef[] = [
-  { id: 'temel', name: 'Temel bloklar', emoji: '🧱', price: 0, level: 1 },
-  { id: 'renkli', name: 'Renkli bloklar', emoji: '🌈', price: 30, level: 1 },
-  { id: 'ev', name: 'Ev blokları (tuğla, cam, kiremit)', emoji: '🏠', price: 40, level: 2 },
-  { id: 'bahce', name: 'Bahçe (çiçek, ağaç, çit, bank)', emoji: '🌷', price: 35, level: 2 },
-  { id: 'isik', name: 'Işıklar ve altın blok', emoji: '💡', price: 50, level: 3 },
-  { id: 'esya', name: 'Ev eşyası (masa, yatak…)', emoji: '🛏️', price: 60, level: 4 },
-  { id: 'kis', name: 'Kış (kar, buz, kardan adam)', emoji: '❄️', price: 45, level: 5 },
+  { id: 'temel', name: 'Temel bloklar', icon: 'tugla', price: 0, level: 1 },
+  { id: 'renkli', name: 'Renkli bloklar', icon: 'renkli', price: 30, level: 1 },
+  { id: 'ev', name: 'Ev blokları (tuğla, cam, kiremit)', icon: 'ev', price: 40, level: 2 },
+  { id: 'bahce', name: 'Bahçe (çiçek, ağaç, çit, bank)', icon: 'lale', price: 35, level: 2 },
+  { id: 'isik', name: 'Işıklar ve altın blok', icon: 'ampul', price: 50, level: 3 },
+  { id: 'esya', name: 'Ev eşyası (masa, yatak…)', icon: 'yatak', price: 60, level: 4 },
+  { id: 'kis', name: 'Kış (kar, buz, kardan adam)', icon: 'kar', price: 45, level: 5 },
 ];
 
 /** Hazır yapılar: altınla bir dokunuşta kurulur (bloklar yerleştirilir, sonra değiştirilebilir). */
-export interface Blueprint { id: string; name: string; emoji: string; price: number; level: number }
+export interface Blueprint { id: string; name: string; icon: string; price: number; level: number }
 export const BLUEPRINTS: Blueprint[] = [
-  { id: 'ev', name: 'Küçük ev', emoji: '🏡', price: 40, level: 1 },
-  { id: 'kule', name: 'Gözetleme kulesi', emoji: '🗼', price: 50, level: 2 },
-  { id: 'kopru', name: 'Gökkuşağı köprüsü', emoji: '🌈', price: 60, level: 3 },
-  { id: 'havuz', name: 'Bahçe ve havuz', emoji: '⛲', price: 70, level: 4 },
+  { id: 'ev', name: 'Küçük ev', icon: 'ev', price: 40, level: 1 },
+  { id: 'kule', name: 'Gözetleme kulesi', icon: 'kule', price: 50, level: 2 },
+  { id: 'kopru', name: 'Gökkuşağı köprüsü', icon: 'kopru', price: 60, level: 3 },
+  { id: 'havuz', name: 'Bahçe ve havuz', icon: 'fiskiye', price: 70, level: 4 },
 ];
 
 // ================================================================================================
@@ -212,14 +209,14 @@ export interface FarmState {
 // ================================================================================================
 export type PlaceKind = 'tarla' | 'kumes' | 'ahir' | 'agil' | 'kovan' | 'mutfak';
 export interface Place { k: PlaceKind; x: number; z: number }
-export interface StructDef { k: PlaceKind; name: string; emoji: string; price: number; level: number; /** Kapladığı yarıçap. */ r: number; animal?: AnimalId }
+export interface StructDef { k: PlaceKind; name: string; icon: string; price: number; level: number; /** Kapladığı yarıçap. */ r: number; animal?: AnimalId }
 export const STRUCTS: StructDef[] = [
-  { k: 'tarla', name: 'Tarla', emoji: '🟫', price: 0, level: 1, r: 2.3 },
-  { k: 'kumes', name: 'Tavuk kümesi', emoji: '🐔', price: 40, level: 2, r: 5, animal: 'tavuk' },
-  { k: 'ahir', name: 'İnek ahırı', emoji: '🐄', price: 80, level: 3, r: 5, animal: 'inek' },
-  { k: 'agil', name: 'Koyun ağılı', emoji: '🐑', price: 80, level: 4, r: 5, animal: 'koyun' },
-  { k: 'kovan', name: 'Arı bahçesi', emoji: '🐝', price: 90, level: 5, r: 4, animal: 'ari' },
-  { k: 'mutfak', name: 'Mutfak', emoji: '🍳', price: 60, level: 3, r: 3.6 },
+  { k: 'tarla', name: 'Tarla', icon: 'tarla', price: 0, level: 1, r: 2.3 },
+  { k: 'kumes', name: 'Tavuk kümesi', icon: 'kumes', price: 40, level: 2, r: 5, animal: 'tavuk' },
+  { k: 'ahir', name: 'İnek ahırı', icon: 'ahir', price: 80, level: 3, r: 5, animal: 'inek' },
+  { k: 'agil', name: 'Koyun ağılı', icon: 'agil', price: 80, level: 4, r: 5, animal: 'koyun' },
+  { k: 'kovan', name: 'Arı bahçesi', icon: 'kovan', price: 90, level: 5, r: 4, animal: 'ari' },
+  { k: 'mutfak', name: 'Mutfak', icon: 'tava', price: 60, level: 3, r: 3.6 },
 ];
 export const struct = (k: PlaceKind) => STRUCTS.find((x) => x.k === k)!;
 export const PEN_OF: Record<AnimalId, PlaceKind> = { tavuk: 'kumes', inek: 'ahir', koyun: 'agil', ari: 'kovan' };
@@ -277,13 +274,13 @@ export function levelProgress(xp: number): [number, number] {
 }
 
 /** Bu seviyede ilk kez açılanlar (seviye atlama mesajı için). */
-export function unlocksAt(level: number): string[] {
+export function unlocksAt(level: number): { icon: string; name: string }[] {
   return [
-    ...CROPS.filter((c) => c.level === level).map((c) => `${c.emoji} ${c.name}`),
-    ...ANIMALS.filter((a) => a.level === level).map((a) => `${a.emoji} ${a.name}`),
-    ...RECIPES.filter((r) => r.level === level).map((r) => `${r.emoji} ${r.name}`),
-    ...PACKS.filter((p) => p.level === level && p.price > 0).map((p) => `${p.emoji} ${p.name}`),
-  ];
+    ...CROPS.filter((c) => c.level === level),
+    ...ANIMALS.filter((a) => a.level === level),
+    ...RECIPES.filter((r) => r.level === level),
+    ...PACKS.filter((p) => p.level === level && p.price > 0),
+  ].map((x) => ({ icon: x.icon, name: x.name }));
 }
 
 export interface Result {

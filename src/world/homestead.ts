@@ -2,13 +2,14 @@
  * Çiftliğim (oyuncunun arsası), Pazar ve Macera Kapıları'nın 3B kısmı.
  *
  * Çiftlik durumu React'taki kayıttadır (economy.ts); burada `FarmBridge` ile okunur ve değiştirilir. Tarlalar, ürünler,
- * hayvanlar ve baloncuklar (💧, 🥚…) durumdan her yarım saniyede bir güncellenir; ürünler gerçek zamanla büyür.
+ * hayvanlar ve baloncuklar (su damlası, yumurta…) durumdan her yarım saniyede bir güncellenir; ürünler gerçek zamanla büyür.
  */
 import * as THREE from 'three';
 import { mesh, outline, toon } from '../play3d/kit';
 import { WorldBlocks } from './build';
+import { drawIcon } from './gameIcons';
 import {
-  animal, clock, collect, crop, feed, fieldStage, ITEM_EMOJI, ITEM_NAME, levelOf, PEN_OF, stationStage, struct, waterAll, harvestAll,
+  animal, clock, collect, crop, feed, fieldStage, ITEM_ICON, ITEM_NAME, levelOf, PEN_OF, stationStage, struct, waterAll, harvestAll,
   type AnimalId, type FarmState, type Result,
 } from './economy';
 import { HOME, zone } from './layout';
@@ -22,16 +23,17 @@ export interface FarmBridge {
 }
 
 // ------------------------------------------------------------------------------------------------
-// Baloncuk (emoji) ve modeller
+// Baloncuk (simge) ve modeller
 // ------------------------------------------------------------------------------------------------
 const bubbleTex = new Map<string, THREE.Texture>();
-export function bubble(emoji: string, scale = 1.5) {
-  let t = bubbleTex.get(emoji);
+/** Başının üstünde beyaz baloncuk içinde bir simge (gameIcons.ts). */
+export function bubble(icon: string, scale = 1.5) {
+  let t = bubbleTex.get(icon);
   if (!t) {
     const c = document.createElement('canvas');
     c.width = c.height = 128;
     const x = c.getContext('2d')!;
-    x.fillStyle = 'rgba(255,255,255,0.95)';
+    x.fillStyle = 'rgba(255,255,255,0.96)';
     x.beginPath();
     x.arc(64, 58, 50, 0, Math.PI * 2);
     x.moveTo(52, 104);
@@ -43,13 +45,11 @@ export function bubble(emoji: string, scale = 1.5) {
     x.beginPath();
     x.arc(64, 58, 50, 0, Math.PI * 2);
     x.stroke();
-    x.font = '60px "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", sans-serif';
-    x.textAlign = 'center';
-    x.textBaseline = 'middle';
-    x.fillText(emoji, 64, 62);
-    t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    bubbleTex.set(emoji, t);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    drawIcon(x, icon, 30, 24, 68, () => (tex.needsUpdate = true));
+    bubbleTex.set(icon, tex);
+    t = tex;
   }
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false }));
   sp.scale.setScalar(scale);
@@ -328,8 +328,8 @@ export class Homestead {
         p.position.set(dx, 0, dz);
         f.plants.add(p);
       }
-      if (st.stage === 'thirsty') f.bub = bubble('💧', 1.3);
-      if (st.stage === 'ready') f.bub = bubble(crop(fs.c).emoji, 1.5);
+      if (st.stage === 'thirsty') f.bub = bubble('damla', 1.3);
+      if (st.stage === 'ready') f.bub = bubble(crop(fs.c).icon, 1.5);
       if (f.bub) {
         f.bub.position.set(f.x, this.b.h(f.x, f.z) + 2.6, f.z);
         this.b.scene.add(f.bub);
@@ -354,8 +354,8 @@ export class Homestead {
           p.bub = null;
         }
         const def = animal(p.k);
-        if (st.stage === 'hungry') p.bub = bubble(ITEM_EMOJI[def.eats], 1.4);
-        if (st.stage === 'ready') p.bub = bubble(ITEM_EMOJI[def.product], 1.6);
+        if (st.stage === 'hungry') p.bub = bubble(ITEM_ICON[def.eats], 1.4);
+        if (st.stage === 'ready') p.bub = bubble(ITEM_ICON[def.product], 1.6);
         if (p.bub) {
           p.bub.position.set(p.x, this.b.h(p.x, p.z) + 3.8, p.z);
           this.b.scene.add(p.bub);
@@ -488,7 +488,7 @@ export class Homestead {
     const def = animal(k);
     const st = stationStage(s, k, Date.now());
     if (st.stage === 'none') return levelOf(s.xp) >= def.level ? `${def.name}: Pazar'dan al` : `${def.name} ${def.level}. seviyede`;
-    if (st.stage === 'hungry') return `Besle (${def.eatN} ${ITEM_EMOJI[def.eats]})`;
+    if (st.stage === 'hungry') return `Besle (${def.eatN} ${ITEM_NAME[def.eats].toLocaleLowerCase('tr')})`;
     if (st.stage === 'busy') return `${ITEM_NAME[def.product]} ${clock(st.left)}`;
     return def.verb;
   }

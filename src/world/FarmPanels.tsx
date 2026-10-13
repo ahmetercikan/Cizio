@@ -3,20 +3,21 @@
  * mutfak, çiftçi defteri, inşa çubuğu, hazır yapılar, seviye kutlaması ve macera ekranları.
  * Kurallar src/world/economy.ts'te; burada yalnızca gösterilir ve `apply` ile uygulanır.
  */
-import { BookOpen, Car, Check, ChefHat, ClipboardList, Coins, Crown, Eraser, Hammer, Lock, LogOut, RotateCcw, Store, Trophy, Undo2, X } from 'lucide-react';
+import { BookOpen, Car, Check, ChefHat, ClipboardList, Eraser, Hammer, LogOut, RotateCcw, Store, Trophy, Undo2, X } from 'lucide-react';
 import { CARS } from './carsData';
+import { GameIcon } from './GameIcon';
 import { PREMIUM_HINT, usePremium } from './premium';
 import { useState, type ReactNode } from 'react';
 import { Modal } from '../components/ui';
 import {
   ANIMALS, BLOCKS, BLUEPRINTS, buyAnimal, buyCar, STRUCTS, structPrice, buyItem, buyPack, buyPrice, buyable, canCraft, canFill, clock, countAnimals, craft, CROPS, fillOrder,
-  ITEM_EMOJI, ITEM_NAME, JOURNEY, levelOf, levelProgress, PACKS, plant, plantAll, PRICE, RECIPES, sell, sellable, skipOrder, type BlockDef, type CropId,
+  ITEM_ICON, ITEM_NAME, JOURNEY, levelOf, levelProgress, PACKS, plant, plantAll, PRICE, RECIPES, sell, sellable, skipOrder, type BlockDef, type CropId,
   type FarmState, type ItemId, type Result,
 } from './economy';
 
 export type Apply = <R extends Result>(f: (s: FarmState) => R) => R;
 
-const Coin = ({ n }: { n: number }) => <span className="farm-coin"><Coins size={16} /> {n}</span>;
+const Coin = ({ n }: { n: number }) => <span className="farm-coin"><GameIcon name="altin" size={22} /> {n}</span>;
 
 /** Sol üst (PK XD gibi): karakterin resmi, seviyesi ve ince seviye çubuğu; dokununca çiftçi defteri. */
 export function PlayerBadge({ avatar, name, s, onOpen }: { avatar: ReactNode; name: string; s: FarmState; onOpen: () => void }) {
@@ -35,7 +36,7 @@ export function PlayerBadge({ avatar, name, s, onOpen }: { avatar: ReactNode; na
 
 /** Sağ üst: küçük altın göstergesi. */
 export function CoinChip({ n }: { n: number }) {
-  return <span className="hud-coins"><Coins size={18} /> {n}</span>;
+  return <span className="hud-coins"><GameIcon name="altin" size={22} /> {n}</span>;
 }
 
 /** Sol kenarda küçük, kapatılabilir "sıradaki hedef" notu. */
@@ -103,11 +104,11 @@ function CarsTab({ s, apply, onHint }: { s: FarmState; apply: Apply; onHint: (t:
         const has = own.includes(c.id), locked = !c.premium && lv < c.level, now = (s.car ?? own[0]) === c.id;
         return (
           <li key={c.id} className={locked ? 'locked' : ''}>
-            <span className="farm-emoji">{c.emoji}</span>
+            <GameIcon name={c.icon} size={40} className="farm-emoji" />
             <span className="farm-list__name"><b>{c.name}</b><small>{c.fly ? 'Denizin üstünden bile uçar!' : locked ? `${c.level}. seviyede açılır` : `Hız ${c.speed}`}</small></span>
             {has ? (now ? <span className="premium-list__own"><Check size={18} /> Seçili</span> : <button className="btn-outline btn-outline--sm" onClick={() => apply((x) => ({ s: { ...x, car: c.id }, msg: `${c.name} seçildi.` }))}>Bunu kullan</button>)
-              : c.premium ? <button className="btn-outline btn-outline--sm" aria-label="Özel araba" onClick={() => onHint(PREMIUM_HINT)}><Crown size={16} color="#c98a00" /></button>
-                : locked ? <Lock size={20} /> : <button className="pill pill--sm" disabled={s.coins < c.price} onClick={() => apply((x) => buyCar(x, c.id))}><Coins size={16} /> {c.price}</button>}
+              : c.premium ? <button className="btn-outline btn-outline--sm" aria-label="Özel araba" onClick={() => onHint(PREMIUM_HINT)}><GameIcon name="tac" size={22} /></button>
+                : locked ? <GameIcon name="kilit" size={26} /> : <button className="pill pill--sm" disabled={s.coins < c.price} onClick={() => apply((x) => buyCar(x, c.id))}><GameIcon name="altin" size={20} /> {c.price}</button>}
           </li>
         );
       })}
@@ -150,14 +151,14 @@ export function MarketPanel({ s, apply, tab: tab0, onClose, onSold, onHint }: { 
             <ul className="farm-list">
               {items.map((id) => (
                 <li key={id}>
-                  <span className="farm-emoji">{ITEM_EMOJI[id]}</span>
+                  <GameIcon name={ITEM_ICON[id]} size={40} className="farm-emoji" />
                   <span className="farm-list__name"><b>{ITEM_NAME[id]}</b><small>{s.inv[id]} tane · tanesi {PRICE[id]} altın</small></span>
                   <button className="pill pill--sm" onClick={() => { apply((x) => sell(x, id, 1)); onSold(); }}>1 sat</button>
                   {(s.inv[id] ?? 0) > 1 && <button className="btn-outline btn-outline--sm" onClick={() => { apply((x) => sell(x, id, x.inv[id] ?? 0)); onSold(); }}>Hepsi</button>}
                 </li>
               ))}
             </ul>
-            <button className="pill pill--yellow" onClick={sellAll}><Coins size={20} /> Hepsini sat</button>
+            <button className="pill pill--yellow" onClick={sellAll}><GameIcon name="altin" size={24} /> Hepsini sat</button>
           </>
         )
       )}
@@ -169,9 +170,9 @@ export function MarketPanel({ s, apply, tab: tab0, onClose, onSold, onHint }: { 
               const locked = lv < a.level, n = countAnimals(s, a.id);
               return (
                 <li key={a.id} className={locked ? 'locked' : ''}>
-                  <span className="farm-emoji">{a.emoji}</span>
-                  <span className="farm-list__name"><b>{a.name}</b><small>{locked ? `${a.level}. seviyede açılır` : `${ITEM_EMOJI[a.eats]} yer, ${ITEM_EMOJI[a.product]} verir · ${n}/${a.max}`}</small></span>
-                  {locked ? <Lock size={20} /> : <button className="pill pill--sm" disabled={n >= a.max} onClick={() => apply((x) => buyAnimal(x, a.id))}><Coins size={16} /> {a.cost}</button>}
+                  <GameIcon name={a.icon} size={40} className="farm-emoji" />
+                  <span className="farm-list__name"><b>{a.name}</b><small>{locked ? `${a.level}. seviyede açılır` : <><GameIcon name={ITEM_ICON[a.eats]} size={18} /> yer, <GameIcon name={ITEM_ICON[a.product]} size={18} /> verir · {n}/{a.max}</>}</small></span>
+                  {locked ? <GameIcon name="kilit" size={26} /> : <button className="pill pill--sm" disabled={n >= a.max} onClick={() => apply((x) => buyAnimal(x, a.id))}><GameIcon name="altin" size={20} /> {a.cost}</button>}
                 </li>
               );
             })}
@@ -180,9 +181,9 @@ export function MarketPanel({ s, apply, tab: tab0, onClose, onSold, onHint }: { 
           <ul className="farm-list">
             {buyable(s).map((id) => (
               <li key={id}>
-                <span className="farm-emoji">{ITEM_EMOJI[id]}</span>
+                <GameIcon name={ITEM_ICON[id]} size={40} className="farm-emoji" />
                 <span className="farm-list__name"><b>{ITEM_NAME[id]}</b><small>Elinde {s.inv[id] ?? 0}</small></span>
-                <button className="pill pill--sm" onClick={() => apply((x) => buyItem(x, id, 1))}><Coins size={16} /> {buyPrice(id)}</button>
+                <button className="pill pill--sm" onClick={() => apply((x) => buyItem(x, id, 1))}><GameIcon name="altin" size={20} /> {buyPrice(id)}</button>
               </li>
             ))}
           </ul>
@@ -192,9 +193,9 @@ export function MarketPanel({ s, apply, tab: tab0, onClose, onSold, onHint }: { 
               const own = s.packs.includes(p.id), locked = lv < p.level;
               return (
                 <li key={p.id} className={locked ? 'locked' : ''}>
-                  <span className="farm-emoji">{p.emoji}</span>
+                  <GameIcon name={p.icon} size={40} className="farm-emoji" />
                   <span className="farm-list__name"><b>{p.name}</b><small>{own ? 'Senin' : locked ? `${p.level}. seviyede açılır` : 'Bir kez al, istediğin kadar kullan'}</small></span>
-                  {own ? <Check size={22} color="var(--green)" /> : locked ? <Lock size={20} /> : <button className="pill pill--sm" onClick={() => apply((x) => buyPack(x, p.id))}><Coins size={16} /> {p.price}</button>}
+                  {own ? <Check size={22} color="var(--green)" /> : locked ? <GameIcon name="kilit" size={26} /> : <button className="pill pill--sm" onClick={() => apply((x) => buyPack(x, p.id))}><GameIcon name="altin" size={20} /> {p.price}</button>}
                 </li>
               );
             })}
@@ -218,10 +219,10 @@ function Orders({ s, apply, onSold }: { s: FarmState; apply: Apply; onSold: () =
             <div className="farm-order__needs">
               {Object.entries(o.needs).map(([k, n]) => {
                 const have = s.inv[k as ItemId] ?? 0;
-                return <span key={k} className={have >= n! ? 'ok' : ''}>{ITEM_EMOJI[k as ItemId]} {Math.min(have, n!)}/{n}</span>;
+                return <span key={k} className={have >= n! ? 'ok' : ''}><GameIcon name={ITEM_ICON[k as ItemId]} size={22} /> {Math.min(have, n!)}/{n}</span>;
               })}
             </div>
-            <small><Coins size={14} /> {o.coins} · ⭐ {o.xp} deneyim</small>
+            <small><GameIcon name="altin" size={18} /> {o.coins} · <GameIcon name="yildiz" size={18} /> {o.xp} deneyim</small>
             <div className="farm-order__btns">
               <button className="pill pill--sm" disabled={!ok} onClick={() => { apply((x) => fillOrder(x, o.id)); onSold(); }}>Teslim et</button>
               <button className="btn-outline btn-outline--sm" aria-label="Başka sipariş" onClick={() => apply((x) => ({ s: skipOrder(x, o.id) }))}><RotateCcw size={16} /></button>
@@ -259,11 +260,11 @@ export function SeedPanel({ s, field, apply, onClose }: { s: FarmState; field: n
           const locked = lv < c.level;
           return (
             <li key={c.id} className={locked ? 'locked' : ''}>
-              <span className="farm-emoji">{c.emoji}</span>
+              <GameIcon name={c.icon} size={40} className="farm-emoji" />
               <span className="farm-list__name"><b>{c.name}</b><small>{locked ? `${c.level}. seviyede açılır` : `${clock(c.grow)} dakikada ${c.yield} tane · tanesi ${PRICE[c.id]} altın`}</small></span>
-              {locked ? <Lock size={20} /> : (
+              {locked ? <GameIcon name="kilit" size={26} /> : (
                 <>
-                  <button className="pill pill--sm" onClick={() => go(c.id, false)}><Coins size={16} /> {c.seed}</button>
+                  <button className="pill pill--sm" onClick={() => go(c.id, false)}><GameIcon name="altin" size={20} /> {c.seed}</button>
                   {empty > 1 && <button className="btn-outline btn-outline--sm" onClick={() => go(c.id, true)}>Hepsine ek</button>}
                 </>
               )}
@@ -288,12 +289,12 @@ export function KitchenPanel({ s, apply, onClose, onCook }: { s: FarmState; appl
           const locked = lv < r.level;
           return (
             <li key={r.id} className={locked ? 'locked' : ''}>
-              <span className="farm-emoji">{r.emoji}</span>
+              <GameIcon name={r.icon} size={40} className="farm-emoji" />
               <span className="farm-list__name">
                 <b>{r.name} <small>({PRICE[r.id]} altın)</small></b>
-                <small>{locked ? `${r.level}. seviyede açılır` : Object.entries(r.needs).map(([k, n]) => `${ITEM_EMOJI[k as ItemId]} ${s.inv[k as ItemId] ?? 0}/${n}`).join('  ')}</small>
+                <small className="farm-needs">{locked ? `${r.level}. seviyede açılır` : Object.entries(r.needs).map(([k, n]) => <span key={k}><GameIcon name={ITEM_ICON[k as ItemId]} size={18} /> {s.inv[k as ItemId] ?? 0}/{n}</span>)}</small>
               </span>
-              {locked ? <Lock size={20} /> : <button className="pill pill--sm" disabled={!canCraft(s, r.id)} onClick={() => { const x = apply((f) => craft(f, r.id)); if (!x.err) onCook(); }}>Yap</button>}
+              {locked ? <GameIcon name="kilit" size={26} /> : <button className="pill pill--sm" disabled={!canCraft(s, r.id)} onClick={() => { const x = apply((f) => craft(f, r.id)); if (!x.err) onCook(); }}>Yap</button>}
             </li>
           );
         })}
@@ -325,13 +326,13 @@ export function JournalPanel({ s, onClose }: { s: FarmState; onClose: () => void
           <li key={i} className={i < s.journey ? 'done' : i === s.journey ? 'now' : 'next'}>
             <span className="island__check">{i < s.journey && <Check size={18} strokeWidth={3} />}</span>
             <span style={{ flex: 1 }}>{st.text}</span>
-            <small><Coins size={14} /> {st.coins}</small>
+            <small><GameIcon name="altin" size={18} /> {st.coins}</small>
           </li>
         ))}
       </ul>
       {s.journey >= JOURNEY.length && <p className="sub">Defterin bitti, sen artık usta bir çiftçisin!</p>}
       <h3 className="farm-h3">Ambarım</h3>
-      {inv.length ? <div className="farm-inv">{inv.map((id) => <span key={id}>{ITEM_EMOJI[id]} {s.inv[id]}</span>)}</div> : <p className="sub">Ambarın boş.</p>}
+      {inv.length ? <div className="farm-inv">{inv.map((id) => <span key={id}><GameIcon name={ITEM_ICON[id]} size={22} /> {s.inv[id]}</span>)}</div> : <p className="sub">Ambarın boş.</p>}
     </Panel>
   );
 }
@@ -339,10 +340,10 @@ export function JournalPanel({ s, onClose }: { s: FarmState; onClose: () => void
 // ------------------------------------------------------------------------------------------------
 // İnşa
 // ------------------------------------------------------------------------------------------------
-const MODEL_EMOJI: Record<string, string> = { kapi: '🚪', cicek: '🌷', fidan: '🌳', cit: '🚧', bank: '🪑', fener: '🏮', masa: '🍽️', sandalye: '💺', yatak: '🛏️', kitaplik: '📚', kardanadam: '⛄' };
+const MODEL_ICON: Record<string, string> = { kapi: 'kapi', cicek: 'lale', fidan: 'agac', cit: 'cit', bank: 'bank', fener: 'fener', masa: 'masa', sandalye: 'sandalye', yatak: 'yatak', kitaplik: 'kitaplik', kardanadam: 'kardanadam' };
 
 function Swatch({ b }: { b: BlockDef }) {
-  if (b.kind === 'model') return <span className="build-swatch build-swatch--emoji">{MODEL_EMOJI[b.id] ?? '📦'}</span>;
+  if (b.kind === 'model') return <GameIcon name={MODEL_ICON[b.id] ?? 'kutu'} size={32} />;
   return <span className={`build-swatch build-swatch--${b.kind}`} style={{ background: b.color, borderTopColor: b.top ?? b.color }} />;
 }
 
@@ -356,8 +357,8 @@ export function BuildBar({ s, tool, onTool, onUndo, onBlueprints, onDone, onJump
   return (
     <div className="build-bar rise">
       <div className="build-bar__tabs">
-        <button className={tab === 'blocks' ? 'on' : ''} onClick={() => setTab('blocks')}>🧱 Bloklar</button>
-        <button className={tab === 'structs' ? 'on' : ''} onClick={() => setTab('structs')}>🌾 Yapılar</button>
+        <button className={tab === 'blocks' ? 'on' : ''} onClick={() => setTab('blocks')}><GameIcon name="tugla" size={20} /> Bloklar</button>
+        <button className={tab === 'structs' ? 'on' : ''} onClick={() => setTab('structs')}><GameIcon name="tarla" size={20} /> Yapılar</button>
         <span className="build-bar__hint">{tool === 'erase' ? 'Kaldırmak istediğin bloğa ya da yapıya dokun.' : tool.startsWith('struct:') ? 'Kurmak istediğin düz bir yere dokun.' : 'Blok koymak için yere ya da bir bloğa dokun.'}</span>
       </div>
       <div className="build-bar__row">
@@ -373,7 +374,7 @@ export function BuildBar({ s, tool, onTool, onUndo, onBlueprints, onDone, onJump
           const locked = lv < d.level, price = structPrice(s, d.k), has = d.k !== 'tarla' && s.places.some((p) => p.k === d.k);
           return (
             <button key={d.k} className={`build-tool build-tool--struct ${tool === `struct:${d.k}` ? 'on' : ''}`} disabled={locked || has} onClick={() => onTool(`struct:${d.k}`)} aria-label={d.name}>
-              <span className="build-swatch build-swatch--emoji">{locked ? '🔒' : d.emoji}</span>
+              <GameIcon name={locked ? 'kilit' : d.icon} size={32} />
               <small>{d.name}</small>
               <small className="build-tool__price">{locked ? `${d.level}. seviye` : has ? 'Kurulu' : price ? `${price} altın` : 'Bedava'}</small>
             </button>
@@ -400,9 +401,9 @@ export function BlueprintPanel({ s, onPick, onClose }: { s: FarmState; onPick: (
           const locked = lv < b.level;
           return (
             <li key={b.id} className={locked ? 'locked' : ''}>
-              <span className="farm-emoji">{b.emoji}</span>
+              <GameIcon name={b.icon} size={40} className="farm-emoji" />
               <span className="farm-list__name"><b>{b.name}</b><small>{locked ? `${b.level}. seviyede açılır` : 'Yanındaki boş yere kurulur'}</small></span>
-              {locked ? <Lock size={20} /> : <button className="pill pill--sm" disabled={s.coins < b.price} onClick={() => onPick(b.id)}><Coins size={16} /> {b.price}</button>}
+              {locked ? <GameIcon name="kilit" size={26} /> : <button className="pill pill--sm" disabled={s.coins < b.price} onClick={() => onPick(b.id)}><GameIcon name="altin" size={20} /> {b.price}</button>}
             </li>
           );
         })}
@@ -414,7 +415,7 @@ export function BlueprintPanel({ s, onPick, onClose }: { s: FarmState; onPick: (
 // ------------------------------------------------------------------------------------------------
 // Kutlamalar ve macera
 // ------------------------------------------------------------------------------------------------
-export function LevelUp({ level, unlocks, onClose }: { level: number; unlocks: string[]; onClose: () => void }) {
+export function LevelUp({ level, unlocks, onClose }: { level: number; unlocks: { icon: string; name: string }[]; onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <div className="island__panel">
@@ -424,7 +425,7 @@ export function LevelUp({ level, unlocks, onClose }: { level: number; unlocks: s
         {unlocks.length > 0 && (
           <>
             <b>Yeni açılanlar</b>
-            <div className="farm-inv">{unlocks.map((u) => <span key={u}>{u}</span>)}</div>
+            <div className="farm-inv">{unlocks.map((u) => <span key={u.name}><GameIcon name={u.icon} size={22} /> {u.name}</span>)}</div>
           </>
         )}
         <button className="pill" onClick={onClose}>Harika!</button>
@@ -433,12 +434,12 @@ export function LevelUp({ level, unlocks, onClose }: { level: number; unlocks: s
   );
 }
 
-export function RealmHud({ name, goal, progress, onLeave }: { name: string; goal: string; progress: string; onLeave: () => void }) {
+export function RealmHud({ name, goal, progress, icon, onLeave }: { name: string; goal: string; progress: string; icon: string; onLeave: () => void }) {
   return (
     <div className="realm-hud">
       <button className="pill pill--sm pill--yellow" onClick={onLeave}><LogOut size={18} /> Adaya dön</button>
       <div className="realm-hud__goal"><b>{name}</b><span>{goal}</span></div>
-      {progress && <span className="realm-hud__prog">{progress}</span>}
+      {progress && <span className="realm-hud__prog"><GameIcon name={icon} size={24} /> {progress}</span>}
     </div>
   );
 }
@@ -450,7 +451,7 @@ export function RealmDone({ name, text, coins, onAgain, onLeave }: { name: strin
         <Trophy size={64} color="#ffc83d" fill="#ffe8a3" />
         <h2 className="title-lg">{name}</h2>
         <p className="sub">{text}</p>
-        <span className="farm-coin big"><Coins size={22} /> +{coins}</span>
+        <span className="farm-coin big"><GameIcon name="altin" size={26} /> +{coins}</span>
         <div className="farm-order__btns">
           <button className="btn-outline" onClick={onAgain}><RotateCcw size={18} /> Tekrar oyna</button>
           <button className="pill" onClick={onLeave}>Adaya dön</button>

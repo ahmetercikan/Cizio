@@ -72,7 +72,7 @@ export interface IslandEvents {
   onPage: (id: string) => void;
   /** Macera kapısından girildi / çıkıldı (null). */
   onRealm?: (r: RealmInfo | null) => void;
-  /** Macera ilerlemesi (⭐ 2/6…). */
+  /** Macera ilerlemesi ("2/6", "5/20 · 40 sn"). */
   onRealmProgress?: (text: string) => void;
   /** Macera bitti: ek altın ve mesaj. */
   onRealmFinish?: (id: RealmId, bonus: number, text: string) => void;

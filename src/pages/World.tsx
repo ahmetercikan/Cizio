@@ -2,7 +2,7 @@
  * Çizio Adası (/ada): 3B oyun dünyası (src/world/island.ts). Şimdilik herkese açık (PLUS_ENABLED = false);
  * ücretli olursa abonelik yoksa tanıtım ve satın alma (ebeveyn kilidi arkasında) gösterilir.
  */
-import { ArrowLeft, BookOpen, Car, Megaphone, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Hand, Home, Images, Loader2, MessageCircle, Music, RotateCcw, Shirt, Sparkles, Sprout, Star, Store, Users, X, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Loader2, MessageCircle, RotateCcw, Shirt, Sparkles, Sprout, Star, Store, X, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { create } from 'zustand';
@@ -30,6 +30,7 @@ import type { GhostInfo, HomeScene, SelInfo } from '../world/home';
 import { newHome } from '../world/homeData';
 import { CamButtons, Catalog, GhostCard, HomeTop, SelCard } from '../world/HomePanels';
 import { usePremium } from '../world/premium';
+import { GameIcon } from '../world/GameIcon';
 import { BalloonGame, BoutiquePanel, GamesPanel, MemoryGame, PrizeModal } from '../world/Shops';
 import { RARE, rareKey } from '../lib/rewards';
 import { ISLAND_ONLINE } from '../online/config';
@@ -206,7 +207,7 @@ function IslandPlay() {
     if (r.err) return r;
     const j = st.farmApply(advanceJourney);
     j.steps.forEach((t, i) => setTimeout(() => {
-      flash(`Defter: ${t} ✓`);
+      flash(`Defter tamam: ${t}`);
       sfx.success();
     }, 1400 * (i + 1)));
     const lv = j.levelUp ?? r.levelUp;
@@ -639,7 +640,7 @@ function IslandPlay() {
       <header className="island__top">
         <button className="round-btn round-btn--light" aria-label="Adadan çık" onClick={() => nav('/')}><ArrowLeft size={26} strokeWidth={2.6} /></button>
         {realm ? (
-          <RealmHud name={realm.name} goal={realm.goal} progress={realmProg} onLeave={() => world.current?.leaveRealm()} />
+          <RealmHud name={realm.name} goal={realm.goal} progress={realmProg} icon={realm.id === 'candy' ? 'seker' : 'yildiz'} onLeave={() => world.current?.leaveRealm()} />
         ) : ready && (
           <PlayerBadge avatar={<AvatarArt id={profile.avatar} size={44} />} name={profile.name} s={farm} onOpen={() => setPanel('journal')} />
         )}
@@ -649,7 +650,7 @@ function IslandPlay() {
             <CoinChip n={farm.coins} />
             {ISLAND_ONLINE && (
               <button className="island__friends" aria-label="Arkadaşlar" onClick={() => setPanel('friends')}>
-                <Users size={22} />
+                <GameIcon name="arkadaslar" size={32} />
                 {peerNames.length > 0 && <b>{peerNames.length + 1}</b>}
               </button>
             )}
@@ -660,7 +661,7 @@ function IslandPlay() {
       {ready && !realm && !building && (
         <div className="hud-side">
           <button className="hud-side__btn" aria-label="Bugünün görevleri" onClick={() => setPanel('quests')}>
-            <Star size={24} fill="#ffc83d" color="#3a2b27" />
+            <GameIcon name="yildiz" size={30} />
             <small>{quests.filter(questDone).length}/{quests.length}</small>
           </button>
           <JourneyNote s={farm} open={noteOpen} onToggle={toggleNote} onOpen={() => setPanel('journal')} />
@@ -671,22 +672,22 @@ function IslandPlay() {
           {!busy && <Joystick onChange={(x, y) => world.current?.setJoystick(x, y)} />}
           {!driving && !busy && !building && (
             <div className="island__emotes">
-              <button className="game__btn" aria-label="El salla" onClick={() => world.current?.emote('wave')}><Hand size={26} /></button>
-              <button className="game__btn" aria-label="Dans et" onClick={() => world.current?.emote('dance')}><Music size={26} /></button>
-              <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><Sparkles size={26} /></button>
+              <button className="game__btn" aria-label="El salla" onClick={() => world.current?.emote('wave')}><GameIcon name="el" size={34} /></button>
+              <button className="game__btn" aria-label="Dans et" onClick={() => world.current?.emote('dance')}><GameIcon name="nota" size={34} /></button>
+              <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><GameIcon name="parilti" size={34} /></button>
             </div>
           )}
           {driving && (
             <span className="island__act island__drive rise">
               <button className="pill pill--yellow" onClick={() => world.current?.dismount()}>İn</button>
-              <button className="pill" onClick={() => world.current?.honk()}><Megaphone size={20} /> Korna</button>
+              <button className="pill" onClick={() => world.current?.honk()}><GameIcon name="korna" size={26} /> Korna</button>
             </span>
           )}
           {!guest && !driving && !busy && !building && !realm && (
-            <button className="island__build rise" aria-label="İnşa et" onClick={() => startBuild()}><Hammer size={24} /><small>İnşa et</small></button>
+            <button className="island__build rise" aria-label="İnşa et" onClick={() => startBuild()}><GameIcon name="cekic" size={34} /><small>İnşa et</small></button>
           )}
           {myCar && !driving && !busy && !building && !realm && !near && (
-            <button className="island__car rise" aria-label="Arabam" onClick={() => { sfx.pop(); world.current?.summonCar(myCar); }}><Car size={26} /><small>Arabam</small></button>
+            <button className="island__car rise" aria-label="Arabam" onClick={() => { sfx.pop(); world.current?.summonCar(myCar); }}><GameIcon name={myCar} size={38} /><small>Arabam</small></button>
           )}
           {near && !busy && !driving && !building && (
             <button className="pill island__act rise" onClick={() => { sfx.pop(); world.current?.activity(near.id); }}>

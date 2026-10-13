@@ -108,6 +108,10 @@ Yenilikler:
   küçük boşluk varsa boya yine dışarı taşmaz.
 - **Ada göstergeleri (PK XD gibi):** ekranın ortası boş; sol üstte karakter resmi, seviye ve seviye çubuğu, sağ üstte
   altın, arkadaşlar ve harita, sol kenarda görevler ve kapatılabilir "sıradaki hedef" notu.
+- **Simgeler:** Çizio Adası'ndaki bütün emojiler, uygulamanın kendi el çizimi tarzında 86 simgelik bir setle değişti
+  (ürünler, hayvanlar, yapılar, arabalar, eşyalar, kıyafetler, oyun düğmeleri, 3B baloncuklar).
+- **Düzeltmeler:** uzaktaki dolaşan hayvanlar (T-Rex, Triceratops…) artık kasaba meydanında üst üste durmuyor; futbol
+  sahasının zemini düz, kaleler yerinde, sahada kaya yok; kuğu tekne iskelenin ucunda derin suda, kolayca binilir.
 - **Dokunma:** boş yere dokununca zıplar; bir eşyaya dokununca o iş yapılır (uzaksa yanına yürür).
 - **Adada birlikte oynama:** Çevrimiçi açıksa çocuk, onaylı arkadaşlarının adasına gidebilir ("Yanına git"); bir adada
   sahibi ve en çok 10 arkadaşı. Arkadaşlar birbirinin karakterini, adını, yürüyüşünü ve el sallamasını görür; yazışma yok.

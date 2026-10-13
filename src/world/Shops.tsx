@@ -2,16 +2,17 @@
  * Kasabadaki Butik (nadir kıyafetler ada altınıyla) ve Oyun Çadırı (mini oyunlar: hafıza kartları, balon patlatma).
  * Mini oyunu bitiren altın kazanır; günde 3 kez de evine bir eşya ya da üstüne bir kıyafet (economy.ts miniReward).
  */
-import { Coins, Crown, PartyPopper, Shirt, Sparkles, Trophy, X } from 'lucide-react';
+import { PartyPopper, Shirt, Sparkles, Trophy, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Modal } from '../components/ui';
 import { RARE, rareKey, type RareItem } from '../lib/rewards';
 import { sfx } from '../lib/sfx';
 import { PREMIUM_HINT, usePremium } from './premium';
 import type { MiniPrize } from './economy';
+import { GameIcon } from './GameIcon';
 
 const SLOT_PRICE: Record<RareItem['slot'], number> = { back: 260, pet: 220, dress: 200, hat: 160, shoes: 140, bg: 120 };
-const SLOT_EMOJI: Record<RareItem['slot'], string> = { back: '🪽', pet: '🐾', dress: '👗', hat: '👑', shoes: '👟', bg: '🌈' };
+const SLOT_ICON: Record<RareItem['slot'], string> = { back: 'kanat', pet: 'pati', dress: 'elbise', hat: 'tac', shoes: 'ayakkabi', bg: 'gokkusagi' };
 export const rarePrice = (r: RareItem) => SLOT_PRICE[r.slot];
 
 function Panel({ title, icon, onClose, children }: { title: string; icon: ReactNode; onClose: () => void; children: ReactNode }) {
@@ -38,18 +39,18 @@ export function BoutiquePanel({ coins, owned, onBuy, onClose, onHint, onWear }: 
           const has = owned.includes(rareKey(r)), price = rarePrice(r);
           return (
             <li key={rareKey(r)}>
-              <span className="farm-emoji">{SLOT_EMOJI[r.slot]}</span>
+              <GameIcon name={SLOT_ICON[r.slot]} size={40} className="farm-emoji" />
               <span className="farm-list__name"><b>{r.title}</b><small>{has ? 'Senin' : 'Nadir'}</small></span>
               {has ? <button className="btn-outline btn-outline--sm" onClick={onWear}>Giy</button> : (
-                <button className="pill pill--sm" disabled={coins < price} onClick={() => onBuy(r, price)}><Coins size={16} /> {price}</button>
+                <button className="pill pill--sm" disabled={coins < price} onClick={() => onBuy(r, price)}><GameIcon name="altin" size={21} /> {price}</button>
               )}
             </li>
           );
         })}
         <li>
-          <span className="farm-emoji">💎</span>
+          <GameIcon name="mucevher" size={40} className="farm-emoji" />
           <span className="farm-list__name"><b>Parıltılı Renkler</b><small>{shiny ? 'Giydir\'de renklerin arasında' : 'Altın, gümüş, inci, neon, galaksi'}</small></span>
-          {shiny ? <button className="btn-outline btn-outline--sm" onClick={onWear}>Giy</button> : <button className="btn-outline btn-outline--sm" aria-label="Özel renkler" onClick={() => onHint(PREMIUM_HINT)}><Crown size={16} color="#c98a00" /></button>}
+          {shiny ? <button className="btn-outline btn-outline--sm" onClick={onWear}>Giy</button> : <button className="btn-outline btn-outline--sm" aria-label="Özel renkler" onClick={() => onHint(PREMIUM_HINT)}><GameIcon name="tac" size={22} /></button>}
         </li>
       </ul>
     </Panel>
@@ -66,18 +67,18 @@ export function GamesPanel({ left, onPlay, onClose }: { left: number; onPlay: (g
         Oyunu bitir, altın kazan! {left > 0 ? `Bugün ${left} kez de evine bir eşya ya da sana yeni bir kıyafet çıkabilir.` : 'Bugünkü eşya ödülleri bitti; yarın yine gel. Altın kazanmaya devam!'}
       </p>
       <div className="mini-pick">
-        <button onClick={() => onPlay('memory')}><span>🃏</span><b>Hafıza kartları</b><small>Eşleri bul</small></button>
-        <button onClick={() => onPlay('balloon')}><span>🎈</span><b>Balon patlat</b><small>Doğru renkleri patlat</small></button>
+        <button onClick={() => onPlay('memory')}><GameIcon name="kartlar" size={56} /><b>Hafıza kartları</b><small>Eşleri bul</small></button>
+        <button onClick={() => onPlay('balloon')}><GameIcon name="balon" size={56} /><b>Balon patlat</b><small>Doğru renkleri patlat</small></button>
       </div>
     </Panel>
   );
 }
 
-const EMOJI = ['🛋️', '🛏️', '🪴', '🎨', '🧸', '🎹', '🌷', '👗', '👟', '🎩', '🚲', '🐶'];
+const CARD_ICONS = ['kanepe', 'yatak', 'saksi', 'palet', 'ayicik', 'piyano', 'lale', 'elbise', 'ayakkabi', 'tac', 'bisiklet', 'kopek'];
 
 export function MemoryGame({ onWin, onClose }: { onWin: () => void; onClose: () => void }) {
   const cards = useMemo(() => {
-    const pick = [...EMOJI].sort(() => Math.random() - 0.5).slice(0, 6);
+    const pick = [...CARD_ICONS].sort(() => Math.random() - 0.5).slice(0, 6);
     return [...pick, ...pick].map((e, i) => ({ e, i })).sort(() => Math.random() - 0.5);
   }, []);
   if (import.meta.env.DEV) (window as unknown as { __memory?: string[] }).__memory = cards.map((c) => c.e);
@@ -111,7 +112,7 @@ export function MemoryGame({ onWin, onClose }: { onWin: () => void; onClose: () 
           const up = open.includes(k) || done.has(c.e);
           return (
             <button key={k} className={`mini-card ${up ? 'up' : ''} ${done.has(c.e) ? 'done' : ''}`} onClick={() => flip(k)} aria-label={up ? c.e : 'Kapalı kart'}>
-              <span>{up ? c.e : '?'}</span>
+              {up ? <GameIcon name={c.e} size={44} /> : <span>?</span>}
             </button>
           );
         })}
@@ -198,7 +199,7 @@ export function PrizeModal({ prize, coins, onClose, onGo }: { prize: MiniPrize; 
       <div className="island__panel">
         <Trophy size={60} color="#ffc83d" fill="#ffe8a3" />
         <h2 className="title-lg">Aferin!</h2>
-        <span className="farm-coin big"><Coins size={22} /> +{coins}</span>
+        <span className="farm-coin big"><GameIcon name="altin" size={27} /> +{coins}</span>
         {prize.kind === 'item' && <p className="sub">Hediye: <b>{prize.name}</b>! Evindeki depoda seni bekliyor.</p>}
         {cloth && <p className="sub">Hediye: <b>{cloth.title}</b>! Giydir'de giyebilirsin.</p>}
         <div className="farm-order__btns">

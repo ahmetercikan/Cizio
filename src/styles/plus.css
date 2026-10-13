@@ -410,3 +410,13 @@
 .island__right { align-items: flex-start; }
 .island__right .hud-coins { margin-top: 6px; }
 .island__right .island__friends { margin-top: 0; }
+
+/* El çizimi simgeler (gameIcons.ts) */
+.gicon { display: inline-block; flex: none; line-height: 0; vertical-align: middle; }
+.gicon svg { width: 100%; height: 100%; display: block; }
+.farm-emoji.gicon { width: 40px; }
+.farm-needs { display: flex; flex-wrap: wrap; gap: 8px; }
+.farm-needs span, .farm-inv span, .farm-order__needs span, .farm-coin, .realm-hud__prog { display: inline-flex; align-items: center; gap: 4px; }
+.home-cat__tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.build-bar__tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.mini-card .gicon { width: 70%; height: auto; aspect-ratio: 1; }

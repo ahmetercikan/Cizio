@@ -21,16 +21,16 @@ export interface PremiumPack {
   /** Google Play ürün kimliği. */
   product: string;
   name: string;
-  emoji: string;
+  icon: string;
   desc: string;
   price: string;
 }
 
 export const PREMIUM: PremiumPack[] = [
-  { id: 'araba', product: 'cizio_paket_araba', name: 'Hayal Arabaları', emoji: '🦄', desc: 'Unicorn arabası, uçan araba (denizin üstünden uçar) ve gökkuşağı limuzin.', price: '79,99 TL' },
-  { id: 'sato', product: 'cizio_paket_sato', name: 'Şato Evi', emoji: '🏰', desc: 'Kuleli kocaman bir şato evi planı, taht, kale yatak ve kristal avize.', price: '99,99 TL' },
-  { id: 'sihir', product: 'cizio_paket_sihir', name: 'Sihirli Eşyalar', emoji: '✨', desc: 'Uzay yatağı, dondurma makinesi, dev akvaryum ve gökkuşağı halı.', price: '59,99 TL' },
-  { id: 'renk', product: 'cizio_paket_renk', name: 'Parıltılı Renkler', emoji: '💎', desc: 'Giydir\'de bütün kıyafetler için altın, gümüş, inci, neon ve galaksi renkleri.', price: '39,99 TL' },
+  { id: 'araba', product: 'cizio_paket_araba', name: 'Hayal Arabaları', icon: 'unicorn', desc: 'Unicorn arabası, uçan araba (denizin üstünden uçar) ve gökkuşağı limuzin.', price: '79,99 TL' },
+  { id: 'sato', product: 'cizio_paket_sato', name: 'Şato Evi', icon: 'sato', desc: 'Kuleli kocaman bir şato evi planı, taht, kale yatak ve kristal avize.', price: '99,99 TL' },
+  { id: 'sihir', product: 'cizio_paket_sihir', name: 'Sihirli Eşyalar', icon: 'asa', desc: 'Uzay yatağı, dondurma makinesi, dev akvaryum ve gökkuşağı halı.', price: '59,99 TL' },
+  { id: 'renk', product: 'cizio_paket_renk', name: 'Parıltılı Renkler', icon: 'mucevher', desc: 'Giydir\'de bütün kıyafetler için altın, gümüş, inci, neon ve galaksi renkleri.', price: '39,99 TL' },
 ];
 export const premiumPack = (id: string) => PREMIUM.find((p) => p.id === id);
 

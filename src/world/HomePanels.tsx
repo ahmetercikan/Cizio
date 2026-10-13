@@ -3,8 +3,9 @@
  * (resimli kartlar, kategoriler, depo), yerleştirme kartı (renk, döndür, koy), seçili eşya kartı (döndür, renk,
  * taşı, sat), duvar ve zemin renkleri, ev planları.
  */
-import { Check, Coins, Crown, LogOut, Minus, Move, Plus, RotateCcw, RotateCw, Sofa, Sparkles, X } from 'lucide-react';
+import { Check, LogOut, Minus, Move, Plus, RotateCcw, RotateCw, Sofa, Sparkles, X } from 'lucide-react';
 import { PREMIUM_HINT, usePremium } from './premium';
+import { GameIcon } from './GameIcon';
 import { useMemo, useState } from 'react';
 import { CATS, FLOORS, ITEMS, PLANS, WALLS, item, type Cat } from './homeData';
 import type { GhostInfo, HomeScene, SelInfo } from './home';
@@ -17,7 +18,7 @@ export function HomeTop({ mode, coins, onMode, onLeave }: { mode: 'live' | 'buil
         <button className={mode === 'live' ? 'on' : ''} onClick={() => onMode('live')}><Sparkles size={18} /> Evde oyna</button>
         <button className={mode === 'build' ? 'on' : ''} onClick={() => onMode('build')}><Sofa size={18} /> Eşya ekle</button>
       </div>
-      <span className="farm-coin home-top__coins"><Coins size={18} /> {coins}</span>
+      <span className="farm-coin home-top__coins"><GameIcon name="altin" size={23} /> {coins}</span>
     </header>
   );
 }
@@ -41,17 +42,17 @@ export function Catalog({ home, coins, onPick, onHint }: { home: HomeScene; coin
   const [, force] = useState(0);
   const stored = home.state.stored;
   const items = useMemo(() => ITEMS.filter((i) => i.cat === tab), [tab]);
-  const tabs: { id: Tab; name: string; emoji: string }[] = [
+  const tabs: { id: Tab; name: string; icon: string }[] = [
     ...CATS,
-    { id: 'finish', name: 'Duvar ve zemin', emoji: '🎨' },
-    { id: 'plan', name: 'Ev planı', emoji: '🏡' },
-    ...(stored.length ? [{ id: 'store' as Tab, name: `Depo (${stored.length})`, emoji: '📦' }] : []),
+    { id: 'finish', name: 'Duvar ve zemin', icon: 'rulo' },
+    { id: 'plan', name: 'Ev planı', icon: 'ev' },
+    ...(stored.length ? [{ id: 'store' as Tab, name: `Depo (${stored.length})`, icon: 'kutu' }] : []),
   ];
   return (
     <div className="home-cat rise">
       <div className="home-cat__tabs">
         {tabs.map((t) => (
-          <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}><span>{t.emoji}</span> {t.name}</button>
+          <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}><GameIcon name={t.icon} size={22} /> {t.name}</button>
         ))}
       </div>
       {tab === 'finish' ? (
@@ -79,10 +80,10 @@ export function Catalog({ home, coins, onPick, onHint }: { home: HomeScene; coin
               <div key={p.id} className={`home-card home-card--plan ${now ? 'on' : ''}`}>
                 <span className="home-card__plan">{p.rooms.length} oda · {p.w}×{p.d}</span>
                 <b>{p.name}</b>
-                {locked && <span className="crown-tag"><Crown size={14} /></span>}
-                {now ? <small>Şu an buradasın</small> : locked ? <button className="btn-outline btn-outline--sm" onClick={() => onHint(PREMIUM_HINT)}><Crown size={14} /> Özel</button> : (
+                {locked && <span className="crown-tag"><GameIcon name="tac" size={20} /></span>}
+                {now ? <small>Şu an buradasın</small> : locked ? <button className="btn-outline btn-outline--sm" onClick={() => onHint(PREMIUM_HINT)}><GameIcon name="tac" size={20} /> Özel</button> : (
                   <button className="pill pill--sm" disabled={!own && coins < p.price} onClick={() => onPick(`@plan:${p.id}`, false)}>
-                    {own ? 'Taşın' : <><Coins size={16} /> {p.price}</>}
+                    {own ? 'Taşın' : <><GameIcon name="altin" size={21} /> {p.price}</>}
                   </button>
                 )}
               </div>
@@ -94,10 +95,10 @@ export function Catalog({ home, coins, onPick, onHint }: { home: HomeScene; coin
           {(tab === 'store' ? stored.map((id) => item(id)!).filter(Boolean) : items).map((it, k) => (
             <button key={`${it.id}${k}`} className={`home-card ${it.premium ? 'home-card--premium' : ''}`} disabled={tab !== 'store' && !it.premium && coins < it.price}
               onClick={() => (it.premium && !premium.includes(it.premium) && tab !== 'store' ? onHint(PREMIUM_HINT) : onPick(it.id, tab === 'store'))}>
-              {it.premium && <span className="crown-tag"><Crown size={14} /></span>}
+              {it.premium && <span className="crown-tag"><GameIcon name="tac" size={20} /></span>}
               <img src={home.thumbnail(it.id)} alt="" />
               <b>{it.name}</b>
-              <small>{tab === 'store' ? 'Depoda' : it.premium ? (premium.includes(it.premium) ? 'Senin' : 'Özel') : <><Coins size={13} /> {it.price}</>}</small>
+              <small>{tab === 'store' ? 'Depoda' : it.premium ? (premium.includes(it.premium) ? 'Senin' : 'Özel') : <><GameIcon name="altin" size={18} /> {it.price}</>}</small>
             </button>
           ))}
         </div>
@@ -112,7 +113,7 @@ export function GhostCard({ g, home }: { g: GhostInfo; home: HomeScene }) {
     <div className="home-ghost rise">
       <div className="home-ghost__head">
         <b>{it.name}</b>
-        <small>{g.moving ? 'Taşınıyor' : g.price ? <><Coins size={13} /> {g.price}</> : 'Bedava'}</small>
+        <small>{g.moving ? 'Taşınıyor' : g.price ? <><GameIcon name="altin" size={18} /> {g.price}</> : 'Bedava'}</small>
       </div>
       {it.colors.length > 1 && (
         <div className="home-sw">{it.colors.map((c, i) => <button key={c} aria-label={`Renk ${i + 1}`} style={{ background: c }} onClick={() => home.ghostColor(i)} />)}</div>
@@ -137,7 +138,7 @@ export function SelCard({ s, home }: { s: SelInfo; home: HomeScene }) {
       <div className="home-ghost__btns">
         <button className="btn-outline btn-outline--sm" onClick={() => home.selRotate()}><RotateCw size={16} /> Döndür</button>
         <button className="btn-outline btn-outline--sm" onClick={() => home.selMove()}><Move size={16} /> Taşı</button>
-        <button className="btn-outline btn-outline--sm" onClick={() => home.selSell()}><Coins size={16} /> Sat +{s.sell}</button>
+        <button className="btn-outline btn-outline--sm" onClick={() => home.selSell()}><GameIcon name="altin" size={21} /> Sat +{s.sell}</button>
         <button className="btn-outline btn-outline--sm" aria-label="Kapat" onClick={() => home.setMode('build')}><X size={16} /></button>
       </div>
     </div>

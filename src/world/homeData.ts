@@ -135,15 +135,15 @@ export function walls(p: Plan): { x: number; z: number; side: 'n' | 'w'; outer: 
 // Eşyalar
 // ================================================================================================
 export type Cat = 'oturma' | 'yatak' | 'mutfak' | 'banyo' | 'oyun' | 'sus' | 'duvar' | 'bahce';
-export const CATS: { id: Cat; name: string; emoji: string }[] = [
-  { id: 'oturma', name: 'Oturma', emoji: '🛋️' },
-  { id: 'yatak', name: 'Yatak odası', emoji: '🛏️' },
-  { id: 'mutfak', name: 'Mutfak', emoji: '🍳' },
-  { id: 'banyo', name: 'Banyo', emoji: '🛁' },
-  { id: 'oyun', name: 'Oyun ve sanat', emoji: '🎨' },
-  { id: 'sus', name: 'Süsler', emoji: '🪴' },
-  { id: 'duvar', name: 'Duvara', emoji: '🖼️' },
-  { id: 'bahce', name: 'Bahçe', emoji: '🌳' },
+export const CATS: { id: Cat; name: string; icon: string }[] = [
+  { id: 'oturma', name: 'Oturma', icon: 'kanepe' },
+  { id: 'yatak', name: 'Yatak odası', icon: 'yatak' },
+  { id: 'mutfak', name: 'Mutfak', icon: 'tava' },
+  { id: 'banyo', name: 'Banyo', icon: 'kuvet' },
+  { id: 'oyun', name: 'Oyun ve sanat', icon: 'palet' },
+  { id: 'sus', name: 'Süsler', icon: 'saksi' },
+  { id: 'duvar', name: 'Duvara', icon: 'cerceve' },
+  { id: 'bahce', name: 'Bahçe', icon: 'agac' },
 ];
 
 /** Eşyayla oynama: poz, süre, kısa mesaj ya da bir sayfaya gitme. */

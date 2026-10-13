@@ -1,6 +1,7 @@
 /** Ebeveyn bölümü: Çizio Adası'nın özel paketleri (bir kez alınır). Satın alma yalnızca burada, ebeveyn kilidinin arkasında. */
 import { Check, Crown, Loader2, RotateCcw } from 'lucide-react';
 import { buyPremium, canBuyPremium, PREMIUM, restorePremium, usePremium } from './premium';
+import { GameIcon } from './GameIcon';
 
 export function ParentPremium() {
   const { owned, prices, busy, error } = usePremium();
@@ -17,7 +18,7 @@ export function ParentPremium() {
           const has = owned.includes(p.id);
           return (
             <li key={p.id}>
-              <span className="premium-list__emoji">{p.emoji}</span>
+              <GameIcon name={p.icon} size={44} className="premium-list__emoji" />
               <span className="premium-list__text"><b>{p.name}</b><small>{p.desc}</small></span>
               {has ? <span className="premium-list__own"><Check size={18} /> Açık</span> : can ? (
                 <button className="btn-dark" disabled={!!busy} onClick={() => void buyPremium(p.id)}>{busy === p.id ? <Loader2 className="spin" size={18} /> : <Crown size={16} />} {prices[p.id] ?? p.price}</button>

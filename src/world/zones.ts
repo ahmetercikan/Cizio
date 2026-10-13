@@ -131,6 +131,8 @@ export class WorldBuilder {
   }
   wander(obj: THREE.Object3D, x: number, z: number, range: number, speed = 1.6, card = true, water = false) {
     const pos = new THREE.Vector3(x, 0, z);
+    // baştan kendi yerinde dursun (uzaktakiler kahraman yaklaşana kadar hareket etmez)
+    obj.position.set(x, water ? 0 : this.h(x, z), z);
     this.scene.add(obj);
     this.wanderers.push({ obj, pos, target: pos.clone(), home: [x, z], range, speed, wait: Math.random() * 3, hop: Math.random() * 6, card, facing: 1, water });
   }
@@ -413,6 +415,7 @@ function buildTown(b: WorldBuilder) {
 }
 
 function buildFootball(b: WorldBuilder, x: number, z: number) {
+  b.keepOut.push({ x, z, r: 20 }); // sahada ağaç ve kaya olmasın
   const field = mesh(new THREE.PlaneGeometry(22, 13), toon('#6cc35a'), false);
   field.rotation.x = -Math.PI / 2;
   b.place(field, x, z, 0, 0.06);
@@ -866,9 +869,11 @@ function buildLake(b: WorldBuilder, taken: string[]) {
   beak.position.set(0, 2.05, 1.95);
   swan.add(hull, neck, head, beak);
   swan.scale.setScalar(1.5);
-  const sv: Vehicle = { model: swan, pos: new THREE.Vector3(px0 - 6, 0, pz + 5), heading: -Math.PI / 2, speed: 9, water: true, seatY: 0.6 };
+  // iskelenin ucunun yanında, derin suda: iskeleden binilir
+  const sv: Vehicle = { model: swan, pos: new THREE.Vector3(px0 - len * 1.15 + 2, 0, pz + 3.6), heading: -Math.PI / 2, speed: 9, water: true, seatY: 0.6 };
+  swan.position.copy(sv.pos);
   b.scene.add(swan);
-  b.spot({ id: 'swan', x: sv.pos.x, z: sv.pos.z, r: 3.5, label: 'Kuğu tekneye bin', vehicle: sv });
+  b.spot({ id: 'swan', x: sv.pos.x, z: sv.pos.z, r: 4.5, label: 'Kuğu tekneye bin', vehicle: sv });
   // su kaydırağı: kuzey kıyısında kule, kıvrımlı oluk göle iner
   const tx = LAKE.x, tz = LAKE.z - LAKE.r - 10;
   const g0 = b.h(tx, tz);

@@ -52,9 +52,13 @@ export function coastAt(ang: number) {
   return LAND_R + 9 * Math.sin(ang * 3 + 0.4) + 6 * Math.sin(ang * 7 + 1.3) + 3 * Math.sin(ang * 13);
 }
 
+/** Bölgelerin dışında kalan ama düz olması gereken yerler (futbol sahası). */
+const FLAT_SPOTS = [{ x: 52, z: 30, a: 18, b: 30 }];
+
 /** Bölgelerin düzlüğü: yapıların olduğu yerlerde tepe dalgası yok. */
 function flatMask(x: number, z: number) {
   let m = 0;
+  for (const f of FLAT_SPOTS) m = Math.max(m, 1 - smooth(f.a, f.b, Math.hypot(x - f.x, z - f.z)));
   for (const zn of ZONES) {
     if (zn.id === 'snow' || zn.id === 'dino') continue;
     const [a, b] = zn.id === 'home' ? [50, 72] : [34, 58];
