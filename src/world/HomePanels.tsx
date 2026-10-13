@@ -3,7 +3,7 @@
  * (resimli kartlar, kategoriler, depo), yerleştirme kartı (renk, döndür, koy), seçili eşya kartı (döndür, renk,
  * taşı, sat), duvar ve zemin renkleri, ev planları.
  */
-import { Check, LogOut, Minus, Move, Plus, RotateCcw, RotateCw, Sofa, Sparkles, X } from 'lucide-react';
+import { Check, LogOut, Minus, Move, Plus, RotateCcw, RotateCw, Smile, Sofa, X } from 'lucide-react';
 import { PREMIUM_HINT, usePremium } from './premium';
 import { GameIcon } from './GameIcon';
 import { useMemo, useState } from 'react';
@@ -15,7 +15,7 @@ export function HomeTop({ mode, coins, onMode, onLeave }: { mode: 'live' | 'buil
     <header className="home-top">
       <button className="pill pill--sm pill--yellow" onClick={onLeave}><LogOut size={18} /> Adaya dön</button>
       <div className="home-top__modes">
-        <button className={mode === 'live' ? 'on' : ''} onClick={() => onMode('live')}><Sparkles size={18} /> Evde oyna</button>
+        <button className={mode === 'live' ? 'on' : ''} onClick={() => onMode('live')}><Smile size={18} /> Evde oyna</button>
         <button className={mode === 'build' ? 'on' : ''} onClick={() => onMode('build')}><Sofa size={18} /> Eşya ekle</button>
       </div>
       <span className="farm-coin home-top__coins"><GameIcon name="altin" size={23} /> {coins}</span>

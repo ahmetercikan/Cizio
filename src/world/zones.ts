@@ -30,6 +30,8 @@ export interface Activity {
   end?(a: Actor): string | void;
   /** Hangi görevi tamamlar (yoksa etkinlik kimliği). */
   quest?: string;
+  /** Kamera kahramanın arkasından izler (hız treni). */
+  follow?: boolean;
 }
 
 export interface Vehicle {
@@ -90,7 +92,7 @@ export class WorldBuilder {
     public art: HTMLCanvasElement[],
     /** Pasif görev bitti (gol, müzik…) ve kısa mesaj. */
     public done: (quest: string, msg?: string) => void,
-    public sound: { note: (i: number) => void; kick: () => void; pop: () => void; star: (i: number) => void },
+    public sound: { note: (i: number) => void; kick: () => void; pop: () => void; star: (i: number) => void; whoosh?: () => void },
   ) {}
 
   /** Zemin yüksekliği (iskele / ada güvertesi dahil). */
@@ -138,7 +140,7 @@ export class WorldBuilder {
   }
   /** Bir açıdaki kıyı noktası (kara ile suyun buluştuğu yarıçap). */
   shore(ang: number) {
-    let lo = 150, hi = 320;
+    let lo = 200, hi = 400;
     for (let i = 0; i < 30; i++) {
       const m = (lo + hi) / 2;
       if (heightAt(Math.cos(ang) * m, Math.sin(ang) * m) > 0) lo = m;
@@ -532,125 +534,914 @@ function buildGarden(b: WorldBuilder, x: number, z: number) {
 function buildFun(b: WorldBuilder) {
   const F = zone('fun');
   b.keepOut.push({ x: F.x, z: F.z, r: 52 });
-  const gate = new THREE.Group();
-  for (const sx of [-4, 4]) {
-    const p = outline(mesh(new THREE.CylinderGeometry(0.4, 0.5, 5, 10), toon('#e9487d')), 1.04);
-    p.position.set(sx, 2.5, 0);
-    gate.add(p);
-  }
-  const arch = outline(mesh(new THREE.TorusGeometry(4, 0.4, 8, 20, Math.PI), toon('#ffc83d')), 1.04);
-  arch.position.y = 5;
-  gate.add(arch);
-  b.place(gate, F.x - 22, F.z + 18, b.facing(F.x - 22, F.z + 18, 0, 0));
-  b.place(sign('Lunapark', '#ffd1e0'), F.x - 26, F.z + 22, b.facing(F.x - 26, F.z + 22, 0, 0));
+  // Yerel düzen: +lz kasabaya (giriş kapısına) bakar, +lx sağ taraf. Oyuncaklar birbirine girmesin diye hepsi bu
+  // planda ayrı yerlerde: giriş ve ışıklı yol (ön), atlıkarınca (orta), dönme dolap (arka), hız treni (sol),
+  // dönen salıncak, çarpışan arabalar, serbest düşüş ve oyun parkı (sağ), korsan gemisi (sol arka).
+  const len = Math.hypot(F.x, F.z), fx = -F.x / len, fz = -F.z / len;
+  const yaw = Math.atan2(fx, fz);
+  const L = (lx: number, lz: number): [number, number] => [F.x + lx * fz + lz * fx, F.z - lx * fx + lz * fz];
+  const V = (lx: number, y: number, lz: number) => {
+    const [x, z] = L(lx, lz);
+    return new THREE.Vector3(x, y, z);
+  };
+  const put = <T extends THREE.Object3D>(o: T, lx: number, lz: number, rot = 0, dy = 0): T => b.place(o, ...L(lx, lz), yaw + rot, dy);
+  const blk = (lx: number, lz: number, r: number) => b.block(...L(lx, lz), r);
+  const hAt = (lx: number, lz: number) => b.h(...L(lx, lz));
 
-  // dönme dolap
+  // yanıp sönen ampuller: her grup tek çizim (InstancedMesh)
+  const PAL = ['#ff5d8f', '#ffd43b', '#5bd1ff', '#7dff9b', '#ffffff', '#c38bff'].map((c) => new THREE.Color(c));
+  const bulbGeo = new THREE.SphereGeometry(1, 8, 6);
+  const blink: THREE.InstancedMesh[] = [];
+  const lights = (pts: THREE.Vector3[], size = 0.17) => {
+    const m = new THREE.InstancedMesh(bulbGeo, new THREE.MeshBasicMaterial({ color: '#ffffff' }), pts.length);
+    const m4 = new THREE.Matrix4();
+    pts.forEach((p, i) => {
+      m.setMatrixAt(i, m4.makeScale(size, size, size).setPosition(p));
+      m.setColorAt(i, PAL[i % PAL.length]);
+    });
+    m.frustumCulled = false;
+    blink.push(m);
+    return m;
+  };
+  let phase = 0, acc = 0;
+  b.tick((dt) => {
+    acc += dt;
+    if (acc < 0.3) return;
+    acc = 0;
+    phase++;
+    for (const m of blink) {
+      for (let i = 0; i < m.count; i++) m.setColorAt(i, PAL[(i + phase) % PAL.length]);
+      m.instanceColor!.needsUpdate = true;
+    }
+  });
+  const fixed: THREE.Vector3[] = []; // yerinde duran ampuller (dünya koordinatı)
+
+  // ---------------------------------------------------------------------------------------------- giriş kapısı
   {
-    const x = F.x + 14, z = F.z - 14, R = 8;
-    const g = new THREE.Group();
-    for (const sz of [-1.3, 1.3]) for (const sx of [-1, 1]) {
-      const l = mesh(new THREE.CylinderGeometry(0.24, 0.3, 10.4, 8), toon('#7c5cff'));
-      l.position.set(sx * 2.7, 5, sz);
-      l.rotation.z = sx * 0.26;
-      g.add(l);
+    const gate = new THREE.Group();
+    for (const sx of [-5.5, 5.5]) {
+      for (let i = 0; i < 6; i++) {
+        const seg = mesh(new THREE.CylinderGeometry(0.75, 0.8, 1.2, 12), toon(i % 2 ? '#ffffff' : '#e9487d'));
+        seg.position.set(sx, 0.6 + i * 1.2, 0);
+        gate.add(seg);
+      }
+      const ball = outline(mesh(new THREE.SphereGeometry(1, 14, 10), toon('#ffc83d')), 1.05);
+      ball.position.set(sx, 7.4, 0);
+      gate.add(ball);
     }
-    const wheel = new THREE.Group();
-    for (const sz of [-0.9, 0.9]) {
-      const rim = mesh(new THREE.TorusGeometry(R, 0.15, 6, 48), toon('#ff8fb1'));
-      rim.position.z = sz;
-      wheel.add(rim);
+    const arch = outline(mesh(new THREE.TorusGeometry(5.5, 0.5, 10, 28, Math.PI), toon('#ffc83d')), 1.03);
+    arch.position.y = 7.2;
+    gate.add(arch);
+    // tabela
+    const c = document.createElement('canvas');
+    c.width = 1024;
+    c.height = 256;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#e9487d';
+    x.beginPath();
+    x.roundRect(8, 8, 1008, 240, 60);
+    x.fill();
+    x.lineWidth = 16;
+    x.strokeStyle = '#ffffff';
+    x.stroke();
+    x.fillStyle = '#ffffff';
+    x.font = '700 150px Fredoka, Nunito, sans-serif';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    x.fillText('LUNAPARK', 512, 136);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    // iki yüzlü: içeriden de düz okunur
+    for (const r of [0, Math.PI]) {
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(9, 2.25), new THREE.MeshBasicMaterial({ map: t }));
+      board.position.set(0, 7.6, r ? -0.03 : 0.03);
+      board.rotation.y = r;
+      gate.add(board);
     }
-    const cabins: THREE.Group[] = [];
-    for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * Math.PI * 2;
-      const spoke = mesh(new THREE.CylinderGeometry(0.06, 0.06, R, 5), toon('#ffffff'), false);
-      spoke.position.set((Math.cos(a) * R) / 2, (Math.sin(a) * R) / 2, 0);
-      spoke.rotation.z = a - Math.PI / 2;
-      wheel.add(spoke);
-      const cab = new THREE.Group();
-      const box = outline(mesh(new THREE.BoxGeometry(1.5, 1.2, 1.5), toon(['#ffc83d', '#14a89a', '#ff6b4a', '#5b8def', '#e9487d'][i % 5])), 1.04);
-      box.position.y = -1;
-      cab.add(box);
-      cab.position.set(Math.cos(a) * R, Math.sin(a) * R, 0);
-      wheel.add(cab);
-      cabins.push(cab);
+    put(gate, 0, 42);
+    gate.updateMatrixWorld(true);
+    for (let i = 0; i <= 16; i++) {
+      const a = (i / 16) * Math.PI;
+      fixed.push(gate.localToWorld(new THREE.Vector3(Math.cos(a) * 6.2, 7.2 + Math.sin(a) * 6.2, 0.2)));
     }
-    wheel.position.y = 10;
-    g.add(wheel);
-    b.place(g, x, z, b.facing(x, z, F.x, F.z) + Math.PI / 2);
-    b.block(x, z, 3.2);
-    b.tick((dt) => {
-      wheel.rotation.z += dt * 0.2;
-      for (const c of cabins) c.rotation.z = -wheel.rotation.z;
-    });
-    const p = new THREE.Vector3();
-    b.spot({
-      id: 'ferris', x: x - 4, z: z + 4, r: 3, label: 'Dönme dolaba bin',
-      act: { dur: 16, pose: 'sit', cam: [30, 14], step(_t, _u, a) { cabins[0].getWorldPosition(p); a.pos.set(p.x, p.y - 1.5, p.z); } },
-    });
+    for (const sx of [-5.5, 5.5]) for (let i = 0; i < 6; i++) fixed.push(gate.localToWorld(new THREE.Vector3(sx, 0.9 + i * 1.2, 0.85)));
+    blk(-5.5, 42, 1);
+    blk(5.5, 42, 1);
   }
-  // atlıkarınca
+
+  // ---------------------------------------------------------------------------------------------- ışıklı yol ve bayraklar
   {
-    const x = F.x - 14, z = F.z + 4;
-    const base = outline(mesh(new THREE.CylinderGeometry(5, 5.2, 0.5, 24), toon('#fff1c7')), 1.02);
-    b.place(base, x, z, 0, 0.25);
-    const top = new THREE.Group();
-    const roof = outline(mesh(new THREE.ConeGeometry(5.6, 2.2, 16), toon('#e9487d')), 1.03);
-    roof.position.y = 5.8;
-    const pole = mesh(new THREE.CylinderGeometry(0.35, 0.35, 5.4, 10), toon('#ffc83d'));
-    pole.position.y = 2.7;
-    top.add(roof, pole);
-    const horses: THREE.Object3D[] = [];
-    const hc = ['#ffffff', '#ffb3c7', '#9be7de', '#ffd166', '#b39ddb', '#ffffff'];
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      const h = new THREE.Group();
-      const rod = mesh(new THREE.CylinderGeometry(0.05, 0.05, 4.2, 5), toon('#e0c070'), false);
-      rod.position.y = 2.6;
-      const body = outline(mesh(new THREE.CapsuleGeometry(0.42, 1.2, 4, 8), toon(hc[i])), 1.06);
-      body.rotation.x = Math.PI / 2;
-      body.position.y = 1.6;
-      const head = outline(mesh(new THREE.BoxGeometry(0.38, 0.9, 0.42), toon(hc[i])), 1.06);
-      head.position.set(0, 2.1, 0.85);
-      head.rotation.x = 0.35;
-      h.add(rod, body, head);
-      h.position.set(Math.cos(a) * 3.4, 0.5, Math.sin(a) * 3.4);
-      h.rotation.y = -a;
-      top.add(h);
-      horses.push(h);
+    const path = mesh(new THREE.PlaneGeometry(7, 36).rotateX(-Math.PI / 2), toon('#f6e3c4'), false);
+    path.receiveShadow = true;
+    put(path, 0, 22, 0, 0.04);
+    const FL = ['#ff6b8a', '#ffc83d', '#5b8def', '#69db7c', '#c38bff'];
+    for (const lz of [36, 26, 16]) {
+      const ends: THREE.Vector3[] = [];
+      for (const lx of [-4.6, 4.6]) {
+        const lamp = new THREE.Group();
+        const post = mesh(new THREE.CylinderGeometry(0.12, 0.16, 4.2, 8), toon('#3a2b27'));
+        post.position.y = 2.1;
+        const top = mesh(new THREE.SphereGeometry(0.45, 12, 8), toon('#fff3b0', { emissive: '#665c20' }), false);
+        top.position.y = 4.4;
+        lamp.add(post, top);
+        put(lamp, lx, lz);
+        blk(lx, lz, 0.3);
+        ends.push(V(lx, hAt(lx, lz) + 4, lz));
+      }
+      // iki direk arasında üçgen bayraklar
+      const [a, c] = ends;
+      for (let i = 1; i < 12; i++) {
+        const u = i / 12;
+        const p = a.clone().lerp(c, u);
+        p.y -= Math.sin(u * Math.PI) * 0.9;
+        const f = mesh(new THREE.ConeGeometry(0.32, 0.7, 3), toon(FL[i % FL.length]), false);
+        f.rotation.x = Math.PI;
+        f.scale.z = 0.2;
+        f.position.copy(p).setY(p.y - 0.35);
+        f.rotation.y = yaw;
+        b.scene.add(f);
+      }
     }
-    b.place(top, x, z);
-    b.block(x, z, 5);
-    b.tick((dt, t) => {
-      top.rotation.y += dt * 0.6;
-      horses.forEach((h, i) => (h.position.y = 0.5 + Math.sin(t * 3 + i) * 0.3));
-    });
-    const p = new THREE.Vector3();
+    b.place(sign('Lunapark', '#ffd1e0'), ...L(-8, 46), yaw);
+  }
+
+  // ---------------------------------------------------------------------------------------------- pamuk şeker ve balon standı
+  const stall = (lx: number, lz: number, color: string, label: string) => {
+    const g = new THREE.Group();
+    const counter = outline(mesh(new THREE.BoxGeometry(3, 1.2, 1.6), toon('#ffffff')), 1.03);
+    counter.position.y = 0.6;
+    g.add(counter);
+    for (const sx of [-1.4, 1.4]) {
+      const p = mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.2, 6), toon('#ffffff'));
+      p.position.set(sx, 2.3, -0.5);
+      g.add(p);
+    }
+    for (let i = 0; i < 4; i++) {
+      const s = mesh(new THREE.BoxGeometry(0.8, 0.12, 2), toon(i % 2 ? '#ffffff' : color));
+      s.position.set(-1.2 + i * 0.8, 3.45, -0.1);
+      s.rotation.x = -0.25;
+      g.add(s);
+    }
+    const sg = sign(label, '#ffffff');
+    sg.scale.setScalar(0.7);
+    sg.position.set(0, 1.2, 0.9);
+    g.add(sg);
+    put(g, lx, lz, lx < 0 ? Math.PI / 2 : -Math.PI / 2);
+    blk(lx, lz, 1.7);
+    return g;
+  };
+  {
+    const g = stall(-9, 31, '#ff8fb1', 'Pamuk şeker');
+    const cotton = new THREE.Group();
+    for (let i = 0; i < 3; i++) {
+      const puff = mesh(new THREE.SphereGeometry(0.42, 10, 8), toon('#ffb3d1'), false);
+      puff.position.set(-0.6 + i * 0.6, 1.6, 0.3);
+      cotton.add(puff);
+    }
+    g.add(cotton);
+    const [x, z] = L(-6.6, 31);
     b.spot({
-      id: 'carousel', x: x + 6.4, z: z + 2, r: 2.6, label: 'Atlıkarıncaya bin',
+      id: 'cottoncandy', x, z, r: 2.3, label: 'Pamuk şeker al',
       act: {
-        dur: 12, pose: 'sit', cam: [11, 3],
-        step(_t, _u, a) {
-          horses[0].getWorldPosition(p);
-          a.pos.set(p.x, p.y + 0.9, p.z);
-          a.heading = top.rotation.y + Math.PI;
+        dur: 1.4, pose: 'hold', step() {},
+        end: (a) => {
+          a.hand.getObjectByName('held')?.removeFromParent();
+          const c = new THREE.Group();
+          const stick = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 5), toon('#ffffff'), false);
+          stick.position.y = 0.1;
+          const fluff = outline(mesh(new THREE.SphereGeometry(0.36, 12, 10), toon('#ffb3d1')), 1.06);
+          fluff.position.y = 0.6;
+          fluff.scale.set(1, 1.2, 1);
+          c.add(stick, fluff);
+          c.name = 'held';
+          a.hand.add(c);
+          return 'Mmm, pamuk şeker!';
         },
       },
     });
   }
-  // trambolin
   {
-    const x = F.x + 16, z = F.z + 14;
+    const g = stall(9, 31, '#5bd1ff', 'Balon');
+    const cols = ['#ff6b8a', '#ffc83d', '#5b8def', '#69db7c', '#c38bff'];
+    cols.forEach((c, i) => {
+      const bl = outline(mesh(new THREE.SphereGeometry(0.42, 12, 10), toon(c)), 1.05);
+      bl.scale.y = 1.2;
+      bl.position.set(-1 + i * 0.5, 4.6 + (i % 2) * 0.5, 0.2);
+      g.add(bl);
+    });
+    const [x, z] = L(6.6, 31);
+    b.spot({
+      id: 'balloon', x, z, r: 2.3, label: 'Balon al',
+      act: {
+        dur: 1.4, pose: 'hold', step() {},
+        end: (a) => {
+          a.hand.getObjectByName('held')?.removeFromParent();
+          const c = new THREE.Group();
+          const string = mesh(new THREE.CylinderGeometry(0.015, 0.015, 2.4, 4), toon('#ffffff'), false);
+          string.position.y = 1.2;
+          const bl = outline(mesh(new THREE.SphereGeometry(0.5, 14, 10), toon(cols[Math.floor(Math.random() * cols.length)])), 1.05);
+          bl.scale.y = 1.2;
+          bl.position.y = 2.8;
+          c.add(string, bl);
+          c.name = 'held';
+          a.hand.add(c);
+          return 'Balonun çok güzel!';
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------- atlıkarınca (orta)
+  {
+    const cx = 0, cz = 4;
+    const base = outline(mesh(new THREE.CylinderGeometry(5, 5.3, 0.6, 28), toon('#fff1c7')), 1.02);
+    put(base, cx, cz, 0, 0.3);
+    const top = new THREE.Group();
+    const roof = outline(mesh(new THREE.ConeGeometry(5.8, 2.4, 20), toon('#e9487d')), 1.03);
+    roof.position.y = 6.2;
+    const rim = mesh(new THREE.CylinderGeometry(5.8, 5.8, 0.7, 20, 1, true), toon('#ffc83d'));
+    rim.position.y = 4.8;
+    const pole = mesh(new THREE.CylinderGeometry(0.5, 0.5, 5, 12), toon('#ffc83d'));
+    pole.position.y = 2.6;
+    const ball = mesh(new THREE.SphereGeometry(0.45, 10, 8), toon('#ffc83d'));
+    ball.position.y = 7.6;
+    top.add(roof, rim, pole, ball);
+    const horses: THREE.Object3D[] = [];
+    const hc = ['#ffffff', '#ffb3c7', '#9be7de', '#ffd166', '#b39ddb', '#ffffff', '#ffb3c7', '#9be7de'];
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const h = new THREE.Group();
+      const rod = mesh(new THREE.CylinderGeometry(0.05, 0.05, 4.4, 5), toon('#e0c070'), false);
+      rod.position.y = 2.4;
+      const body = outline(mesh(new THREE.CapsuleGeometry(0.42, 1.2, 4, 8), toon(hc[i])), 1.06);
+      body.rotation.x = Math.PI / 2;
+      body.position.y = 1.6;
+      const neck = outline(mesh(new THREE.BoxGeometry(0.34, 0.9, 0.4), toon(hc[i])), 1.06);
+      neck.position.set(0, 2.1, 0.8);
+      neck.rotation.x = 0.35;
+      const mane = mesh(new THREE.BoxGeometry(0.12, 0.8, 0.25), toon(PAL[i % PAL.length].getStyle()), false);
+      mane.position.set(0, 2.2, 0.6);
+      mane.rotation.x = 0.35;
+      h.add(rod, body, neck, mane);
+      for (const [lx, lz] of [[-0.25, 0.5], [0.25, 0.5], [-0.25, -0.5], [0.25, -0.5]]) {
+        const leg = mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 5), toon(hc[i]), false);
+        leg.position.set(lx, 1.0, lz);
+        h.add(leg);
+      }
+      h.position.set(Math.cos(a) * 3.6, 0.6, Math.sin(a) * 3.6);
+      // yüzü dönüş yönüne baksın
+      h.rotation.y = Math.PI - a;
+      top.add(h);
+      horses.push(h);
+    }
+    const ring: THREE.Vector3[] = [];
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      ring.push(new THREE.Vector3(Math.cos(a) * 5.85, 4.5, Math.sin(a) * 5.85));
+    }
+    top.add(lights(ring, 0.16));
+    put(top, cx, cz);
+    blk(cx, cz, 5.3);
+    let spin = 0.5;
+    b.tick((dt, t) => {
+      top.rotation.y += dt * spin;
+      horses.forEach((h, i) => (h.position.y = 0.6 + Math.sin(t * 3 + i * 1.3) * 0.35));
+    });
+    const p = new THREE.Vector3();
+    const [sx, sz] = L(cx + 6.6, cz);
+    b.spot({
+      id: 'carousel', x: sx, z: sz, r: 2.6, label: 'Atlıkarıncaya bin',
+      act: {
+        dur: 14, pose: 'sit', cam: [12, 5],
+        start: () => void (spin = 0.9),
+        step(_t, _u, a) {
+          horses[0].getWorldPosition(p);
+          a.pos.set(p.x, p.y + 1.1, p.z);
+          a.heading = top.rotation.y + Math.PI;
+        },
+        end: () => {
+          spin = 0.5;
+          return 'Atlıkarınca çok eğlenceliydi!';
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------- dönme dolap (arka)
+  {
+    const cx = 0, cz = -28, R = 9.5, H = 12.6;
+    const g = new THREE.Group();
+    // iki yanda A ayaklar: üstte birleşir, altta açılır
+    for (const sz of [-1.6, 1.6]) for (const sx of [-1, 1]) {
+      const leg = mesh(new THREE.CylinderGeometry(0.3, 0.38, Math.hypot(H, 4.2), 8), toon('#7c5cff'));
+      leg.position.set(sx * 2.1, H / 2, sz);
+      leg.rotation.z = sx * Math.atan2(4.2, H);
+      g.add(leg);
+    }
+    const axle = mesh(new THREE.CylinderGeometry(0.4, 0.4, 3.6, 10), toon('#ffc83d'));
+    axle.rotation.x = Math.PI / 2;
+    axle.position.y = H;
+    g.add(axle);
+    const wheel = new THREE.Group();
+    for (const sz of [-1, 1]) {
+      const rim = mesh(new THREE.TorusGeometry(R, 0.18, 6, 56), toon('#ff8fb1'));
+      rim.position.z = sz;
+      wheel.add(rim);
+      const inner = mesh(new THREE.TorusGeometry(R * 0.55, 0.12, 6, 40), toon('#ffffff'), false);
+      inner.position.z = sz;
+      wheel.add(inner);
+    }
+    const cabins: THREE.Group[] = [];
+    const N = 12;
+    const rimLights: THREE.Vector3[] = [];
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      for (const sz of [-1, 1]) {
+        const spoke = mesh(new THREE.CylinderGeometry(0.07, 0.07, R, 5), toon('#ffffff'), false);
+        spoke.position.set((Math.cos(a) * R) / 2, (Math.sin(a) * R) / 2, sz);
+        spoke.rotation.z = a - Math.PI / 2;
+        wheel.add(spoke);
+      }
+      for (let k = 0; k < 3; k++) {
+        const b2 = a + (k / 3) * ((Math.PI * 2) / N);
+        rimLights.push(new THREE.Vector3(Math.cos(b2) * R, Math.sin(b2) * R, 1.25));
+      }
+      const cab = new THREE.Group();
+      const col = ['#ffc83d', '#14a89a', '#ff6b4a', '#5b8def', '#e9487d', '#7dd36b'][i % 6];
+      const bucket = outline(mesh(new THREE.CylinderGeometry(0.95, 0.8, 1.1, 12), toon(col)), 1.05);
+      bucket.position.y = -1.6;
+      const roof = mesh(new THREE.ConeGeometry(1.05, 0.6, 12), toon('#ffffff'));
+      roof.position.y = -0.2;
+      const hang = mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.2, 5), toon('#5a4636'), false);
+      hang.position.y = -0.6;
+      cab.add(bucket, roof, hang);
+      cab.position.set(Math.cos(a) * R, Math.sin(a) * R, 0);
+      wheel.add(cab);
+      cabins.push(cab);
+    }
+    wheel.add(lights(rimLights, 0.14));
+    wheel.position.y = H;
+    g.add(wheel);
+    // binme platformu
+    const deck = outline(mesh(new THREE.BoxGeometry(5, 0.4, 4), toon('#ffd166')), 1.02);
+    deck.position.set(0, 0.2, 2.6);
+    g.add(deck);
+    put(g, cx, cz);
+    for (const sx of [-2.1, 2.1]) blk(cx + sx * 1.9, cz, 1.4);
+    const [dx0, dz0] = L(cx, cz + 2.6);
+    b.decks.push({ x: dx0, z: dz0, r: 2, y: hAt(cx, cz + 2.6) + 0.4 });
+    let speed = 0.16;
+    b.tick((dt) => {
+      wheel.rotation.z += dt * speed;
+      for (const c of cabins) c.rotation.z = -wheel.rotation.z;
+    });
+    const p = new THREE.Vector3();
+    let seat = 0;
+    const [sx, sz] = L(cx, cz + 5.2);
+    b.spot({
+      id: 'ferris', x: sx, z: sz, r: 3, label: 'Dönme dolaba bin',
+      act: {
+        dur: 22, pose: 'sit', cam: [26, 10],
+        start: () => {
+          // en alttaki kabine biner
+          let best = Infinity;
+          cabins.forEach((c, i) => {
+            c.getWorldPosition(p);
+            if (p.y < best) [best, seat] = [p.y, i];
+          });
+          speed = 0.32;
+        },
+        step(_t, _u, a) {
+          cabins[seat].getWorldPosition(p);
+          a.pos.set(p.x, p.y - 2.4, p.z);
+          a.heading = yaw;
+        },
+        end: () => {
+          speed = 0.16;
+          return 'Tepeden bütün adayı gördün!';
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------- hız treni (sol)
+  {
+    // [lx, yükseklik, lz]: istasyon → tırmanış → büyük iniş → tepeler → dönüş
+    const plan: [number, number, number][] = [
+      [-12, 1.4, 17], [-12, 1.4, 8], [-12, 5, -2], [-12, 14, -13], [-15, 16, -20], [-23, 13.5, -22],
+      [-30, 3, -15], [-33, 2.4, -4], [-32, 9, 6], [-33, 3.2, 15], [-27, 6, 22], [-19, 2.6, 23], [-14, 1.6, 21],
+    ];
+    const g0 = hAt(-20, 0);
+    const curve = new THREE.CatmullRomCurve3(plan.map(([lx, y, lz]) => V(lx, g0 + y, lz)), true, 'centripetal');
+    const N = 400;
+    const pts = curve.getSpacedPoints(N);
+    const total = curve.getLength();
+    for (const off of [-0.55, 0.55]) {
+      const shifted = new THREE.CatmullRomCurve3(pts.slice(0, N).map((p, i) => {
+        const t = pts[i + 1].clone().sub(p).setY(0).normalize();
+        return p.clone().add(new THREE.Vector3(-t.z, 0, t.x).multiplyScalar(off));
+      }), true);
+      b.scene.add(mesh(new THREE.TubeGeometry(shifted, 500, 0.12, 6, true), toon('#ff6b4a')));
+    }
+    // traversler ve ayaklar
+    const ties = new THREE.InstancedMesh(new THREE.BoxGeometry(1.4, 0.1, 0.25), toon('#8a5a35'), 130);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
+    for (let i = 0; i < 130; i++) {
+      const u = i / 130, p = curve.getPointAt(u), t = curve.getTangentAt(u);
+      q.setFromRotationMatrix(new THREE.Matrix4().lookAt(new THREE.Vector3(), t, new THREE.Vector3(0, 1, 0)));
+      ties.setMatrixAt(i, m4.compose(p.clone().setY(p.y - 0.12), q, one));
+    }
+    b.scene.add(ties);
+    const postGeo = new THREE.CylinderGeometry(0.16, 0.2, 1, 6);
+    const posts: { x: number; y: number; z: number; s: number }[] = [];
+    for (let i = 0; i < 46; i++) {
+      const p = curve.getPointAt(i / 46);
+      const gh = b.h(p.x, p.z);
+      if (p.y - gh < 1.2) continue;
+      posts.push({ x: p.x, y: gh, z: p.z, s: p.y - gh - 0.15 });
+      b.block(p.x, p.z, 0.45);
+    }
+    const pm = new THREE.InstancedMesh(postGeo, toon('#ffc83d'), posts.length);
+    posts.forEach((p, i) => pm.setMatrixAt(i, m4.compose(new THREE.Vector3(p.x, p.y + p.s / 2, p.z), new THREE.Quaternion(), new THREE.Vector3(1, p.s, 1))));
+    b.scene.add(pm);
+    // istasyon
+    const st = new THREE.Group();
+    const floor = outline(mesh(new THREE.BoxGeometry(3, 1, 11), toon('#ffd166')), 1.02);
+    floor.position.y = 0.5;
+    st.add(floor);
+    for (const lz of [-5, 5]) {
+      const pl = mesh(new THREE.CylinderGeometry(0.15, 0.15, 3.4, 6), toon('#ffffff'));
+      pl.position.set(-1.2, 2.7, lz);
+      st.add(pl);
+    }
+    const roof = outline(mesh(new THREE.BoxGeometry(4.6, 0.3, 12), toon('#e9487d')), 1.02);
+    roof.position.set(-2, 4.4, 0);
+    st.add(roof);
+    put(st, -9.6, 12.5);
+    blk(-9.6, 12.5, 1.5);
+    blk(-9.6, 8, 1.5);
+    blk(-9.6, 17, 1.5);
+    b.place(sign('Hız Treni', '#ffe3a3'), ...L(-7.2, 19), yaw);
+    // 3 vagonluk tren
+    const cars: THREE.Group[] = [];
+    const cc = ['#5b8def', '#e9487d', '#ffc83d'];
+    for (let i = 0; i < 3; i++) {
+      const car = new THREE.Group();
+      const body = outline(mesh(new THREE.BoxGeometry(1.5, 0.7, 2), toon(cc[i])), 1.04);
+      body.position.y = 0.45;
+      const back = mesh(new THREE.BoxGeometry(1.5, 0.6, 0.25), toon(cc[i]));
+      back.position.set(0, 1.05, -0.85);
+      const bar = mesh(new THREE.TorusGeometry(0.55, 0.06, 6, 12, Math.PI), toon('#ffffff'), false);
+      bar.position.set(0, 0.85, 0.5);
+      car.add(body, back, bar);
+      if (i === 0) {
+        const nose = mesh(new THREE.SphereGeometry(0.5, 10, 8), toon('#ffffff'));
+        nose.scale.set(1.4, 0.8, 0.8);
+        nose.position.set(0, 0.5, 1.05);
+        car.add(nose);
+      }
+      b.scene.add(car);
+      cars.push(car);
+    }
+    const up = new THREE.Vector3(0, 1, 0);
+    const placeTrain = (s: number) => {
+      for (let i = 0; i < 3; i++) {
+        const u = (((s - i * 2.3) / total) % 1 + 1) % 1;
+        const p = curve.getPointAt(u), t = curve.getTangentAt(u);
+        cars[i].position.copy(p);
+        cars[i].quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(t, new THREE.Vector3(), up));
+      }
+    };
+    // yolculuğu önceden hesapla: istasyondan yavaş çıkış, zincirle tırmanış, sonra yerçekimi
+    const ys = pts.map((p) => p.y);
+    let topI = 0;
+    for (let i = 0; i < N / 2; i++) if (ys[i] > ys[topI]) topI = i;
+    const ds = total / N, times: number[] = [0];
+    let tSum = 0, v = 1.5;
+    for (let i = 1; i <= N; i++) {
+      const y = ys[i % N];
+      if (i <= topI) v = Math.min(5, v + 0.25);
+      else v = Math.max(4, Math.sqrt(Math.max(0, 25 + 2 * 9.8 * (ys[topI] - y))) * 0.92);
+      if (i > N - 30) v = Math.max(2, v * 0.93); // istasyona yaklaşınca fren
+      tSum += ds / v;
+      times.push(tSum);
+    }
+    const sAt = (t: number) => {
+      let lo = 0, hi = N;
+      while (hi - lo > 1) {
+        const m = (lo + hi) >> 1;
+        if (times[m] <= t) lo = m;
+        else hi = m;
+      }
+      return (lo + (t - times[lo]) / Math.max(1e-6, times[hi] - times[lo])) * ds;
+    };
+    const s0 = 4.6; // vagonlar istasyonda
+    let crest = false;
+    placeTrain(s0);
+    const [x, z] = L(-6.8, 12.5);
+    b.spot({
+      id: 'coaster', x, z, r: 3.2, label: 'Hız trenine bin',
+      act: {
+        dur: tSum + 1.5,
+        follow: true,
+        start: () => void (crest = false),
+        cam: [6, 4.4],
+        pose: (u) => (u * (tSum + 1.5) > times[topI] + 0.6 && u < 0.93 ? 'cheer' : 'sit'),
+        step(t, _u, a) {
+          const s = s0 + sAt(Math.max(0, t - 0.6));
+          placeTrain(s);
+          // en arka vagonda oturur: kamera arkadan bütün treni görür
+          cars[2].updateMatrixWorld();
+          const seatP = cars[2].localToWorld(new THREE.Vector3(0, -0.25, -0.2));
+          a.pos.copy(seatP);
+          const tg = curve.getTangentAt((((s - 4.6) / total) % 1 + 1) % 1);
+          a.heading = Math.atan2(tg.x, tg.z);
+          // tepeden inişe geçerken: vuuuş!
+          if (t - 0.6 > times[topI] && !crest) {
+            crest = true;
+            b.sound.whoosh?.();
+            b.sparkles.burst(seatP.clone().setY(seatP.y + 1.5), 14);
+          }
+        },
+        end: () => {
+          placeTrain(s0);
+          return 'Vaaay! Hız treni çok heyecanlıydı!';
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------- dönen salıncak (sağ)
+  {
+    const cx = 22, cz = -8, H = 9, R0 = 3.2, CH = 4;
+    const g = new THREE.Group();
+    const fence = mesh(new THREE.TorusGeometry(7.6, 0.1, 6, 48), toon('#ffffff'), false);
+    fence.rotation.x = Math.PI / 2;
+    fence.position.y = 0.9;
+    g.add(fence);
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      if (Math.abs(a - Math.PI) < 0.3) continue; // giriş aralığı
+      const fp = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.9, 5), toon('#ffffff'), false);
+      fp.position.set(Math.cos(a) * 7.6, 0.45, Math.sin(a) * 7.6);
+      g.add(fp);
+    }
+    const tower = outline(mesh(new THREE.CylinderGeometry(0.6, 0.9, H, 12), toon('#14a89a')), 1.03);
+    tower.position.y = H / 2;
+    g.add(tower);
+    const head = new THREE.Group();
+    head.position.y = H;
+    const disc = outline(mesh(new THREE.CylinderGeometry(R0 + 0.4, R0 + 0.4, 0.6, 24), toon('#ffc83d')), 1.03);
+    const cap = outline(mesh(new THREE.ConeGeometry(R0 + 0.6, 2, 24), toon('#e9487d')), 1.03);
+    cap.position.y = 1.3;
+    head.add(disc, cap);
+    const chains: THREE.Group[] = [];
+    const NS = 10;
+    for (let i = 0; i < NS; i++) {
+      const a = (i / NS) * Math.PI * 2;
+      const arm = new THREE.Group(); // asma noktası
+      arm.position.set(Math.cos(a) * R0, -0.3, Math.sin(a) * R0);
+      arm.rotation.y = -a;
+      const swing = new THREE.Group(); // dışa doğru açılır (z ekseninde)
+      for (const dz of [-0.25, 0.25]) {
+        const ch = mesh(new THREE.CylinderGeometry(0.025, 0.025, CH, 4), toon('#cfd4dc'), false);
+        ch.position.set(0, -CH / 2, dz);
+        swing.add(ch);
+      }
+      const chair = outline(mesh(new THREE.BoxGeometry(0.7, 0.15, 0.8), toon(PAL[i % PAL.length].getStyle())), 1.06);
+      chair.position.y = -CH;
+      const back = mesh(new THREE.BoxGeometry(0.7, 0.6, 0.1), toon(PAL[i % PAL.length].getStyle()), false);
+      back.position.set(-0.3, -CH + 0.3, 0);
+      back.rotation.y = Math.PI / 2;
+      swing.add(chair, back);
+      arm.add(swing);
+      head.add(arm);
+      chains.push(swing);
+    }
+    const hl: THREE.Vector3[] = [];
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * Math.PI * 2;
+      hl.push(new THREE.Vector3(Math.cos(a) * (R0 + 0.45), 0, Math.sin(a) * (R0 + 0.45)));
+    }
+    head.add(lights(hl, 0.15));
+    g.add(head);
+    put(g, cx, cz);
+    blk(cx, cz, 7.4);
+    let w = 0.35, goal = 0.35;
+    b.tick((dt) => {
+      w += (goal - w) * Math.min(1, dt * 0.6);
+      head.rotation.y += dt * w;
+      head.position.y = H + Math.min(1.6, (w - 0.35) * 1.5);
+      // hızlandıkça sandalyeler dışa açılır
+      const ang = Math.min(1.0, Math.atan((w * w * (R0 + 1)) / 9.8) * 2.4);
+      for (const c of chains) c.rotation.z = ang;
+    });
+    const p = new THREE.Vector3(), prev = new THREE.Vector3();
+    const [sx, sz] = L(cx - 8.8, cz);
+    b.spot({
+      id: 'chairswing', x: sx, z: sz, r: 2.6, label: 'Dönen salıncağa bin',
+      act: {
+        dur: 16, pose: 'sit', cam: [20, 9],
+        start: () => {
+          goal = 1.6;
+          chains[0].children[2].getWorldPosition(prev);
+        },
+        step(t, u, a) {
+          if (u > 0.78) goal = 0.35;
+          chains[0].children[2].getWorldPosition(p);
+          a.pos.set(p.x, p.y - 0.75, p.z);
+          // gidiş yönüne bakar
+          if (p.distanceToSquared(prev) > 1e-6) a.heading = Math.atan2(p.x - prev.x, p.z - prev.z);
+          prev.copy(p);
+          if (Math.floor(t * 2) !== Math.floor((t - 0.02) * 2) && w > 1.2) b.sound.whoosh?.();
+        },
+        end: () => {
+          goal = 0.35;
+          return 'Uçar gibi döndün!';
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------- serbest düşüş kulesi (sağ arka)
+  {
+    const cx = 22, cz = -30, H = 26;
+    const g = new THREE.Group();
+    const tower = outline(mesh(new THREE.BoxGeometry(1.4, H, 1.4), toon('#5b8def')), 1.02);
+    tower.position.y = H / 2;
+    const tip = mesh(new THREE.ConeGeometry(1.4, 2.4, 4), toon('#e9487d'));
+    tip.position.y = H + 1.2;
+    tip.rotation.y = Math.PI / 4;
+    g.add(tower, tip);
+    const tl: THREE.Vector3[] = [];
+    for (let i = 0; i < 18; i++) for (const sx of [-0.75, 0.75]) tl.push(new THREE.Vector3(sx, 1 + i * 1.4, 0.75));
+    g.add(lights(tl, 0.13));
+    const ring = new THREE.Group();
+    const collar = outline(mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.7, 20), toon('#ffc83d')), 1.03);
+    ring.add(collar);
+    const seats: THREE.Object3D[] = [];
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const s = new THREE.Group();
+      const seat = mesh(new THREE.BoxGeometry(0.8, 0.15, 0.7), toon('#ff6b4a'));
+      const back = mesh(new THREE.BoxGeometry(0.8, 1, 0.12), toon('#ff6b4a'));
+      back.position.set(0, 0.5, -0.35);
+      s.add(seat, back);
+      s.position.set(Math.cos(a) * 2.5, -0.4, Math.sin(a) * 2.5);
+      s.rotation.y = Math.PI / 2 - a;
+      ring.add(s);
+      seats.push(s);
+    }
+    ring.position.y = 1.2;
+    g.add(ring);
+    put(g, cx, cz);
+    blk(cx, cz, 3.4);
+    b.place(sign('Serbest Düşüş', '#dcecff'), ...L(cx - 5, cz + 4.5), yaw);
+    const [tx, tz] = L(cx, cz);
+    let fell = false, landed = false;
+    const p = new THREE.Vector3();
+    const [sx, sz] = L(cx - 4.4, cz + 1.6);
+    b.spot({
+      id: 'droptower', x: sx, z: sz, r: 2.6, label: 'Serbest düşüşe bin',
+      act: {
+        dur: 13, cam: [22, 6],
+        pose: (u) => (u > 0.6 && u < 0.85 ? 'cheer' : 'sit'),
+        start: () => void (fell = landed = false),
+        step(t, _u, a) {
+          let y = 1.2;
+          if (t < 6.5) y = 1.2 + (H - 3.5) * sm(t / 6.5); // yavaşça çıkar
+          else if (t < 8) y = H - 2.3; // tepede bekler... heyecan!
+          else if (t < 9.3) y = Math.max(2.2, H - 2.3 - 0.5 * 26 * (t - 8) ** 2); // düşüş
+          else y = 1.2 + Math.max(0, 1 - (t - 9.3) / 3) + 0.6 * Math.exp(-(t - 9.3) * 2) * Math.abs(Math.sin((t - 9.3) * 7)); // fren, hafif sekme
+          ring.position.y = y;
+          ring.rotation.y = t * 0.15;
+          seats[0].getWorldPosition(p);
+          a.pos.set(p.x, p.y - 0.8, p.z);
+          a.heading = Math.atan2(p.x - tx, p.z - tz); // dışarı bakar
+          if (t >= 8 && !fell) {
+            fell = true;
+            b.sound.whoosh?.();
+          }
+          if (t >= 9.3 && !landed) {
+            landed = true;
+            b.sparkles.burst(p.clone().setY(p.y + 1), 16);
+          }
+        },
+        end: () => {
+          ring.position.y = 1.2;
+          return 'Aşağı uçar gibi düştün! Cesursun!';
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------- korsan gemisi (sol arka)
+  {
+    const cx = -15, cz = -36;
+    const g = new THREE.Group();
+    // geminin iki yanında A ayaklar (üstte birleşir)
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const leg = mesh(new THREE.CylinderGeometry(0.22, 0.28, 9.6, 8), toon('#8a5a35'));
+      leg.position.set(sx * 1.2, 4.4, sz * 2.5);
+      leg.rotation.z = sx * 0.28;
+      g.add(leg);
+    }
+    const pivot = new THREE.Group();
+    pivot.position.y = 8.8;
+    const axle = mesh(new THREE.CylinderGeometry(0.3, 0.3, 5.4, 8), toon('#ffc83d'));
+    axle.rotation.x = Math.PI / 2;
+    pivot.add(axle);
+    const ship = new THREE.Group();
+    ship.position.y = -6;
+    // yarım silindir gövde: boyu x ekseninde, kavisi altta
+    const hull = outline(mesh(new THREE.CylinderGeometry(1.8, 1.8, 10, 16, 1, false, Math.PI / 2, Math.PI).rotateX(-Math.PI / 2).rotateY(Math.PI / 2), toon('#a8662e')), 1.02);
+    const deck = mesh(new THREE.BoxGeometry(10, 0.2, 3.4), toon('#d9a066'));
+    deck.position.y = 0.05;
+    const stripe = mesh(new THREE.BoxGeometry(10.1, 0.3, 3.7), toon('#ffffff'));
+    stripe.position.y = -0.4;
+    ship.add(hull, deck, stripe);
+    for (const sx of [-1, 1]) {
+      const arm = mesh(new THREE.CylinderGeometry(0.12, 0.12, 6.2, 6), toon('#ffc83d'));
+      arm.position.set(sx * 1.6, 3, 0);
+      arm.rotation.z = sx * 0.26;
+      ship.add(arm);
+    }
+    const mast = mesh(new THREE.CylinderGeometry(0.1, 0.1, 3, 6), toon('#5a4636'));
+    mast.position.set(0, 1.6, 0);
+    const sail = mesh(new THREE.PlaneGeometry(2, 1.6), new THREE.MeshToonMaterial({ color: '#3a2b27', side: THREE.DoubleSide }));
+    sail.position.set(0, 2.4, 0);
+    sail.rotation.y = Math.PI / 2;
+    ship.add(mast, sail);
+    pivot.add(ship);
+    g.add(pivot);
+    put(g, cx, cz);
+    for (const sz of [-2.5, 2.5]) blk(cx, cz + sz, 1.6);
+    for (const dx of [-8.5, -5, 0, 5, 8.5]) blk(cx + dx, cz, 2);
+    let amp = 0.18, ampGoal = 0.18, ph = 0;
+    b.tick((dt) => {
+      amp += (ampGoal - amp) * Math.min(1, dt * 0.35);
+      ph += dt * 1.6;
+      pivot.rotation.z = Math.sin(ph) * amp;
+    });
+    const p = new THREE.Vector3();
+    const [sx, sz] = L(cx, cz + 4.6);
+    b.spot({
+      id: 'pirate', x: sx, z: sz, r: 2.6, label: 'Korsan gemisine bin',
+      act: {
+        dur: 14, cam: [20, 6],
+        pose: (u) => (u > 0.3 && u < 0.8 ? 'cheer' : 'sit'),
+        start: () => void (ampGoal = 1.05),
+        step(_t, u, a) {
+          if (u > 0.72) ampGoal = 0.18;
+          ship.localToWorld(p.set(-4, -0.6, 0));
+          a.pos.copy(p);
+          a.heading = yaw + Math.PI / 2;
+          if (Math.abs(Math.sin(ph)) > 0.97 && amp > 0.6 && Math.random() < 0.08) b.sound.whoosh?.();
+        },
+        end: () => {
+          ampGoal = 0.18;
+          return 'Ahoy korsan! Dalgalarla sallandın!';
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------- çarpışan arabalar (sağ ön)
+  {
+    const cx = 20, cz = 14, W = 15, D = 11;
+    const g = new THREE.Group();
+    const floor = mesh(new THREE.BoxGeometry(W, 0.3, D), toon('#5a6070'));
+    floor.position.y = 0.15;
+    floor.receiveShadow = true;
+    g.add(floor);
+    for (const [w, d, x, z] of [[W, 0.4, 0, -D / 2], [W, 0.4, 0, D / 2], [0.4, D, -W / 2, 0], [0.4, D, W / 2, 0]] as const) {
+      const wall = outline(mesh(new THREE.BoxGeometry(w, 0.7, d), toon('#ffc83d')), 1.02);
+      wall.position.set(x, 0.55, z);
+      g.add(wall);
+    }
+    for (const [x, z] of [[-W / 2, -D / 2], [W / 2, -D / 2], [-W / 2, D / 2], [W / 2, D / 2]]) {
+      const pole = mesh(new THREE.CylinderGeometry(0.15, 0.15, 4.6, 8), toon('#e9487d'));
+      pole.position.set(x, 2.3, z);
+      g.add(pole);
+    }
+    // açık çatı: yalnızca kenar kirişleri (arabalar yukarıdan görünür)
+    for (const [w, d, x, z] of [[W + 0.6, 0.4, 0, -D / 2], [W + 0.6, 0.4, 0, D / 2], [0.4, D, -W / 2, 0], [0.4, D, W / 2, 0]] as const) {
+      const beam = outline(mesh(new THREE.BoxGeometry(w, 0.35, d), toon('#ff8fb1')), 1.03);
+      beam.position.set(x, 4.7, z);
+      g.add(beam);
+    }
+    const rl: THREE.Vector3[] = [];
+    for (let i = 0; i <= 12; i++) for (const z of [-D / 2 - 0.3, D / 2 + 0.3]) rl.push(new THREE.Vector3(-W / 2 + (i / 12) * W, 4.5, z));
+    g.add(lights(rl, 0.14));
+    const bcars: { o: THREE.Group; x: number; z: number; h: number; v: number }[] = [];
+    const bc = ['#ff6b4a', '#5b8def', '#69db7c', '#c38bff', '#ffd43b'];
+    for (let i = 0; i < 5; i++) {
+      const o = new THREE.Group();
+      const body = outline(mesh(new THREE.CylinderGeometry(0.9, 1, 0.6, 14), toon(bc[i])), 1.05);
+      body.position.y = 0.6;
+      body.scale.z = 1.3;
+      const bump = mesh(new THREE.TorusGeometry(1.05, 0.14, 6, 18), toon('#3a2b27'), false);
+      bump.rotation.x = Math.PI / 2;
+      bump.scale.y = 1.3;
+      bump.position.y = 0.4;
+      const rod = mesh(new THREE.CylinderGeometry(0.04, 0.04, 3.6, 4), toon('#cfd4dc'), false);
+      rod.position.set(0, 2.6, -0.8);
+      o.add(body, bump, rod);
+      o.position.set(-4 + i * 2, 0.2, (i % 2 ? 2 : -2));
+      g.add(o);
+      bcars.push({ o, x: o.position.x, z: o.position.z, h: Math.random() * 6, v: 2.2 });
+    }
+    put(g, cx, cz);
+    for (const [x, z] of [[-W / 2, -D / 2], [W / 2, -D / 2], [-W / 2, D / 2], [W / 2, D / 2]]) blk(cx + x, cz + z, 0.4);
+    blk(cx, cz, 6);
+    let riding = false;
+    const me = bcars[0];
+    b.tick((dt) => {
+      for (const c of bcars) {
+        if (c === me && riding) continue;
+        c.h += (Math.random() - 0.5) * dt * 2;
+        c.x += Math.sin(c.h) * c.v * dt;
+        c.z += Math.cos(c.h) * c.v * dt;
+      }
+      // duvardan ve birbirinden sek
+      for (const c of bcars) {
+        if (Math.abs(c.x) > W / 2 - 1.3) {
+          c.x = Math.sign(c.x) * (W / 2 - 1.3);
+          c.h = -c.h;
+        }
+        if (Math.abs(c.z) > D / 2 - 1.3) {
+          c.z = Math.sign(c.z) * (D / 2 - 1.3);
+          c.h = Math.PI - c.h;
+        }
+      }
+      for (let i = 0; i < bcars.length; i++) for (let j = i + 1; j < bcars.length; j++) {
+        const A = bcars[i], B = bcars[j];
+        const dx = B.x - A.x, dz = B.z - A.z, d = Math.hypot(dx, dz);
+        if (d < 2.1 && d > 0.01) {
+          const push = (2.1 - d) / 2;
+          A.x -= (dx / d) * push;
+          A.z -= (dz / d) * push;
+          B.x += (dx / d) * push;
+          B.z += (dz / d) * push;
+          A.h = Math.atan2(-dx, -dz);
+          B.h = Math.atan2(dx, dz);
+          if (riding && (A === me || B === me)) b.sound.kick();
+        }
+      }
+      for (const c of bcars) {
+        c.o.position.set(c.x, 0.2, c.z);
+        c.o.rotation.y = c.h;
+      }
+    });
+    const p = new THREE.Vector3();
+    const [sx, sz] = L(cx - W / 2 - 1.8, cz);
+    b.spot({
+      id: 'bumper', x: sx, z: sz, r: 2.6, label: 'Çarpışan arabaya bin',
+      act: {
+        dur: 14, pose: 'drive', cam: [16, 10],
+        start: () => {
+          riding = true;
+          me.v = 3.6;
+        },
+        step(t, _u, a, dt) {
+          // kendi kendine dolaşır ama sık sık başka arabalara doğru döner: bol çarpışma!
+          const other = bcars[1 + (Math.floor(t / 2.5) % 4)];
+          const want = Math.atan2(other.x - me.x, other.z - me.z);
+          me.h += Math.atan2(Math.sin(want - me.h), Math.cos(want - me.h)) * Math.min(1, dt * 2.5);
+          me.x += Math.sin(me.h) * me.v * dt;
+          me.z += Math.cos(me.h) * me.v * dt;
+          me.o.getWorldPosition(p);
+          a.pos.set(p.x, p.y - 0.1, p.z);
+          a.heading = me.h + yaw;
+        },
+        end: () => {
+          riding = false;
+          me.v = 2.2;
+          return 'Bam! Güm! Çok eğlenceli çarpıştın!';
+        },
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------- trambolin
+  {
+    const [x, z] = L(11, -18);
     const ring = outline(mesh(new THREE.TorusGeometry(2.4, 0.22, 8, 32), toon('#5b8def')), 1.04);
     ring.rotation.x = Math.PI / 2;
     b.place(ring, x, z, 0, 0.9);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const leg = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.9, 5), toon('#5b8def'), false);
+      b.place(leg, x + Math.cos(a) * 2.4, z + Math.sin(a) * 2.4, 0, 0.45);
+    }
     const mat = mesh(new THREE.CircleGeometry(2.3, 32), toon('#3a2b27'), false);
     mat.rotation.x = -Math.PI / 2;
     b.place(mat, x, z, 0, 0.85);
     b.block(x, z, 2.5);
     const g0 = b.h(x, z);
+    const [sx, sz] = L(11, -14.4);
     b.spot({
-      id: 'trampoline', x, z: z + 3.6, r: 2.2, label: 'Tramboline zıpla',
+      id: 'trampoline', x: sx, z: sz, r: 2.2, label: 'Tramboline zıpla',
       act: {
         dur: 6, pose: 'jump', cam: [16, 8],
         step(t, _u, a) {
@@ -662,144 +1453,134 @@ function buildFun(b: WorldBuilder) {
       },
     });
   }
-  // hız treni
+
+  // ---------------------------------------------------------------------------------------------- oyun parkı: kaydırak ve salıncak (sağ ön)
   {
-    const pts: THREE.Vector3[] = [];
-    const n = 16;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      const r = 26 + 8 * Math.sin(a * 3);
-      const y = 3 + 6 * (Math.sin(a * 2) + 1) + (i === 4 ? 6 : 0);
-      pts.push(new THREE.Vector3(F.x + Math.cos(a) * r, b.h(F.x, F.z) + y, F.z + Math.sin(a) * r * 0.8));
-    }
-    const curve = new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.5);
-    for (const off of [-0.45, 0.45]) {
-      const shifted = new THREE.CatmullRomCurve3(curve.getSpacedPoints(160).map((p, i, arr) => {
-        const t = arr[(i + 1) % arr.length].clone().sub(p).normalize();
-        return p.clone().add(new THREE.Vector3(-t.z, 0, t.x).multiplyScalar(off));
-      }), true);
-      const rail = mesh(new THREE.TubeGeometry(shifted, 320, 0.1, 6, true), toon('#ff6b4a'));
-      b.scene.add(rail);
-    }
-    curve.getSpacedPoints(40).forEach((p) => {
-      const gh = b.h(p.x, p.z);
-      const post = mesh(new THREE.CylinderGeometry(0.12, 0.12, p.y - gh, 6), toon('#ffc83d'));
-      post.position.set(p.x, gh + (p.y - gh) / 2, p.z);
-      b.scene.add(post);
-      b.block(p.x, p.z, 0.4);
-    });
-    const cart = new THREE.Group();
-    const cb = outline(mesh(new THREE.BoxGeometry(1.4, 0.8, 2), toon('#5b8def')), 1.04);
-    cb.position.y = 0.5;
-    cart.add(cb);
-    b.scene.add(cart);
-    const placeCart = (u: number) => {
-      const p = curve.getPointAt(u), t = curve.getTangentAt(u);
-      cart.position.copy(p);
-      cart.lookAt(p.clone().add(t));
-      return { p, t };
-    };
-    placeCart(0);
-    const s0 = curve.getPointAt(0);
-    b.spot({
-      id: 'coaster', x: s0.x - 3, z: s0.z, r: 3, label: 'Hız trenine bin',
-      act: {
-        dur: 18, pose: (u) => (u > 0.1 && u < 0.9 ? 'cheer' : 'sit'), cam: [12, 5],
-        step(_t, u, a) {
-          const { p, t } = placeCart(sm(u));
-          a.pos.set(p.x, p.y + 0.6, p.z);
-          a.heading = Math.atan2(t.x, t.z);
-        },
-        end: () => { placeCart(0); return 'Vay! Çok hızlıydı!'; },
-      },
-    });
-  }
-  // oyun parkı: kaydırak ve salıncak
-  {
-    const px = F.x - 4, pz = F.z - 26;
+    const px = 22, pz = 30;
+    const sand = mesh(new THREE.CircleGeometry(7.5, 28).rotateX(-Math.PI / 2), toon('#f3dca0'), false);
+    put(sand, px, pz, 0, 0.05);
+    // kaydırak: merdiven arkada, oluk önde (yerel +z)
     const slide = new THREE.Group();
-    const tower = outline(mesh(new THREE.BoxGeometry(1.6, 0.2, 1.6), toon('#ff6b4a')), 1.04);
+    const tower = outline(mesh(new THREE.BoxGeometry(1.8, 0.25, 1.8), toon('#ff6b4a')), 1.04);
     tower.position.y = 3;
     slide.add(tower);
-    for (const [lx, lz] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]]) {
-      const leg = mesh(new THREE.CylinderGeometry(0.08, 0.08, 3, 6), toon('#5b8def'));
-      leg.position.set(lx, 1.5, lz);
+    for (const [lx, lz] of [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]]) {
+      const leg = mesh(new THREE.CylinderGeometry(0.09, 0.09, 4.2, 6), toon('#5b8def'));
+      leg.position.set(lx, 2.1, lz);
       slide.add(leg);
     }
-    const ramp = outline(mesh(new THREE.BoxGeometry(1.2, 0.15, 5), toon('#ffc83d')), 1.03);
-    ramp.position.set(0, 1.6, 3);
-    ramp.rotation.x = 0.62;
-    slide.add(ramp);
-    b.place(slide, px, pz);
-    b.block(px, pz, 1.4);
-    const g0 = b.h(px, pz);
+    const roofS = outline(mesh(new THREE.ConeGeometry(1.5, 1, 4), toon('#ffc83d')), 1.04);
+    roofS.position.y = 4.7;
+    roofS.rotation.y = Math.PI / 4;
+    slide.add(roofS);
+    for (let i = 0; i < 5; i++) {
+      const rung = mesh(new THREE.BoxGeometry(1.2, 0.1, 0.12), toon('#5b8def'), false);
+      rung.position.set(0, 0.5 + i * 0.6, -1.4 - (4 - i) * 0.12);
+      slide.add(rung);
+    }
+    const chute = outline(mesh(new THREE.BoxGeometry(1.2, 0.15, 5.4), toon('#ffc83d')), 1.03);
+    chute.position.set(0, 1.55, 3.1);
+    chute.rotation.x = Math.atan2(2.9, 4.6);
+    slide.add(chute);
+    for (const sx of [-0.6, 0.6]) {
+      const side = mesh(new THREE.BoxGeometry(0.1, 0.35, 5.4), toon('#ffc83d'), false);
+      side.position.set(sx, 1.75, 3.1);
+      side.rotation.x = chute.rotation.x;
+      slide.add(side);
+    }
+    put(slide, px - 3.5, pz - 1);
+    blk(px - 3.5, pz - 1, 1.5);
+    const g0 = hAt(px - 3.5, pz - 1);
+    const local = (lx: number, y: number, lz: number) => {
+      const v = new THREE.Vector3(lx, y, lz).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      const [x0, z0] = L(px - 3.5, pz - 1);
+      return v.add(new THREE.Vector3(x0, g0, z0));
+    };
+    const [sx, sz] = L(px - 3.5, pz - 3.4);
     b.spot({
-      id: 'slide', x: px, z: pz - 2.4, r: 2.4, label: 'Kaydıraktan kay',
+      id: 'slide', x: sx, z: sz, r: 2.2, label: 'Kaydıraktan kay',
       act: {
-        dur: 2.6, pose: (u) => (u < 0.4 ? 'climb' : 'cheer'),
+        dur: 3.2, pose: (u) => (u < 0.45 ? 'climb' : 'cheer'),
         step(_t, u, a) {
-          const top = new THREE.Vector3(px, g0 + 3.1, pz + 0.6), bottom = new THREE.Vector3(px, g0, pz + 5.4);
-          if (u < 0.4) a.pos.lerpVectors(new THREE.Vector3(px, g0, pz - 1.4), top, u / 0.4);
-          else a.pos.lerpVectors(top, bottom, ((u - 0.4) / 0.6) ** 2);
-          a.heading = 0;
+          const foot = local(0, 0, -1.8), top = local(0, 3.15, 0.2), bottom = local(0, 0.2, 5.8);
+          if (u < 0.45) a.pos.lerpVectors(foot, top, u / 0.45);
+          else a.pos.lerpVectors(top, bottom, ((u - 0.45) / 0.55) ** 1.6);
+          a.heading = yaw;
         },
       },
     });
-    const sx = px + 8;
+    // salıncak: A şeklinde ayaklar (üstte birleşir), iki oturak
     const frame = new THREE.Group();
-    for (const fx of [-1.6, 1.6]) for (const fz of [-0.5, 0.5]) {
-      const leg = mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.6, 6), toon('#e9487d'));
-      leg.position.set(fx, 1.7, fz);
-      leg.rotation.x = fz * 0.5;
+    const FH = 3.6;
+    for (const fx of [-2.2, 2.2]) for (const s of [-1, 1]) {
+      const leg = mesh(new THREE.CylinderGeometry(0.09, 0.09, Math.hypot(FH, 1), 6), toon('#e9487d'));
+      leg.position.set(fx, FH / 2, s * 0.5);
+      leg.rotation.x = -s * Math.atan2(1, FH);
       frame.add(leg);
     }
-    const bar = mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.4, 6), toon('#e9487d'));
+    const bar = mesh(new THREE.CylinderGeometry(0.11, 0.11, 4.6, 8), toon('#e9487d'));
     bar.rotation.z = Math.PI / 2;
-    bar.position.y = 3.4;
+    bar.position.y = FH;
     frame.add(bar);
-    const seat = new THREE.Group();
-    const sb = mesh(new THREE.BoxGeometry(1, 0.12, 0.6), toon('#14a89a'));
-    sb.position.y = -2.4;
-    seat.add(sb);
-    for (const rx of [-0.45, 0.45]) {
-      const rope = mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.4, 4), toon('#5a4636'), false);
-      rope.position.set(rx, -1.2, 0);
-      seat.add(rope);
+    const seats: THREE.Group[] = [];
+    for (const sxp of [-1, 1]) {
+      const seat = new THREE.Group();
+      const sb = outline(mesh(new THREE.BoxGeometry(0.9, 0.12, 0.55), toon(sxp < 0 ? '#14a89a' : '#ffc83d')), 1.05);
+      sb.position.y = -2.6;
+      seat.add(sb);
+      for (const rx of [-0.4, 0.4]) {
+        const rope = mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.6, 4), toon('#5a4636'), false);
+        rope.position.set(rx, -1.3, 0);
+        seat.add(rope);
+      }
+      seat.position.set(sxp * 1.1, FH, 0);
+      frame.add(seat);
+      seats.push(seat);
     }
-    seat.position.y = 3.4;
-    frame.add(seat);
-    b.place(frame, sx, pz);
-    b.block(sx, pz, 1.3);
+    const fxw = px + 4, fzw = pz + 1;
+    put(frame, fxw, fzw);
+    blk(fxw - 2.2, fzw, 0.8);
+    blk(fxw + 2.2, fzw, 0.8);
+    const gs = hAt(fxw, fzw);
+    let idle = 0;
+    b.tick((dt) => {
+      idle += dt;
+      seats[1].rotation.x = Math.sin(idle * 1.4) * 0.12;
+    });
+    const p = new THREE.Vector3();
+    const [wx, wz] = L(fxw - 1.1, fzw + 2.4);
     b.spot({
-      id: 'swing', x: sx, z: pz + 2.6, r: 2.4, label: 'Salıncakta sallan',
+      id: 'swing', x: wx, z: wz, r: 2.2, label: 'Salıncakta sallan',
       act: {
-        dur: 6, pose: 'sit',
+        dur: 7, pose: 'sit',
         step(t, _u, a) {
-          const ang = Math.sin(t * 2.6) * 0.75 * Math.min(1, t) * Math.min(1, (6 - t) * 1.5);
-          seat.rotation.x = ang;
-          a.pos.set(sx, g0 + 3.4 - Math.cos(ang) * 2.4 - 1.0, pz + Math.sin(ang) * 2.4);
-          a.heading = 0;
+          const ang = Math.sin(t * 2.4) * 0.8 * Math.min(1, t / 1.5) * Math.min(1, (7 - t) * 1.2);
+          seats[0].rotation.x = ang;
+          seats[0].children[0].getWorldPosition(p);
+          a.pos.set(p.x, Math.max(gs, p.y - 0.8), p.z);
+          a.heading = yaw;
         },
-        end: () => void (seat.rotation.x = 0),
+        end: () => void (seats[0].rotation.x = 0),
       },
     });
   }
-  // dans pisti
+
+  // ---------------------------------------------------------------------------------------------- dans pisti (orta arka)
   {
-    const x = F.x + 2, z = F.z + 26;
-    const base = outline(mesh(new THREE.CylinderGeometry(5, 5.2, 0.5, 8), toon('#3a2b27')), 1.01);
+    const [x, z] = L(0, -14);
+    const base = outline(mesh(new THREE.CylinderGeometry(4.6, 4.8, 0.5, 8), toon('#3a2b27')), 1.01);
     b.place(base, x, z, 0, 0.25);
     const tiles: THREE.Mesh[] = [];
     const colors = ['#ff6b8a', '#ffc83d', '#14a89a', '#7c5cff', '#5b8def', '#ff8a65'];
     for (let ix = -2; ix <= 2; ix++) for (let iz = -2; iz <= 2; iz++) {
-      if (Math.hypot(ix, iz) > 2.5) continue;
-      const t = mesh(new THREE.BoxGeometry(1.5, 0.12, 1.5), new THREE.MeshToonMaterial({ color: colors[(ix + iz + 10) % colors.length], emissive: new THREE.Color('#000000') }), false);
-      b.place(t, x + ix * 1.6, z + iz * 1.6, 0, 0.55);
+      if (Math.hypot(ix, iz) > 2.3) continue;
+      const t = mesh(new THREE.BoxGeometry(1.45, 0.12, 1.45), new THREE.MeshToonMaterial({ color: colors[(ix + iz + 10) % colors.length], emissive: new THREE.Color('#000000') }), false);
+      b.place(t, x + ix * 1.55, z + iz * 1.55, 0, 0.55);
       tiles.push(t);
     }
-    b.decks.push({ x, z, r: 5, y: b.h(x, z) + 0.6 });
+    b.decks.push({ x, z, r: 4.6, y: b.h(x, z) + 0.6 });
     b.spot({
-      id: 'dance', x, z, r: 4.4, label: 'Dans et',
+      id: 'dance', x, z, r: 4.2, label: 'Dans et',
       act: {
         dur: 7, pose: 'dance',
         step(t, _u, a) {
@@ -816,6 +1597,8 @@ function buildFun(b: WorldBuilder) {
       },
     });
   }
+
+  b.scene.add(lights(fixed, 0.18));
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -1805,7 +2588,7 @@ export function starPlaces(seed: number, count = 30): { id: string; x: number; z
   const out: { id: string; x: number; z: number }[] = [];
   let i = 0;
   while (out.length < count && i++ < 2000) {
-    const a = rnd() * Math.PI * 2, r = 10 + Math.sqrt(rnd()) * 240;
+    const a = rnd() * Math.PI * 2, r = 10 + Math.sqrt(rnd()) * 300;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (isWater(x, z) || heightAt(x, z) < 0.6) continue;
     out.push({ id: `s${out.length}`, x, z });

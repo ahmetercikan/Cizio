@@ -78,7 +78,7 @@ export interface IslandEvents {
   onRealmFinish?: (id: RealmId, bonus: number, text: string) => void;
   /** Kahraman inşa alanında mı (İnşa düğmesi için). */
   onBuildArea?: (inside: boolean) => void;
-  sound: { star: (i: number) => void; pop: () => void; note: (i: number) => void; kick: () => void };
+  sound: { star: (i: number) => void; pop: () => void; note: (i: number) => void; kick: () => void; whoosh?: () => void };
 }
 
 export interface IslandOptions {
@@ -139,6 +139,8 @@ export class Island {
   private swimming = false;
   private swimTime = 0;
   private near: SpotDef | null = null;
+  /** Araçtan inince kısa süre yakındaki düğme çıkmaz (aynı yere dokunup yeniden binmesin). */
+  private nearQuietUntil = 0;
   private nearLabel = '';
   private emoteUntil = 0;
   private emoteKind: 'wave' | 'dance' | 'clap' | null = null;
@@ -225,7 +227,7 @@ export class Island {
         if (msg) this.ev.onMessage(msg);
         this.ev.onDone(quest);
       },
-      { note: (i) => this.ev.sound.note(i), kick: () => this.ev.sound.kick(), pop: () => this.ev.sound.pop(), star: (i) => this.ev.sound.star(i) });
+      { note: (i) => this.ev.sound.note(i), kick: () => this.ev.sound.kick(), pop: () => this.ev.sound.pop(), star: (i) => this.ev.sound.star(i), whoosh: () => this.ev.sound.whoosh?.() });
     buildZones(this.wb, o.taken);
     mark('bölgeler');
     buildMarket(this.wb);
@@ -391,7 +393,6 @@ export class Island {
     this.jumpBuf = 0;
     this.squash = -0.12;
     this.emoteKind = null;
-    this.ev.sound.pop();
   }
   /** Sürükleme: yatay sağa sola, dikey yukarı aşağı bakış. */
   rotateCamera(dx: number, dy = 0) {
@@ -452,8 +453,10 @@ export class Island {
   dismount() {
     if (!this.drive) return;
     const v = this.drive;
+    // aracın bin düğmesinin alanının dışına in
+    const spotR = this.spots.find((s) => s.vehicle === v)?.r ?? 0;
     let best: [number, number] | null = null;
-    for (let r = 2; r <= 12 && !best; r += 2) for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+    for (let r = Math.max(2, Math.ceil(spotR + 1)); r <= 16 && !best; r += 2) for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
       const x = v.pos.x + Math.cos(a) * r, z = v.pos.z + Math.sin(a) * r;
       if (this.wb.ground(x, z) > 0.1) {
         best = [x, z];
@@ -471,6 +474,8 @@ export class Island {
     this.hero.vy = 0;
     this.hero.grounded = true;
     this.drive = null;
+    this.nearQuietUntil = this.clock + 1.2;
+    this.setNear(null);
     this.ev.onDrive(false);
   }
 
@@ -902,7 +907,7 @@ export class Island {
     this.stepMusic();
     // en yakın mekân (kendi yarıçapı içinde)
     let near: SpotDef | null = null, best = Infinity, label = '';
-    for (const s of this.spots) {
+    if (this.clock > this.nearQuietUntil) for (const s of this.spots) {
       const x = s.vehicle ? s.vehicle.pos.x : s.x, z = s.vehicle ? s.vehicle.pos.z : s.z;
       const d = Math.hypot(x - this.pos.x, z - this.pos.z) / s.r;
       if (d >= 1 || d >= best) continue;
@@ -1109,7 +1114,8 @@ export class Island {
       this.pet.position.set(this.petPos.x, pg + (moving ? Math.abs(Math.sin(this.petHop)) * 0.3 : 0), this.petPos.z);
       this.pet.rotation.y = Math.atan2(this.camera.position.x - this.petPos.x, this.camera.position.z - this.petPos.z);
     }
-    // kamera
+    // kamera (hız treninde kahramanın arkasından izler)
+    if (this.act?.def.follow) this.camYawGoal = this.heading + Math.PI;
     this.camYaw += angDiff(this.camYawGoal, this.camYaw) * Math.min(1, dt * 6);
     const [d0, h0] = this.act?.def.cam ?? (this.realm ? this.realm.cam : this.building ? [17, 13] : this.drive ? [16, 8] : [13, 7.5]);
     // yukarı / aşağı bakış: kamera kahramanın çevresinde yükselir ya da alçalır

@@ -2,7 +2,7 @@
  * Çizio Adası (/ada): 3B oyun dünyası (src/world/island.ts). Şimdilik herkese açık (PLUS_ENABLED = false);
  * ücretli olursa abonelik yoksa tanıtım ve satın alma (ebeveyn kilidi arkasında) gösterilir.
  */
-import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Loader2, MessageCircle, RotateCcw, Shirt, Sparkles, Sprout, Star, Store, X, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Loader2, MessageCircle, RotateCcw, Shirt, Sprout, Star, Store, X, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { create } from 'zustand';
@@ -282,7 +282,7 @@ function IslandPlay() {
           },
           onRealmProgress: setRealmProg,
           onRealmFinish: (id, bonus, text) => finishRef.current(id, bonus, text),
-          sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick() },
+          sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick(), whoosh: () => sfx.whoosh() },
         });
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
         setReady(true);
@@ -621,7 +621,7 @@ function IslandPlay() {
     id === 'gallery' ? <Images size={22} /> : id === 'home' ? <Shirt size={22} /> : id === 'cizio' ? <MessageCircle size={22} />
       : id === 'market' ? <Store size={22} /> : id === 'boutique' ? <Shirt size={22} /> : id === 'games' ? <PartyPopper size={22} /> : id === 'orders' ? <ClipboardList size={22} /> : id === 'kitchen' ? <ChefHat size={22} />
         : id === 'journal' ? <BookOpen size={22} /> : id === 'build' ? <Hammer size={22} /> : id.startsWith('field:') ? <Sprout size={22} />
-          : id.startsWith('pen:') ? <Egg size={22} /> : id.startsWith('portal:') ? <DoorOpen size={22} /> : <Sparkles size={22} />;
+          : id.startsWith('pen:') ? <Egg size={22} /> : id.startsWith('portal:') ? <DoorOpen size={22} /> : null;
 
   return (
     <div className={`island ${building ? 'island--building' : ''}`}>
@@ -674,7 +674,7 @@ function IslandPlay() {
             <div className="island__emotes">
               <button className="game__btn" aria-label="El salla" onClick={() => world.current?.emote('wave')}><GameIcon name="el" size={34} /></button>
               <button className="game__btn" aria-label="Dans et" onClick={() => world.current?.emote('dance')}><GameIcon name="nota" size={34} /></button>
-              <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><GameIcon name="parilti" size={34} /></button>
+              <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><GameIcon name="alkis" size={34} /></button>
             </div>
           )}
           {driving && (

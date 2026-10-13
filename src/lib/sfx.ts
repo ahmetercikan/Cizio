@@ -183,6 +183,11 @@ export const sfx = {
     const semis = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16][i % 10];
     fm(523.25 * 2 ** (semis / 12), 0, 0.6, 0.16, 4, 1.6, 0.6);
   },
+  /** Lunapark: rüzgâr "vuuuş"u (hız treni inişi, serbest düşüş). */
+  whoosh: () => {
+    noise(0, 1.1, 0.16, 300, 2400, 1.1, 0.3);
+    noise(0.15, 0.9, 0.08, 900, 3600, 2, 0.3);
+  },
   /** Topa vuruş: kısa, tok bir tık. */
   kick: () => fm(140, 0, 0.12, 0.2, 1.5, 3, 0.2),
   success: () => [1046.5, 1318.5, 1568, 2093].forEach((f, i) => fm(f, i * 0.08, 0.7, 0.12, 3.5, 2, 1)),

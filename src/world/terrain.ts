@@ -59,7 +59,7 @@ const COL = {
 
 /** Ana kara ağı: yükseklik ve renk köşe başına. */
 export function buildTerrain(scene: THREE.Scene) {
-  const size = (LAND_R + 40) * 2, seg = 170;
+  const size = (LAND_R + 40) * 2, seg = 200;
   const geo = new THREE.PlaneGeometry(size, size, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -131,7 +131,7 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
     trees.push({ x, z, s: 0.9 + rnd() * 0.9, kind });
     grid.add({ x, z, r: 0.9 });
   };
-  for (let i = 0; i < 2600 && trees.length < 620; i++) {
+  for (let i = 0; i < 4000 && trees.length < 940; i++) {
     const a = rnd() * Math.PI * 2, r = 20 + Math.sqrt(rnd()) * (LAND_R - 30);
     tryTree(Math.cos(a) * r, Math.sin(a) * r);
   }
@@ -181,7 +181,7 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
   const cols = ['#ff6b8a', '#ffc83d', '#ffffff', '#b98cff', '#ff8a65'];
   for (const col of cols) {
     const list: { x: number; y: number; z: number; s: number }[] = [];
-    for (let i = 0; i < 420; i++) {
+    for (let i = 0; i < 640; i++) {
       const a = rnd() * Math.PI * 2, r = 8 + Math.sqrt(rnd()) * (LAND_R - 20);
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
       const h = heightAt(x, z);
@@ -193,7 +193,7 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
   }
   // kayalar
   const rocks: { x: number; y: number; z: number; s: number; sy: number }[] = [];
-  for (let i = 0; i < 400 && rocks.length < 110; i++) {
+  for (let i = 0; i < 620 && rocks.length < 170; i++) {
     const a = rnd() * Math.PI * 2, r = 30 + rnd() * (LAND_R - 25);
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (!okSpot(x, z, 1)) continue;

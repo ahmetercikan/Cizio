@@ -22,7 +22,7 @@ describe('Çizio Adası haritası', () => {
     for (let a = 0; a < Math.PI * 2; a += 0.3) expect(Math.abs(coastAt(a) - LAND_R)).toBeLessThan(20);
   });
 
-  it('eski adanın yaklaşık 20 katı alan', () => {
-    expect((LAND_R / 60) ** 2).toBeGreaterThan(17);
+  it('eski adanın yaklaşık 30 katı alan', () => {
+    expect((LAND_R / 60) ** 2).toBeGreaterThan(28);
   });
 });

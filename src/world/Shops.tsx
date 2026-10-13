@@ -2,7 +2,7 @@
  * Kasabadaki Butik (nadir kıyafetler ada altınıyla) ve Oyun Çadırı (mini oyunlar: hafıza kartları, balon patlatma).
  * Mini oyunu bitiren altın kazanır; günde 3 kez de evine bir eşya ya da üstüne bir kıyafet (economy.ts miniReward).
  */
-import { PartyPopper, Shirt, Sparkles, Trophy, X } from 'lucide-react';
+import { PartyPopper, Shirt, Trophy, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Modal } from '../components/ui';
 import { RARE, rareKey, type RareItem } from '../lib/rewards';
@@ -105,7 +105,7 @@ export function MemoryGame({ onWin, onClose }: { onWin: () => void; onClose: () 
     }
   };
   return (
-    <Panel title="Hafıza kartları" icon={<Sparkles size={24} style={{ verticalAlign: '-4px' }} />} onClose={onClose}>
+    <Panel title="Hafıza kartları" icon={<GameIcon name="kartlar" size={26} />} onClose={onClose}>
       <p className="sub" style={{ marginTop: 0 }}>{won ? 'Hepsini buldun!' : `Aynı iki resmi bul. Hamle: ${moves}`}</p>
       <div className="mini-memory">
         {cards.map((c, k) => {

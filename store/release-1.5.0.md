@@ -112,6 +112,14 @@ Yenilikler:
   (ürünler, hayvanlar, yapılar, arabalar, eşyalar, kıyafetler, oyun düğmeleri, 3B baloncuklar).
 - **Düzeltmeler:** uzaktaki dolaşan hayvanlar (T-Rex, Triceratops…) artık kasaba meydanında üst üste durmuyor; futbol
   sahasının zemini düz, kaleler yerinde, sahada kaya yok; kuğu tekne iskelenin ucunda derin suda, kolayca binilir.
+- **Yeni lunapark:** ışıklı giriş kapısı ve bayraklı yol, pamuk şeker ve balon standı; binilebilen hız treni (zincirle
+  tırmanış, büyük iniş, kamera arkadan izler), 12 kabinli dönme dolap, dönen salıncak, serbest düşüş kulesi, korsan
+  gemisi, çarpışan arabalar, atlıkarınca, trambolin, dans pisti ve oyun parkı (düzgün salıncak ve kaydırak). Hepsi ayrı
+  yerde, hiçbiri iç içe değil; ampuller yanıp söner.
+- **Daha büyük ada:** kara ~1,25 kat genişledi (alan ~1,6 kat); bölgeler arası daha çok yer, daha çok ağaç ve çiçek.
+  Kasaba, Çiftliğim, Pazar ve Macera Kapıları yerinde kaldı (yapılanlar bozulmaz).
+- **Araçtan inme:** kuğu/jet skiden inince karakter binme alanının dışına iner, aynı düğmeye dokunup yeniden binmez.
+- Zıplama sesi kaldırıldı; eylem düğmelerindeki parıltı simgesi kaldırıldı, alkış düğmesi el simgesi oldu.
 - **Dokunma:** boş yere dokununca zıplar; bir eşyaya dokununca o iş yapılır (uzaksa yanına yürür).
 - **Adada birlikte oynama:** Çevrimiçi açıksa çocuk, onaylı arkadaşlarının adasına gidebilir ("Yanına git"); bir adada
   sahibi ve en çok 10 arkadaşı. Arkadaşlar birbirinin karakterini, adını, yürüyüşünü ve el sallamasını görür; yazışma yok.
