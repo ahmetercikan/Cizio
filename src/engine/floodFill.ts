@@ -1,9 +1,14 @@
 /**
  * Boya kovası: çizgi katmanındaki kapalı alanı bulur.
  *
- * Çocuk çizimlerinde çizgiler çoğu zaman tam kapanmaz. Bu yüzden sınır maskesi önce `gap` piksel
- * genişletilir (küçük boşluklar kapanır), bölge bulunur, sonra bölge aynı miktar geri büyütülür ki
- * boya çizginin altına kadar uzansın. Boya ayrı bir katmana, çizgilerin altına çizilir.
+ * İki bölge hesaplanır:
+ *  - gerçek bölge: yalnızca çizgilere göre (boşluk kapatmadan) dokunulan yerin bölgesi;
+ *  - korunan bölge: çizgiler `gap` piksel kalınlaştırılarak (çocuk çizimlerinde tam kapanmayan küçük boşluklar
+ *    kapanır) bulunan bölge, sonra aynı miktar geri büyütülür.
+ * Çizgi gerçekten kapalıysa (gerçek bölge dışarı taşmıyorsa) gerçek bölgenin tamamı boyanır: sivri köşeler, dar
+ * yerler ve çizginin altı dahil, hiç beyaz yer kalmaz. Çizgide boşluk varsa korunan bölge boyanır ve onun
+ * kenarındaki küçük cepler (sivri köşeler) de doldurulur; boya boşluktan dışarı taşmaz.
+ * Çok dar bir yere dokunulduysa boşluk kapatma kendiliğinden küçülür. Boya ayrı bir katmana, çizgilerin altına çizilir.
  */
 
 function dilate(src: Uint8Array, w: number, h: number, r: number): Uint8Array {
@@ -40,28 +45,20 @@ function dilate(src: Uint8Array, w: number, h: number, r: number): Uint8Array {
   return out;
 }
 
-/**
- * @param lineAlpha çizgi katmanının RGBA verisi
- * @returns doldurulacak piksellerin maskesi, ya da tohum bir çizginin üstündeyse null
- */
-export function fillRegion(lineAlpha: Uint8ClampedArray, w: number, h: number, sx: number, sy: number, gap = 8): Uint8Array | null {
-  const wall = new Uint8Array(w * h);
-  for (let i = 0; i < w * h; i++) wall[i] = lineAlpha[i * 4 + 3] > 40 ? 1 : 0;
-  const blocked = dilate(wall, w, h, gap);
-
-  // Tohum çizgi üstündeyse yakındaki boş pikseli ara.
-  let seed = -1;
-  sx = Math.round(sx);
-  sy = Math.round(sy);
-  for (let r = 0; r <= 8 && seed < 0; r++)
-    for (let dy = -r; dy <= r && seed < 0; dy++)
-      for (let dx = -r; dx <= r && seed < 0; dx++) {
+/** Dokunulan noktaya en yakın boş piksel (yoksa -1). */
+function seedNear(blocked: Uint8Array, w: number, h: number, sx: number, sy: number, reach: number) {
+  for (let r = 0; r <= reach; r++)
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
         const x = sx + dx, y = sy + dy;
-        if (x >= 0 && y >= 0 && x < w && y < h && !blocked[y * w + x]) seed = y * w + x;
+        if (x >= 0 && y >= 0 && x < w && y < h && !blocked[y * w + x]) return y * w + x;
       }
-  if (seed < 0) return null;
+  return -1;
+}
 
-  // Tarama çizgisi (scanline) taşma doldurma.
+/** Tarama çizgisi (scanline) taşma doldurma. */
+function flood(blocked: Uint8Array, w: number, h: number, seed: number): Uint8Array {
   const region = new Uint8Array(w * h);
   const stack = [seed];
   while (stack.length) {
@@ -88,7 +85,87 @@ export function fillRegion(lineAlpha: Uint8ClampedArray, w: number, h: number, s
       }
     }
   }
-  return dilate(region, w, h, gap + 1);
+  return region;
+}
+
+const count = (m: Uint8Array) => {
+  let n = 0;
+  for (let i = 0; i < m.length; i++) n += m[i];
+  return n;
+};
+function touchesBorder(m: Uint8Array, w: number, h: number) {
+  for (let x = 0; x < w; x++) if (m[x] || m[(h - 1) * w + x]) return true;
+  for (let y = 0; y < h; y++) if (m[y * w] || m[y * w + w - 1]) return true;
+  return false;
+}
+
+/**
+ * @param lineAlpha çizgi katmanının RGBA verisi
+ * @returns doldurulacak piksellerin maskesi, ya da tohum bir çizginin üstündeyse null
+ */
+export function fillRegion(lineAlpha: Uint8ClampedArray, w: number, h: number, sx: number, sy: number, gap = 8): Uint8Array | null {
+  const n = w * h;
+  const wall = new Uint8Array(n);
+  for (let i = 0; i < n; i++) wall[i] = lineAlpha[i * 4 + 3] > 40 ? 1 : 0;
+  sx = Math.round(sx);
+  sy = Math.round(sy);
+
+  // gerçek bölge (çizgilere göre)
+  const s0 = seedNear(wall, w, h, sx, sy, 8);
+  if (s0 < 0) return null;
+  const truth = flood(wall, w, h, s0);
+
+  // korunan bölge: dar bir yere dokunulduysa boşluk kapatma küçülür
+  let g = gap, region: Uint8Array | null = null;
+  for (const cand of [gap, Math.round(gap / 2), 2]) {
+    const blocked = dilate(wall, w, h, cand);
+    const s = seedNear(blocked, w, h, sx, sy, 8);
+    if (s < 0 || !truth[s]) continue;
+    g = cand;
+    region = flood(blocked, w, h, s);
+    break;
+  }
+  if (!region) return dilate(truth, w, h, 2); // çok dar, kapalı bir yer: olduğu gibi boya
+  const grown = dilate(region, w, h, g + 1);
+
+  // gerçek bölge dışarı taşmıyorsa tamamını boya (köşeler ve çizgi altı dahil)
+  const leaked = count(truth) > count(grown) * 1.25 + 400 || (touchesBorder(truth, w, h) && !touchesBorder(region, w, h));
+  const out = new Uint8Array(n);
+  if (!leaked) {
+    // çizginin yumuşak kenarının altı da boyansın (beyaz hale kalmasın)
+    const t2 = dilate(truth, w, h, 2);
+    for (let i = 0; i < n; i++) out[i] = t2[i] | grown[i];
+    return out;
+  }
+
+  // çizgide boşluk var: korunan bölge + kenarındaki küçük cepler (bölgeye yakın, dışarıya bağlanmayan)
+  const near = dilate(region, w, h, 2 * g + 2);
+  const left = new Uint8Array(n);
+  for (let i = 0; i < n; i++) left[i] = truth[i] && !grown[i] ? 1 : 0;
+  const seen = new Uint8Array(n);
+  const comp: number[] = [];
+  for (let i = 0; i < n; i++) {
+    if (!left[i] || seen[i]) continue;
+    comp.length = 0;
+    let inside = true;
+    const stack = [i];
+    seen[i] = 1;
+    while (stack.length) {
+      const j = stack.pop()!;
+      comp.push(j);
+      if (!near[j]) inside = false;
+      const x = j % w;
+      for (const k of [j - w, j + w, x > 0 ? j - 1 : -1, x < w - 1 ? j + 1 : -1]) {
+        if (k >= 0 && k < n && left[k] && !seen[k]) {
+          seen[k] = 1;
+          stack.push(k);
+        }
+      }
+    }
+    if (inside) for (const j of comp) out[j] = 1;
+  }
+  for (let i = 0; i < n; i++) out[i] |= grown[i];
+  return out;
 }
 
 export function hexToRgb(hex: string): [number, number, number] {

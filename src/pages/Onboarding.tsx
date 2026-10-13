@@ -1,7 +1,7 @@
 /**
  * Karşılama akışı:
  * açılış (Çizio tanışır) → avatar → isim → 3 tur "hangisini daha çok seviyorsun?" → vitrin
- * → ebeveyn onayı (bir büyüğü çağır) → "Hadi başlayalım" (ilk ders).
+ * → ebeveyn onayı (bir büyüğü çağır) → "Hadi başlayalım" → dünya seçimi (Çizim Atölyesi, Giydirme, English Club, Çizio Adası).
  * Zaten bir profil varsa (kardeş ekleme) ebeveyn onayı atlanır.
  */
 import { ArrowRight, Check, Heart, ShieldCheck, Smartphone, Sparkles } from 'lucide-react';
@@ -100,8 +100,7 @@ export default function Onboarding() {
   const finish = () => {
     sfx.success();
     addProfile({ name: name.trim(), avatar: avatar ?? 'kedi', favoritePath: favorite });
-    const first = lessonsByPath(favorite)[0] ?? lessons[0];
-    nav(`/ders/${first.id}`, { replace: true });
+    nav('/', { replace: true });
   };
 
   const variant = { splash: 0, avatar: 1, name: 1, pref: 2, showcase: 3, parent: 1, start: 0 }[step];
@@ -253,7 +252,7 @@ export default function Onboarding() {
             <Mascot size={150} mood="wow" className="float" />
           </div>
           <h1 className="title-xl">Hazırsın, {name.trim()}!</h1>
-          <p className="sub onb__lead">İlk çizimimize kâğıdını ve kalemini al, birlikte başlayalım.</p>
+          <p className="sub onb__lead">Şimdi nereye gitmek istersin? Çizim, giydirme, İngilizce ya da Çizio Adası seni bekliyor!</p>
           <button className="pill pill--big" onClick={finish} aria-label="Hadi başlayalım">
             Hadi başlayalım! <ArrowRight size={24} />
           </button>

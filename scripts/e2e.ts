@@ -87,8 +87,10 @@ async function run(viewport: { width: number; height: number }, tag: string, ful
   await sleep(1000);
   await shot(page, `${tag}-start`);
   await click('Hadi başlayalım');
+  // açılıştan sonra dünya seçimi: Çizim Atölyesi, Giydirme, English Club, Çizio Adası
+  await page.waitForSelector('.world-card--ada', { timeout: 15000 });
   await sleep(800);
-  await shot(page, `${tag}-lesson-intro`);
+  await shot(page, `${tag}-worlds`);
 
   if (full) {
     // --- kâğıt modunda kedi dersi ---
