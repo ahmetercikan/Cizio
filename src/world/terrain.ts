@@ -59,7 +59,7 @@ const COL = {
 
 /** Ana kara ağı: yükseklik ve renk köşe başına. */
 export function buildTerrain(scene: THREE.Scene) {
-  const size = (LAND_R + 40) * 2, seg = 230;
+  const size = (LAND_R + 40) * 2, seg = 170;
   const geo = new THREE.PlaneGeometry(size, size, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;

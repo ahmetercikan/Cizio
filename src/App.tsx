@@ -28,6 +28,7 @@ import World from './pages/World';
 import { initPlus } from './world/plus';
 import { initPremium } from './world/premium';
 import { OnlineSync } from './online/OnlineHost';
+import { HomeReturn } from './components/HomeReturn';
 import { useApp } from './store/useApp';
 
 /** Profil yoksa karşılama akışına yönlendirir. */
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/ebeveyn" element={<Parent />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <HomeReturn />
       </ErrorBoundary>
       <OnlineSync />
     </HashRouter>

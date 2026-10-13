@@ -358,3 +358,11 @@
 .build-tool--struct { width: 86px; }
 .build-tool:disabled { opacity: 0.5; }
 .build-tool__price { color: #b07a00; }
+
+/* Adadaki evden gelinen sayfalarda "Evime dön" */
+.home-return {
+  position: fixed; left: 50%; top: calc(var(--safe-top) + 74px); transform: translateX(-50%); z-index: 60;
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 99px;
+  background: #7c5cff; color: #fff; font-family: var(--display); font-weight: 700; font-size: 18px;
+  box-shadow: 0 6px 18px rgba(76, 52, 160, 0.35);
+}

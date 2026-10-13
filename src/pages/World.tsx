@@ -5,6 +5,8 @@
 import { ArrowLeft, BookOpen, Car, Megaphone, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Hand, Home, Images, Loader2, MessageCircle, Music, RotateCcw, Shirt, Sparkles, Sprout, Star, Store, Users, X, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { create } from 'zustand';
+import { homeReturnPending, setHomeReturn } from '../components/HomeReturn';
 import { AvatarArt } from '../components/Avatars';
 import { Doodles } from '../components/Doodles';
 import { Mascot } from '../components/Mascot';
@@ -154,7 +156,6 @@ function IslandPlay() {
   const [homeBusy, setHomeBusy] = useState(false);
   const media = useRef<{ pet: HTMLCanvasElement | null; art: HTMLCanvasElement[] }>({ pet: null, art: [] });
   const [toast, setToast] = useState<string | null>(null);
-  const [me, setMe] = useState({ x: 0, z: 12, h: 0 });
   // Birlikte oynama (Realtime Database): oda = adanın sahibinin pid'i
   const ov = useOnlineView();
   const myId = data.online?.pid;
@@ -221,7 +222,9 @@ function IslandPlay() {
     let alive = true;
     void (async () => {
       try {
+        const T0 = performance.now();
         const [{ Island }, tex] = await Promise.all([import('../world/island'), import('../world/textures')]);
+        if (import.meta.env.DEV) console.log(`[perf] modüller ${Math.round(performance.now() - T0)}ms`);
         const doll = data.doll ?? PRESETS[0];
         const [pet, art, mascot, cards] = await Promise.all([
           doll.pet ? tex.petCanvas(doll) : Promise.resolve(null),
@@ -229,6 +232,7 @@ function IslandPlay() {
           tex.mascotCanvas(),
           Promise.all(CARD_IDS.map(async (id) => [id, await tex.lessonCanvas(id)] as const)),
         ]);
+        if (import.meta.env.DEV) console.log(`[perf] resimler ${Math.round(performance.now() - T0)}ms`);
         if (!alive || !ref.current) return;
         media.current = { pet, art };
         world.current = new Island(ref.current, {
@@ -248,7 +252,7 @@ function IslandPlay() {
           onBusy: setBusy,
           onDrive: setDriving,
           onMessage: flash,
-          onPos: (x, z, h) => setMe({ x, z, h }),
+          onPos: (x, z, h) => usePos.setState({ x, z, h }),
           onPage: (id) => pageRef.current(id),
           onRealm: (r) => {
             setRealm(r);
@@ -264,8 +268,8 @@ function IslandPlay() {
         setReady(true);
         // evdeki bir eşyadan (gardırop, şövale…) başka sayfaya gidip dönünce eve geri gel
         try {
-          if (sessionStorage.getItem('cizio-home-return')) {
-            sessionStorage.removeItem('cizio-home-return');
+          if (homeReturnPending()) {
+            setHomeReturn(false);
             setTimeout(() => homeRef.current(), 300);
           }
         } catch {
@@ -393,7 +397,7 @@ function IslandPlay() {
       onPage: (pg) => {
         if (pg === 'giydir') markDone('home');
         try {
-          sessionStorage.setItem('cizio-home-return', '1');
+          setHomeReturn(true);
         } catch {
           /* yok say */
         }
@@ -492,12 +496,13 @@ function IslandPlay() {
       if (e.pointerType === 'mouse') home.current?.hover(e.clientX, e.clientY);
       return;
     }
-    const dx = e.clientX - d.x;
-    if (!d.moved && Math.abs(dx) > 10) d.moved = true;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.moved && Math.hypot(dx, dy) > 10) d.moved = true;
     if (d.moved) {
       if (home.current) home.current.rotate(dx);
-      else world.current?.rotateCamera(dx);
+      else world.current?.rotateCamera(dx, dy);
       d.x = e.clientX;
+      d.y = e.clientY;
     }
   };
   const onUp = (e: React.PointerEvent) => {
@@ -633,7 +638,7 @@ function IslandPlay() {
                 {peerNames.length > 0 && <b>{peerNames.length + 1}</b>}
               </button>
             )}
-            <MiniMap me={me} onOpen={() => setPanel('map')} />
+            <MiniMap onOpen={() => setPanel('map')} />
           </span>
         )}
       </header>
@@ -697,7 +702,7 @@ function IslandPlay() {
           </div>
         </Modal>
       )}
-      {panel === 'map' && <BigMap me={me} onPick={travel} onClose={() => setPanel(null)} />}
+      {panel === 'map' && <BigMap onPick={travel} onClose={() => setPanel(null)} />}
       {panel === 'friends' && (
         <Modal onClose={() => setPanel(null)}>
           <div className="island__panel">
@@ -817,7 +822,11 @@ function IslandSvg({ me, onPick, labels }: { me: { x: number; z: number; h: numb
   );
 }
 
-function MiniMap({ me, onOpen }: { me: { x: number; z: number; h: number }; onOpen: () => void }) {
+/** Kahramanın konumu (küçük harita için): yalnızca harita yeniden çizilir, bütün ada ekranı değil. */
+const usePos = create<{ x: number; z: number; h: number }>(() => ({ x: 0, z: 12, h: 0 }));
+
+function MiniMap({ onOpen }: { onOpen: () => void }) {
+  const me = usePos();
   return (
     <button className="island__mini" aria-label="Haritayı aç" onClick={onOpen}>
       <IslandSvg me={me} />
@@ -825,7 +834,8 @@ function MiniMap({ me, onOpen }: { me: { x: number; z: number; h: number }; onOp
   );
 }
 
-function BigMap({ me, onPick, onClose }: { me: { x: number; z: number; h: number }; onPick: (z: Zone) => void; onClose: () => void }) {
+function BigMap({ onPick, onClose }: { onPick: (z: Zone) => void; onClose: () => void }) {
+  const me = usePos();
   return (
     <Modal onClose={onClose} className="modal--wide">
       <div className="art-view__head">

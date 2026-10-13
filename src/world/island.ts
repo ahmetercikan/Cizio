@@ -163,6 +163,23 @@ export class Island {
   private seed = 1;
   /** Evim'deyken arkadaşlar adada görmesin. */
   away = false;
+  // gerçekçi hareket: hız yumuşakça değişir, dönüşte yana yatar, iniş esnemesi
+  private vel = new THREE.Vector3();
+  private lean = 0;
+  private squash = 0;
+  private coyote = 0;
+  private jumpBuf = 0;
+  private dustT = 0;
+  // kamera: yukarı / aşağı bakış
+  private camPitch = 0;
+  private camPitchGoal = 0;
+  // başarım: uzaktaki bölgeler çizilmez, çözünürlük kare hızına göre ayarlanır
+  private chunks: { g: THREE.Group; x: number; z: number }[] = [];
+  private cullT = 0;
+  private fpsT = 0;
+  private fpsN = 0;
+  private ratio = 1;
+  private maxRatio = 1;
   /** Benim arabam (adada park eder, çağrılınca yanıma gelir). */
   private myCar: { id: string; spot: SpotDef } | null = null;
 
@@ -172,17 +189,25 @@ export class Island {
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 1.08;
     this.scene.background = SKY.clone();
-    this.scene.fog = new THREE.Fog(SKY.clone(), 140, 420);
+    this.scene.fog = new THREE.Fog(SKY.clone(), 120, 300);
     this.scene.add(new THREE.HemisphereLight('#fffaf2', '#b9d9a0', 1.2));
     this.sun = new THREE.DirectionalLight('#fff4dc', 1.5);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    // telefonda gölge haritası daha küçük
+    const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+    this.sun.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048);
+    this.maxRatio = Math.min(coarse ? 1.5 : 1.75, window.devicePixelRatio || 1);
+    this.ratio = this.maxRatio;
+    this.renderer.setPixelRatio(this.ratio);
     this.sun.shadow.bias = -0.0006;
     this.sun.shadow.normalBias = 0.05;
     Object.assign(this.sun.shadow.camera, { left: -42, right: 42, top: 42, bottom: -42, near: 1, far: 220 });
     this.scene.add(this.sun, this.sun.target);
 
+    const T = performance.now();
+    const mark = (n: string) => import.meta.env.DEV && console.log(`[perf] ${n} ${Math.round(performance.now() - T)}ms`);
     const terrain = buildTerrain(this.scene);
+    mark('arazi');
     this.pick = terrain.pick;
     this.land = terrain.land;
     this.sea = terrain.sea;
@@ -202,11 +227,15 @@ export class Island {
       },
       { note: (i) => this.ev.sound.note(i), kick: () => this.ev.sound.kick(), pop: () => this.ev.sound.pop(), star: (i) => this.ev.sound.star(i) });
     buildZones(this.wb, o.taken);
-    this.home = new Homestead(this.wb, o.farm, (x, z) => this.canBuildAt(x, z));
+    mark('bölgeler');
     buildMarket(this.wb);
     buildShops(this.wb);
     buildPortals(this.wb, (id) => this.enterRealm(id));
+    this.chunkStatics();
+    this.home = new Homestead(this.wb, o.farm, (x, z) => this.canBuildAt(x, z));
+    mark('çiftlik+pazar+kapılar');
     buildVegetation(this.scene, this.grid, this.wb.keepOut);
+    mark('bitki örtüsü');
     this.spots = this.wb.spots;
     this.buildStars();
 
@@ -235,6 +264,35 @@ export class Island {
     this.resize();
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
+    mark('kurulum bitti');
+  }
+
+  /** Sabit nesneleri 70 birimlik bölgelere toplar; uzaktaki bölgeler çizilmez (daha az çizim çağrısı). */
+  private chunkStatics() {
+    const C = 70;
+    const moving = new Set<THREE.Object3D>([...this.wb.wanderers.map((w) => w.obj), ...this.wb.spots.filter((s) => s.vehicle).map((s) => s.vehicle!.model)]);
+    const map = new Map<string, { g: THREE.Group; x: number; z: number }>();
+    const box = new THREE.Box3(), sph = new THREE.Sphere();
+    for (const o of [...this.scene.children]) {
+      if (moving.has(o) || o === this.land || o === this.sea || o === this.pick || o === this.sun || o === this.sun.target) continue;
+      if ((o as THREE.Light).isLight || (o as THREE.InstancedMesh).isInstancedMesh || (o as THREE.Sprite).isSprite) continue;
+      box.setFromObject(o).getBoundingSphere(sph);
+      if (!Number.isFinite(sph.radius) || sph.radius > 50 || Math.hypot(sph.center.x, sph.center.z) > WORLD_R) continue;
+      const kx = Math.floor(sph.center.x / C), kz = Math.floor(sph.center.z / C);
+      const k = `${kx},${kz}`;
+      let ch = map.get(k);
+      if (!ch) {
+        ch = { g: new THREE.Group(), x: (kx + 0.5) * C, z: (kz + 0.5) * C };
+        this.scene.add(ch.g);
+        map.set(k, ch);
+      }
+      ch.g.add(o);
+    }
+    this.chunks = [...map.values()];
+  }
+  private cull() {
+    const R = 230;
+    for (const c of this.chunks) c.g.visible = Math.hypot(c.x - this.pos.x, c.z - this.pos.z) < R;
   }
 
   private buildStars() {
@@ -319,14 +377,26 @@ export class Island {
   }
   /** Zıpla (yerdeyken). */
   jump() {
-    if (this.act || this.drive || this.swimming || !this.hero.grounded) return;
+    if (this.act || this.drive || this.swimming) return;
+    if (!this.hero.grounded && this.coyote <= 0) {
+      this.jumpBuf = 0.15; // inmeden hemen önce basıldı: inince zıpla
+      return;
+    }
+    this.doJump();
+  }
+  private doJump() {
     this.hero.vy = JUMP;
     this.hero.grounded = false;
+    this.coyote = 0;
+    this.jumpBuf = 0;
+    this.squash = -0.12;
     this.emoteKind = null;
     this.ev.sound.pop();
   }
-  rotateCamera(dx: number) {
+  /** Sürükleme: yatay sağa sola, dikey yukarı aşağı bakış. */
+  rotateCamera(dx: number, dy = 0) {
     this.camYawGoal -= dx * 0.006;
+    this.camPitchGoal = Math.min(0.75, Math.max(-0.28, this.camPitchGoal + dy * 0.004));
     this.lastDrag = this.clock;
   }
   emote(kind: 'wave' | 'dance' | 'clap') {
@@ -362,6 +432,7 @@ export class Island {
   }
   private startAct(s: SpotDef, def: Activity) {
     this.act = { spot: s, def, t: 0 };
+    this.vel.set(0, 0, 0);
     this.hero.vy = 0;
     this.hero.grounded = true;
     this.actor.heading = this.heading;
@@ -451,6 +522,7 @@ export class Island {
     if (this.drive) this.dismount();
     this.pos.set(x, this.wb.ground(x, z), z);
     this.hero.vy = 0;
+    this.vel.set(0, 0, 0);
     this.target = null;
     this.pending = null;
     if (this.pet) this.petPos.set(x + 1.5, 0, z + 1);
@@ -640,6 +712,7 @@ export class Island {
     this.camYaw = this.camYawGoal = realm.spawnH + Math.PI;
     this.hero.vy = 0;
     this.hero.grounded = true;
+    this.vel.set(0, 0, 0);
     this.target = null;
     this.pending = null;
     this.petPos.copy(this.pos).add(new THREE.Vector3(1.5, 0, 1));
@@ -679,9 +752,32 @@ export class Island {
   // Döngü
   // ----------------------------------------------------------------------------------------------
   private frame = (now: number) => {
-    const dt = Math.min(0.05, (now - this.last) / 1000);
+    const raw = (now - this.last) / 1000;
+    const dt = Math.min(0.05, raw);
     this.last = now;
     this.clock += dt;
+    this.coyote -= dt;
+    this.jumpBuf -= dt;
+    if ((this.cullT -= dt) <= 0) {
+      this.cullT = 0.3;
+      if (!this.realm) this.cull();
+    }
+    // kare hızı düşükse çözünürlüğü azalt, yüksekse geri artır (ilk saniyeler gölgelendirici hazırlığı: sayma)
+    if (this.clock > 4) {
+      this.fpsT += raw;
+      this.fpsN++;
+      if (this.fpsT > 2) {
+        const fps = this.fpsN / this.fpsT;
+        const r = fps < 38 ? Math.max(1, this.ratio - 0.25) : fps > 56 ? Math.min(this.maxRatio, this.ratio + 0.25) : this.ratio;
+        if (r !== this.ratio) {
+          this.ratio = r;
+          this.renderer.setPixelRatio(r);
+          this.resize();
+        }
+        this.fpsT = 0;
+        this.fpsN = 0;
+      }
+    }
     if (this.act) this.stepActivity(dt);
     else if (this.drive) this.stepDrive(dt);
     else this.stepWalk(dt);
@@ -727,9 +823,15 @@ export class Island {
     this.swimming = !this.realm && g < -0.7 && this.pos.y < 0;
     const run = mag > 0.95 && !this.swimming;
     const sp = mag <= 0 ? 0 : (run ? RUN : WALK * mag) * (this.swimming ? 0.55 : 1);
-    this.speed += ((mag > 0 ? (run ? 1.3 : mag) : 0) - this.speed) * Math.min(1, dt * 10);
-    if (mag > 0) {
-      const next = this.pos.clone().addScaledVector(dir, sp * dt);
+    // hız yumuşakça hızlanır / yavaşlar (havadayken daha az kontrol)
+    const want = dir.clone().multiplyScalar(sp);
+    const k = 1 - Math.exp(-dt * (mag > 0 ? (this.hero.grounded ? 10 : 4) : this.hero.grounded ? 14 : 2));
+    this.vel.x += (want.x - this.vel.x) * k;
+    this.vel.z += (want.z - this.vel.z) * k;
+    const v = Math.hypot(this.vel.x, this.vel.z);
+    this.speed = v < WALK ? v / WALK : 1 + ((v - WALK) / (RUN - WALK)) * 0.3;
+    if (v > 0.05) {
+      const next = this.pos.clone().addScaledVector(this.vel, dt);
       if (!this.realm) {
         this.grid.push(next);
         const R = Math.hypot(next.x, next.z);
@@ -737,11 +839,22 @@ export class Island {
       }
       // duvarlar (bloklar, labirent): eksen eksen dene, duvar boyunca kayar
       if (!this.blockedAt(next.x, this.pos.z, this.pos.y)) this.pos.x = next.x;
+      else this.vel.x = 0;
       if (!this.blockedAt(this.pos.x, next.z, this.pos.y)) this.pos.z = next.z;
-      this.turnTo(Math.atan2(dir.x, dir.z), dt);
-      // ileri giderken kamera yavaşça arkaya döner
-      if (this.clock - this.lastDrag > 1.2 && this.joy.y > 0.3) this.camYawGoal += angDiff(this.heading + Math.PI, this.camYawGoal) * Math.min(1, dt * 0.8);
-    }
+      else this.vel.z = 0;
+      const before = this.heading;
+      if (mag > 0) this.turnTo(Math.atan2(dir.x, dir.z), dt, run ? 8 : 11);
+      // dönüşte yana yatar
+      const turn = angDiff(this.heading, before) / Math.max(dt, 1e-3);
+      this.lean += (Math.max(-0.2, Math.min(0.2, -turn * 0.045 * Math.min(1, v / WALK))) - this.lean) * Math.min(1, dt * 8);
+      // ilerlerken kamera yavaşça arkaya geçer (geri gelirken değil)
+      if (this.clock - this.lastDrag > 1.5 && this.joy.y > -0.3 && mag > 0) this.camYawGoal += angDiff(this.heading + Math.PI, this.camYawGoal) * Math.min(1, dt * 1.2 * Math.min(1, v / WALK));
+      // koşarken toz
+      if (run && this.hero.grounded && !this.swimming && (this.dustT -= dt) <= 0) {
+        this.dustT = 0.12;
+        this.fx.burst(this.pos.clone().setY(this.pos.y + 0.15), 1, '#e9dcc4');
+      }
+    } else this.lean += (0 - this.lean) * Math.min(1, dt * 8);
     // dikey: yerçekimi, zıplama, yokuşlar
     const f = this.floorAt(this.pos.x, this.pos.z, this.pos.y);
     if (this.swimming) {
@@ -755,10 +868,13 @@ export class Island {
       this.pos.y += this.hero.vy * dt;
       if (this.pos.y <= f && this.hero.vy <= 0) {
         if (this.hero.vy < -14) this.fx.burst(this.pos.clone().setY(f + 0.2), 6, '#ffffff');
+        if (this.hero.vy < -8) this.squash = Math.min(0.18, -this.hero.vy * 0.008);
         this.pos.y = f;
         this.hero.vy = 0;
         this.hero.grounded = true;
+        if (this.jumpBuf > 0) this.doJump();
       } else {
+        if (this.hero.grounded) this.coyote = 0.12; // kenardan düştü: kısa süre hâlâ zıplayabilir
         this.hero.grounded = false;
         // kafa bloğa çarpınca geri düş
         if (this.hero.vy > 0 && this.blockedAt(this.pos.x, this.pos.z, this.pos.y - 0.2)) this.hero.vy = 0;
@@ -967,6 +1083,9 @@ export class Island {
     this.drawRemotes(dt);
     this.avatar.root.position.copy(this.pos);
     this.avatar.root.rotation.y = this.heading;
+    this.avatar.root.rotation.z = this.act || this.drive ? 0 : this.lean;
+    this.squash += (0 - this.squash) * Math.min(1, dt * 10);
+    this.avatar.root.scale.set(1 + this.squash * 0.5, 1 - this.squash, 1 + this.squash * 0.5);
     this.avatar.update(dt, this.clock, pose, this.act ? (pose === 'climb' ? 0.8 : 0) : this.speed);
     const g = this.floorAt(this.pos.x, this.pos.z, this.pos.y + 0.1);
     this.shadow.visible = !this.swimming && !this.drive && Number.isFinite(g) && this.pos.y - g < 8 && (this.realm ? true : g > -0.3);
@@ -992,7 +1111,11 @@ export class Island {
     }
     // kamera
     this.camYaw += angDiff(this.camYawGoal, this.camYaw) * Math.min(1, dt * 6);
-    const [dist, h] = this.act?.def.cam ?? (this.realm ? this.realm.cam : this.building ? [17, 13] : this.drive ? [16, 8] : [13, 7.5]);
+    const [d0, h0] = this.act?.def.cam ?? (this.realm ? this.realm.cam : this.building ? [17, 13] : this.drive ? [16, 8] : [13, 7.5]);
+    // yukarı / aşağı bakış: kamera kahramanın çevresinde yükselir ya da alçalır
+    this.camPitch += (this.camPitchGoal - this.camPitch) * Math.min(1, dt * 6);
+    const R0 = Math.hypot(d0, h0), e = Math.min(1.35, Math.max(0.08, Math.atan2(h0, d0) + this.camPitch));
+    const dist = R0 * Math.cos(e), h = R0 * Math.sin(e);
     const cx = this.pos.x + Math.sin(this.camYaw) * dist, cz = this.pos.z + Math.cos(this.camYaw) * dist;
     let cy = this.pos.y + h;
     if (!this.underwater && !this.realm) cy = Math.max(cy, Math.max(0, this.wb.ground(cx, cz)) + 2);
@@ -1000,7 +1123,8 @@ export class Island {
     this.camera.position.x += (cx - this.camera.position.x) * k;
     this.camera.position.y += (cy - this.camera.position.y) * k;
     this.camera.position.z += (cz - this.camera.position.z) * k;
-    this.camera.lookAt(this.pos.x, this.pos.y + 1.8, this.pos.z);
+    // alçaktan bakınca biraz yukarı (gökyüzüne) bakar
+    this.camera.lookAt(this.pos.x, this.pos.y + 1.8 + Math.max(0, -this.camPitch) * 9, this.pos.z);
     // güneş kahramanı izler (gölgeler hep yakında net)
     const sun = this.realm?.sun ?? this.sun;
     sun.position.set(this.pos.x - 30, this.pos.y + 60, this.pos.z + 26);

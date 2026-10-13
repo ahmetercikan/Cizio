@@ -97,6 +97,11 @@ Yenilikler:
 - **Butik:** nadir kıyafetler ve dostlar ada altınıyla. **Oyun Çadırı:** hafıza kartları ve balon patlatma; bitirince altın,
   günde 3 kez de eve bir eşya ya da yeni bir kıyafet.
 - **Özel paketler (şimdilik kapalı):** her kategoride birkaç özel eşya; yalnızca ebeveyn bölümünden. Bkz. `store/ozel-paketler.md`.
+- **Hareket ve kamera:** karakter yumuşakça hızlanır ve yavaşlar, dönüşlerde yana yatar, koşarken toz kalkar,
+  zıplama daha affedicidir; kamera ilerlerken arkaya geçer, sürükleyince sağa sola ve yukarı aşağı bakılır.
+- **Evden sayfalara:** gardırop, şövale, kitaplık ve çalışma masasından gidilen sayfalarda "Evime dön" düğmesi.
+- **Başarım:** uzaktaki bölgeler çizilmez (çizim çağrısı ~%28 az), arazi sadeleşti, telefonda daha hafif gölge,
+  çözünürlük kare hızına göre kendiliğinden ayarlanır, küçük harita ekranın geri kalanını yeniden çizdirmez.
 - **Dokunma:** boş yere dokununca zıplar; bir eşyaya dokununca o iş yapılır (uzaksa yanına yürür).
 - **Adada birlikte oynama:** Çevrimiçi açıksa çocuk, onaylı arkadaşlarının adasına gidebilir ("Yanına git"); bir adada
   sahibi ve en çok 10 arkadaşı. Arkadaşlar birbirinin karakterini, adını, yürüyüşünü ve el sallamasını görür; yazışma yok.
