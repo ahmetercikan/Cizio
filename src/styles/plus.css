@@ -366,3 +366,47 @@
   background: #7c5cff; color: #fff; font-family: var(--display); font-weight: 700; font-size: 18px;
   box-shadow: 0 6px 18px rgba(76, 52, 160, 0.35);
 }
+
+/* Ada göstergeleri (PK XD gibi): ortası boş; sol üstte oyuncu, sağ üstte altın ve harita, sol kenarda görevler */
+.island__spacer { flex: 1; }
+.hud-player {
+  display: inline-flex; align-items: center; gap: 8px; padding: 4px 14px 4px 4px; border-radius: 99px;
+  background: rgba(255, 255, 255, 0.88); box-shadow: var(--shadow-card); color: var(--ink); max-width: 220px;
+}
+.hud-player__pic { position: relative; flex: none; display: grid; }
+.hud-player__pic i {
+  position: absolute; right: -6px; bottom: -4px; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 99px; display: grid; place-items: center;
+  background: #7cc760; color: #fff; font-style: normal; font-family: var(--display); font-weight: 700; font-size: 13px; border: 2px solid #fff;
+}
+.hud-player__info { display: grid; gap: 3px; min-width: 0; }
+.hud-player__info b { font-family: var(--display); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.hud-player__bar { display: block; width: 84px; height: 7px; border-radius: 99px; background: #eee6d8; overflow: hidden; }
+.hud-player__bar i { display: block; height: 100%; background: #7cc760; }
+.hud-coins {
+  display: inline-flex; align-items: center; gap: 5px; height: 40px; padding: 0 12px; border-radius: 99px; background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-card); font-family: var(--display); font-weight: 700; font-size: 17px; color: #8a5f00;
+}
+.hud-coins svg { color: #e0a800; }
+.island__right { align-items: center; }
+.hud-side { position: absolute; left: 16px; top: calc(var(--safe-top) + 80px); z-index: 2; display: grid; gap: 8px; justify-items: start; max-width: 46vw; }
+.hud-side__btn {
+  width: 52px; height: 52px; border-radius: 18px; display: grid; place-items: center; align-content: center; gap: 0;
+  background: rgba(255, 255, 255, 0.88); box-shadow: var(--shadow-card); color: var(--ink);
+}
+.hud-side__btn small { font-weight: 800; font-size: 11px; line-height: 1; }
+.hud-side__btn--sm { width: 40px; height: 40px; border-radius: 14px; }
+.hud-note { display: inline-flex; align-items: center; gap: 2px; border-radius: 14px; background: rgba(255, 255, 255, 0.78); box-shadow: var(--shadow-card); max-width: 100%; }
+.hud-note__text { display: inline-flex; align-items: center; gap: 6px; padding: 7px 4px 7px 10px; font-weight: 800; font-size: 13px; color: var(--ink); text-align: left; line-height: 1.2; }
+.hud-note__text svg { flex: none; }
+.hud-note__x { flex: none; width: 28px; height: 28px; display: grid; place-items: center; color: var(--ink-soft, #7a6a64); }
+@media (max-width: 520px) {
+  .hud-player__info b { display: none; }
+  .hud-player__bar { width: 46px; }
+  .hud-coins { height: 36px; font-size: 15px; padding: 0 10px; }
+  .hud-side { top: calc(var(--safe-top) + 80px); max-width: 58vw; }
+}
+/* üst çubuk yukarı hizalı: geri tuşu ve oyuncu rozeti en üstte, yandaki görev tuşları altında */
+.island__top { align-items: flex-start; }
+.island__right { align-items: flex-start; }
+.island__right .hud-coins { margin-top: 6px; }
+.island__right .island__friends { margin-top: 0; }

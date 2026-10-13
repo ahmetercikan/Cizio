@@ -24,7 +24,7 @@ import { buyPlus, canBuy, managePlus, PLUS_ENABLED, restorePlus, usePlus } from 
 import { ISLAND_LINES, QUESTS, STARS_GOAL, todayQuests, type QuestId } from '../world/quests';
 import { Gate } from './Parent';
 import { advanceJourney, CROPS, ANIMALS, STRUCTS, fillOrders, type PlaceKind, miniReward, MINI_ITEMS_PER_DAY, type MiniPrize, newFarm, normalizeFarm, realmReward, unlocksAt, type FarmState, type Result } from '../world/economy';
-import { ownedCars, BlueprintPanel, BuildBar, FarmHud, JournalPanel, JourneyChip, KitchenPanel, LevelUp, MarketPanel, OrdersPanel, RealmDone, RealmHud, SeedPanel, type Apply } from '../world/FarmPanels';
+import { ownedCars, CoinChip, JourneyNote, PlayerBadge, BlueprintPanel, BuildBar, JournalPanel, KitchenPanel, LevelUp, MarketPanel, OrdersPanel, RealmDone, RealmHud, SeedPanel, type Apply } from '../world/FarmPanels';
 import type { FarmBridge, RealmId } from '../world/homestead';
 import type { GhostInfo, HomeScene, SelInfo } from '../world/home';
 import { newHome } from '../world/homeData';
@@ -134,6 +134,25 @@ function IslandPlay() {
   const [driving, setDriving] = useState(false);
   const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | 'boutique' | 'games' | 'memory' | 'balloon' | null>(null);
   const [prize, setPrize] = useState<{ prize: MiniPrize; coins: number } | null>(null);
+  // sıradaki hedef notu (kapatılırsa hatırlanır)
+  const [noteOpen, setNoteOpen] = useState(() => {
+    try {
+      return localStorage.getItem('cizio-ada-not') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const toggleNote = () => {
+    sfx.pop();
+    setNoteOpen((o) => {
+      try {
+        localStorage.setItem('cizio-ada-not', o ? '0' : '1');
+      } catch {
+        /* yok say */
+      }
+      return !o;
+    });
+  };
   // Çiftliğim
   const farm = normalizeFarm(data.farm);
   const premium = usePremium((x) => x.owned);
@@ -621,17 +640,13 @@ function IslandPlay() {
         <button className="round-btn round-btn--light" aria-label="Adadan çık" onClick={() => nav('/')}><ArrowLeft size={26} strokeWidth={2.6} /></button>
         {realm ? (
           <RealmHud name={realm.name} goal={realm.goal} progress={realmProg} onLeave={() => world.current?.leaveRealm()} />
-        ) : (
-          <span className="island__mid">
-            <button className="island__quests" onClick={() => setPanel('quests')}>
-              <Star size={20} fill="#ffc83d" color="#3a2b27" /> {Math.min(island.stars.length, STARS_GOAL)}/{STARS_GOAL}
-              <span className="island__qdots">{quests.map((q) => <i key={q} className={questDone(q) ? 'on' : ''} />)}</span>
-            </button>
-            {ready && <FarmHud s={farm} onOpen={() => setPanel('journal')} />}
-          </span>
+        ) : ready && (
+          <PlayerBadge avatar={<AvatarArt id={profile.avatar} size={44} />} name={profile.name} s={farm} onOpen={() => setPanel('journal')} />
         )}
+        <span className="island__spacer" />
         {ready && !realm && (
           <span className="island__right">
+            <CoinChip n={farm.coins} />
             {ISLAND_ONLINE && (
               <button className="island__friends" aria-label="Arkadaşlar" onClick={() => setPanel('friends')}>
                 <Users size={22} />
@@ -642,7 +657,15 @@ function IslandPlay() {
           </span>
         )}
       </header>
-      {ready && !realm && !building && <div className="island__chip"><JourneyChip s={farm} onOpen={() => setPanel('journal')} /></div>}
+      {ready && !realm && !building && (
+        <div className="hud-side">
+          <button className="hud-side__btn" aria-label="Bugünün görevleri" onClick={() => setPanel('quests')}>
+            <Star size={24} fill="#ffc83d" color="#3a2b27" />
+            <small>{quests.filter(questDone).length}/{quests.length}</small>
+          </button>
+          <JourneyNote s={farm} open={noteOpen} onToggle={toggleNote} onOpen={() => setPanel('journal')} />
+        </div>
+      )}
       {ready && (
         <>
           {!busy && <Joystick onChange={(x, y) => world.current?.setJoystick(x, y)} />}

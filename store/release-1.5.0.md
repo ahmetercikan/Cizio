@@ -106,6 +106,8 @@ Yenilikler:
   Stüdyosu, English Club, Çizio Adası); artık doğrudan derse girmez.
 - **Boya kovası:** kapalı şekillerde sivri köşeler, dar yerler ve çizginin kenarı dahil hiç beyaz yer kalmaz; çizgide
   küçük boşluk varsa boya yine dışarı taşmaz.
+- **Ada göstergeleri (PK XD gibi):** ekranın ortası boş; sol üstte karakter resmi, seviye ve seviye çubuğu, sağ üstte
+  altın, arkadaşlar ve harita, sol kenarda görevler ve kapatılabilir "sıradaki hedef" notu.
 - **Dokunma:** boş yere dokununca zıplar; bir eşyaya dokununca o iş yapılır (uzaksa yanına yürür).
 - **Adada birlikte oynama:** Çevrimiçi açıksa çocuk, onaylı arkadaşlarının adasına gidebilir ("Yanına git"); bir adada
   sahibi ve en çok 10 arkadaşı. Arkadaşlar birbirinin karakterini, adını, yürüyüşünü ve el sallamasını görür; yazışma yok.

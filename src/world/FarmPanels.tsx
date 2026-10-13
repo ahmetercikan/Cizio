@@ -18,6 +18,40 @@ export type Apply = <R extends Result>(f: (s: FarmState) => R) => R;
 
 const Coin = ({ n }: { n: number }) => <span className="farm-coin"><Coins size={16} /> {n}</span>;
 
+/** Sol üst (PK XD gibi): karakterin resmi, seviyesi ve ince seviye çubuğu; dokununca çiftçi defteri. */
+export function PlayerBadge({ avatar, name, s, onOpen }: { avatar: ReactNode; name: string; s: FarmState; onOpen: () => void }) {
+  const lv = levelOf(s.xp);
+  const [a, b] = levelProgress(s.xp);
+  return (
+    <button className="hud-player" onClick={onOpen} aria-label="Çiftçi defterim">
+      <span className="hud-player__pic">{avatar}<i>{lv}</i></span>
+      <span className="hud-player__info">
+        <b>{name}</b>
+        <span className="hud-player__bar"><i style={{ width: `${Math.round((a / b) * 100)}%` }} /></span>
+      </span>
+    </button>
+  );
+}
+
+/** Sağ üst: küçük altın göstergesi. */
+export function CoinChip({ n }: { n: number }) {
+  return <span className="hud-coins"><Coins size={18} /> {n}</span>;
+}
+
+/** Sol kenarda küçük, kapatılabilir "sıradaki hedef" notu. */
+export function JourneyNote({ s, open, onToggle, onOpen }: { s: FarmState; open: boolean; onToggle: () => void; onOpen: () => void }) {
+  const step = JOURNEY[s.journey];
+  if (!step) return null;
+  return open ? (
+    <div className="hud-note">
+      <button className="hud-note__text" onClick={onOpen}><BookOpen size={15} /> {step.text}</button>
+      <button className="hud-note__x" aria-label="Notu kapat" onClick={onToggle}><X size={14} /></button>
+    </div>
+  ) : (
+    <button className="hud-side__btn hud-side__btn--sm" aria-label="Sıradaki hedef" onClick={onToggle}><BookOpen size={20} /></button>
+  );
+}
+
 /** Üstte: altın, seviye çubuğu ve sıradaki defter adımı. */
 export function FarmHud({ s, onOpen }: { s: FarmState; onOpen: () => void }) {
   const lv = levelOf(s.xp);
