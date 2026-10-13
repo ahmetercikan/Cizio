@@ -131,7 +131,7 @@ export class Avatar3D {
   /** Gövdenin eğilmesi / yüzerken yatması için. */
   private body = new THREE.Group();
   private torso = new THREE.Group();
-  private head = new THREE.Group();
+  readonly head = new THREE.Group();
   private armL = new THREE.Group();
   private armR = new THREE.Group();
   private legL = new THREE.Group();
@@ -585,3 +585,20 @@ export class Avatar3D {
     this.textures.forEach((x) => x.dispose());
   }
 }
+
+/** Uzay kaskı (Mars): saçlarla birlikte başı saran cam fanus, beyaz yaka ve parıltı. Başa eklenir. */
+export function spaceHelmet() {
+  const g = new THREE.Group();
+  const glass = new THREE.Mesh(new THREE.SphereGeometry(0.98, 28, 20), new THREE.MeshPhysicalMaterial({ color: '#e6f6ff', transparent: true, opacity: 0.32, roughness: 0.05, metalness: 0.1, depthWrite: false }));
+  glass.position.y = 0.1;
+  glass.renderOrder = 2;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.14, 10, 28), new THREE.MeshToonMaterial({ color: '#f4f6fa' }));
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = -0.72;
+  const shine = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.5), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.7, depthWrite: false }));
+  shine.position.set(0.42, 0.45, 0.8);
+  shine.rotation.set(-0.3, 0.45, -0.35);
+  g.add(glass, rim, shine);
+  return g;
+}
+

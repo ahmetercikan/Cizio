@@ -116,6 +116,19 @@ Yenilikler:
   tırmanış, büyük iniş, kamera arkadan izler), 12 kabinli dönme dolap, dönen salıncak, serbest düşüş kulesi, korsan
   gemisi, çarpışan arabalar, atlıkarınca, trambolin, dans pisti ve oyun parkı (düzgün salıncak ve kaydırak). Hepsi ayrı
   yerde, hiçbiri iç içe değil; ampuller yanıp söner.
+- **Binaların içi:** Şehirdeki okul, hastane, market, kütüphane, pastane ve itfaiyeye kapıdan girilir; içeride
+  PK XD gibi gezilir (kameraya bakan duvarlar alçalır), görevliler (öğretmen, doktor, kasiyer, kütüphaneci, pastacı,
+  itfaiyeci) ve her binada 4-6 etkinlik var: derse katılma, tahtaya yazma, ksilofon; muayene, boy ölçme, röntgen,
+  tekerlekli sandalye; alışveriş arabası, kasada ödeme; kukla gösterisi, kitap ödünç alma; pasta süsleme, kurabiye
+  pişirme; direkten kayma, alarm, hortum. "ÇIKIŞ" kapısından adaya, binanın önüne dönülür.
+- **Mars:** Roket Üssü'ndeki roketle Mars'a gidilir: kızıl kraterli arazi, gökyüzünde Dünya, az yerçekimi (yüksek
+  zıplama), uzay kaskı; üs, sera, astronot, Mars aracı turu, uçan daire, uzaylılar, bayrak dikme, teleskop, kaya
+  örneği, süper zıplama halkası; 8 Mars kristali görevi (ödüllü). Roketle adaya dönülür.
+- **Evim (PK XD gibi):** evin içinde joystick ile gezilir, kamera arkadan izler, duvarlar ve eşyalar engeldir; eşya
+  modunda kamera yukarı çıkar ve seçilen eşya karakterin önünde taşınıp yerleştirilir.
+- **Mini oyunlar 8'e çıktı:** Meyve Yakala, Köstebek Vur, Renk Dizisi, Kayan Yapboz, Toplama Balonları, Gölgeyi Bul.
+- **Gerçekçi korna ve motor sesi:** arabalarda iki tonlu korna, jip/karavanda kalın korna, teknede gemi düdüğü,
+  bisiklette zil; sürerken hıza göre değişen motor sesi.
 - **Fon müziği:** adada kısık sesle neşeli bir şarkı çalar (uygulamanın kendi bestesi, dosya yok); oyuncağa binince
   kısılır, uygulama arka plana geçince durur; sol kenardaki nota düğmesiyle kapatılır. Ses ayarı kapalıysa çalmaz.
 - **Lunapark sesleri:** hız treninde zincir takırtısı, ray gürültüsü ve "viii!", atlıkarıncada org valsi, dönme dolapta

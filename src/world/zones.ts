@@ -10,6 +10,7 @@ import { cloud, mesh, outline, Sparkles, star, toon, tree } from '../play3d/kit'
 import type { Pose } from './avatar3d';
 import { heightAt, isWater, LAKE, SNOW_PEAK, VOLCANO, zone } from './layout';
 import type { BlockGrid } from './terrain';
+import type { RealmId } from './homestead';
 
 export interface Actor {
   pos: THREE.Vector3;
@@ -89,6 +90,8 @@ export class WorldBuilder {
   musicTiles: { x: number; z: number; note: number; mesh: THREE.Mesh }[] = [];
   /** Su altı süsleri (şnorkelde görünür). */
   reef = new THREE.Group();
+  /** Bir dünyaya gir (bina içi, Mars). Adaya dönünce `back` noktasında, `h` yönüne bakarak durulur. */
+  enter?: (id: RealmId, back?: { x: number; z: number; h: number }) => void;
 
   constructor(
     public scene: THREE.Scene,
@@ -2628,22 +2631,29 @@ function buildRocket(b: WorldBuilder) {
   b.block(R.x, R.z, 2);
   const g0 = b.h(R.x, R.z) + 0.6;
   b.spot({
-    id: 'rocket', x: R.x + 4, z: R.z + 3, r: 3, label: 'Roketle uzaya çık',
+    id: 'rocket', x: R.x + 4, z: R.z + 3, r: 3, label: 'Roketle Mars’a git',
     act: {
-      dur: 18, pose: 'sit', cam: [60, 30],
-      step(t, u, a) {
+      dur: 9, pose: 'sit', cam: [60, 30],
+      step(t, u, a, dt) {
         let y = 0;
-        if (u < 0.15) rocket.position.x = R.x + Math.sin(t * 50) * 0.08;
-        else if (u < 0.6) y = ((u - 0.15) / 0.45) ** 2 * 260;
-        else y = 260 * (1 - sm((u - 0.6) / 0.4));
-        flame.visible = u > 0.12 && u < 0.6;
+        // geri sayım: titreme, sonra kalkış
+        if (u < 0.25) rocket.position.x = R.x + Math.sin(t * 50) * 0.08;
+        else y = ((u - 0.25) / 0.75) ** 2 * 260;
+        flame.visible = u > 0.18;
         flame.scale.y = 1 + Math.random() * 0.5;
         rocket.position.y = g0 + y;
         a.pos.set(R.x, g0 + y + 7.5, R.z + 0.2);
         a.heading = 0;
         if (flame.visible && Math.random() < 0.4) b.sparkles.burst(new THREE.Vector3(R.x, g0 + y - 1, R.z), 3, '#ffc83d');
+        if (t > 0.3 && t < 2.3 && Math.floor(t) !== Math.floor(t - dt)) b.sound.star(5 - Math.floor(t));
+        if (flame.visible && Math.floor(t / 0.5) !== Math.floor((t - dt) / 0.5)) b.sound.fx?.('engine');
       },
-      end: () => { rocket.position.set(R.x, g0, R.z); flame.visible = false; return 'Uzaydan adayı gördün!'; },
+      end: () => {
+        rocket.position.set(R.x, g0, R.z);
+        flame.visible = false;
+        b.enter?.('mars', { x: R.x + 5, z: R.z + 5, h: Math.PI / 4 });
+        return 'Mars’a vardın!';
+      },
     },
   });
   b.place(sign('Roket Üssü', '#dcecff'), R.x - 10, R.z + 10, b.facing(R.x - 10, R.z + 10, 0, 0));

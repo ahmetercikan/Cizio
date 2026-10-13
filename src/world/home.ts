@@ -1,9 +1,10 @@
 /**
- * Evim: bebek evi gibi kesit görünümlü 3B ev (Çizio Adası'nda evin kapısından girilir).
+ * Evim: içinde gezilen 3B ev (Çizio Adası'nda evin kapısından girilir), PK XD gibi.
  *
- * Kamera yukarıdan çapraz bakar (ortografik), sürükleyerek döner; kameraya bakan duvarlar alçalır ki içerisi görünsün.
+ * Kamera karakterin arkasından takip eder (sürükleyerek döner, yakınlaşır); karakter joystick ile yürür, duvarlara ve
+ * eşyalara çarpar. Kamera ile karakter arasına giren duvarlar alçalır ki karakter hep görünsün.
  * Yaşam modunda bir eşyaya dokununca karakter oraya yürür ve onunla oynar (oturur, uyur, yemek yapar…); yere dokununca
- * oraya yürür. Eşya modunda katalogdan seçilen eşya yeşil (sığar) / kırmızı (sığmaz) önizlemeyle yerleştirilir;
+ * oraya yürür. Eşya modunda kamera yukarı çıkar, seçilen eşya karakterin önünde taşınır ya da dokunulan yere konur. Eşya modunda katalogdan seçilen eşya yeşil (sığar) / kırmızı (sığmaz) önizlemeyle yerleştirilir;
  * yerleşmiş bir eşyaya dokununca döndürme, renk, taşıma ve satma seçilir.
  * Kurallar src/world/homeData.ts, modeller src/world/homeModels.ts. Ada ile aynı WebGL çiziciyi kullanır.
  */
@@ -13,7 +14,7 @@ import { Avatar3D, type Pose } from './avatar3d';
 import type { DollState } from '../dressup/catalog';
 import { petCard } from './puppet';
 import {
-  canPlace, changePlan, facing, FLOORS, footprint, item, lot, normalizeHome, path, plan, PLANS, roomAt, sellPrice, useTile, wallAt, walls, WALLS,
+  canPlace, changePlan, facing, FLOORS, footprint, item, lot, normalizeHome, occupied, path, plan, PLANS, roomAt, sellPrice, useTile, wallAt, walls, WALLS,
   type HomeState, type Placed, type Side, type Use,
 } from './homeData';
 import { clearFloorTex, clearGeos, clearMats, floorTexture, furniture, soft } from './homeModels';
@@ -51,7 +52,10 @@ interface WallMesh { full: THREE.Object3D; stub: THREE.Object3D; x: number; z: n
 
 export class HomeScene {
   private scene = new THREE.Scene();
-  private camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 400);
+  private camera = new THREE.PerspectiveCamera(55, 1, 0.05, 300);
+  private dist = 4.2;
+  private camReady = false;
+  private joy = new THREE.Vector2();
   private sun: THREE.DirectionalLight;
   private sparkles: Sparkles;
   private lotG = new THREE.Group();
@@ -65,9 +69,8 @@ export class HomeScene {
   private petPos = new THREE.Vector3();
   private petTarget: THREE.Vector3 | null = null;
   private h: HomeState;
-  private yaw = Math.PI / 4;
-  private yawGoal = Math.PI / 4;
-  private size = 6.4;
+  private yaw = 0;
+  private yawGoal = 0;
   private raf = 0;
   private last = 0;
   private clock = 0;
@@ -93,7 +96,13 @@ export class HomeScene {
 
   constructor(private renderer: THREE.WebGLRenderer, private canvas: HTMLCanvasElement, private o: { doll: DollState; pet: HTMLCanvasElement | null; art: HTMLCanvasElement[] }, private bridge: HomeBridge, private ev: HomeEvents) {
     this.h = normalizeHome(bridge.get());
-    this.scene.background = new THREE.Color('#f4efe8');
+    this.scene.background = new THREE.Color('#bfe3ff');
+    this.scene.fog = new THREE.Fog('#bfe3ff', 30, 80);
+    // arsanın çevresi çimen (kamera alçaktan bakınca boşluk görünmesin)
+    const field = new THREE.Mesh(new THREE.CircleGeometry(90, 48).rotateX(-Math.PI / 2), soft('#b9dc9c'));
+    field.position.y = -0.12;
+    field.receiveShadow = true;
+    this.scene.add(field);
     this.scene.add(new THREE.HemisphereLight('#ffffff', '#e6dcf5', 1.25));
     this.sun = new THREE.DirectionalLight('#fff3e2', 1.6);
     this.sun.castShadow = true;
@@ -289,13 +298,11 @@ export class HomeScene {
       }
     }
     this.buildItems();
-    this.cutaway();
     // güneş ve gölge alanı
     const R = Math.max(L.w, L.d) * 0.75;
     Object.assign(this.sun.shadow.camera, { left: -R, right: R, top: R, bottom: -R, near: 1, far: 120 });
     this.sun.shadow.camera.updateProjectionMatrix();
     this.sun.position.set(-14, 26, 12);
-    this.updateCamera();
   }
 
   private roomKey(id: string) {
@@ -374,6 +381,7 @@ export class HomeScene {
       this.itemsG.add(obj);
       this.itemObjs[i] = obj;
     });
+    this.occ = occupied(this.h);
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -386,22 +394,105 @@ export class HomeScene {
     this.yawGoal += (dir * Math.PI) / 2;
   }
   zoom(k: number) {
-    this.size = Math.min(16, Math.max(4.5, this.size * k));
-    this.updateCamera();
+    this.dist = Math.min(7.5, Math.max(2, this.dist * k));
   }
   private updateCamera() {
     const w = this.canvas.clientWidth || 1, h = this.canvas.clientHeight || 1;
-    const a = w / h;
-    const s = this.size * (a < 1 ? 1.25 : 1);
-    Object.assign(this.camera, { left: -s * a, right: s * a, top: s, bottom: -s });
+    this.camera.aspect = w / h;
+    this.camera.fov = w < h ? 66 : 55;
     this.camera.updateProjectionMatrix();
-    const pitch = 0.66;
-    const d = 60;
-    this.camera.position.set(Math.sin(this.yaw) * Math.cos(pitch) * d, Math.sin(pitch) * d, Math.cos(this.yaw) * Math.cos(pitch) * d);
-    this.camera.lookAt(0, 0.6, 0);
+  }
+  /** Kamera karakteri arkadan izler; eşya modunda daha yukarıdan bakar. */
+  private follow(dt: number) {
+    const build = this.mode === 'build';
+    const pitch = build ? 1.0 : 0.82;
+    const d = this.dist * (build ? 1.9 : 1);
+    const target = this.pos.clone().setY(this.pos.y + (build ? 0.2 : 0.55));
+    const want = target.clone().add(new THREE.Vector3(Math.sin(this.yaw) * Math.cos(pitch) * d, Math.sin(pitch) * d, Math.cos(this.yaw) * Math.cos(pitch) * d));
+    if (!this.camReady) {
+      this.camera.position.copy(want);
+      this.camReady = true;
+    } else this.camera.position.lerp(want, Math.min(1, dt * 6));
+    this.camera.lookAt(target);
+  }
+  /** Kamera ile karakter arasına giren duvarları alçalt (karakter hep görünsün). */
+  private occlusion() {
+    const L = this.L;
+    const C = new THREE.Vector2(this.camera.position.x, this.camera.position.z);
+    const H = new THREE.Vector2(this.pos.x, this.pos.z);
+    const dir = H.clone().sub(C);
+    const perp = new THREE.Vector2(-dir.y, dir.x).normalize().multiplyScalar(0.4);
+    const rays = [H, H.clone().add(perp), H.clone().sub(perp)];
+    const cross = (a: THREE.Vector2, b: THREE.Vector2, c: THREE.Vector2, d: THREE.Vector2) => {
+      const r = b.clone().sub(a), q = d.clone().sub(c);
+      const den = r.x * q.y - r.y * q.x;
+      if (Math.abs(den) < 1e-9) return false;
+      const t = ((c.x - a.x) * q.y - (c.y - a.y) * q.x) / den, u = ((c.x - a.x) * r.y - (c.y - a.y) * r.x) / den;
+      return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    };
+    for (const w of this.wallMeshes) {
+      const A = new THREE.Vector2(w.x - L.w / 2, w.z - L.d / 2);
+      const B = w.side === 'n' ? new THREE.Vector2(A.x + 1, A.y) : new THREE.Vector2(A.x, A.y + 1);
+      // kamerayla karakter arasında ya da kameraya çok yakın duvarlar alçalır
+      const mid = A.clone().add(B).multiplyScalar(0.5);
+      const t = mid.clone().sub(C).dot(dir) / dir.lengthSq();
+      const near = t > -0.2 && t < 0.95 && Math.abs((mid.x - C.x) * dir.y - (mid.y - C.y) * dir.x) / dir.length() < 1.1;
+      const low = near || rays.some((h) => cross(C, h, A, B));
+      w.full.visible = !low;
+      w.stub.visible = low;
+    }
+    const cx = this.camera.position.x - this.pos.x, cz = this.camera.position.z - this.pos.z;
+    for (const t of this.towers) t.obj.visible = t.dx * cx + t.dz * cz < 0;
   }
 
-  /** Kameraya bakan duvarları alçalt (içerisi görünsün). */
+  /** Joystick (kameraya göre). */
+  setJoystick(x: number, y: number) {
+    this.joy.set(x, y);
+  }
+  /** Bu noktaya geçilebilir mi (duvar, eşya, arsa sınırı). */
+  private canStep(from: THREE.Vector3, to: THREE.Vector3) {
+    const a = this.worldToTile(from), b = this.worldToTile(to);
+    if (roomAt(this.P, b[0], b[1]) === null) return false;
+    if (a[0] === b[0] && a[1] === b[1]) return true;
+    {
+      if (Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) > 1) return false;
+      const side: Side = b[0] > a[0] ? 'e' : b[0] < a[0] ? 'w' : b[1] > a[1] ? 's' : 'n';
+      if (wallAt(this.P, a[0], a[1], side)) return false;
+    }
+    const o = this.occ.get(`${b[0]},${b[1]}`);
+    return !o || o.flat;
+  }
+  private occ = new Map<string, { i: number; flat: boolean }>();
+  private walkJoy(dt: number) {
+    const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    const r = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const mv = f.multiplyScalar(this.joy.y).add(r.multiplyScalar(this.joy.x));
+    const mag = Math.min(1, mv.length());
+    mv.normalize();
+    const sp = 2.3 * mag * dt;
+    const R = 0.2;
+    for (const axis of ['x', 'z'] as const) {
+      const step = mv[axis] * sp;
+      if (!step) continue;
+      const next = this.pos.clone();
+      next[axis] += step;
+      const probe = next.clone();
+      probe[axis] += Math.sign(step) * R;
+      if (this.canStep(this.pos, probe)) this.pos[axis] = next[axis];
+    }
+    const [tx, tz] = this.worldToTile(this.pos);
+    this.pos.y = this.floorAt(tx, tz);
+    const want = Math.atan2(mv.x, mv.z);
+    this.heading += Math.atan2(Math.sin(want - this.heading), Math.cos(want - this.heading)) * Math.min(1, dt * 12);
+    // eşya modunda seçili eşya karakterin önünde taşınır
+    if (this.ghost) {
+      const front = this.worldToTile(this.pos.clone().add(new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading)).multiplyScalar(1.1)));
+      if (front[0] !== this.ghost.p.x || front[1] !== this.ghost.p.z) this.moveGhost(front);
+    }
+    return mag;
+  }
+
+  /** Kameraya bakan duvarları alçalt (eşya modu: bebek evi görünümü). */
   private cutaway() {
     const cx = Math.sin(this.yaw), cz = Math.cos(this.yaw);
     for (const w of this.wallMeshes) {
@@ -1052,13 +1143,15 @@ export class HomeScene {
     // kamera dönüşü
     if (Math.abs(this.yawGoal - this.yaw) > 0.0005) {
       this.yaw += (this.yawGoal - this.yaw) * Math.min(1, dt * 8);
-      this.updateCamera();
-      this.cutaway();
       if (this.ghost) this.refreshGhost();
     }
     let pose: Pose = 'walk';
     let speed = 0;
-    if (this.act) {
+    if (!this.act && this.joy.lengthSq() > 0.01) {
+      this.route = [];
+      this.onArrive = null;
+      speed = this.walkJoy(dt);
+    } else if (this.act) {
       const a = this.act;
       a.t += dt;
       const u = Math.min(1, a.t / a.dur);
@@ -1104,7 +1197,7 @@ export class HomeScene {
       if (d.length() > 0.2) this.petPos.addScaledVector(d, Math.min(1, dt * 3));
       const [tx, tz] = this.worldToTile(this.petPos);
       this.pet.position.set(this.petPos.x, this.floorAt(tx, tz) + (d.length() > 0.2 ? Math.abs(Math.sin(this.clock * 10)) * 0.12 : 0), this.petPos.z);
-      this.pet.rotation.y = this.yaw;
+      this.pet.rotation.y = Math.atan2(this.camera.position.x - this.pet.position.x, this.camera.position.z - this.pet.position.z);
     }
     // canlı küçük şeyler: akvaryumdaki balıklar
     for (const o of this.itemObjs) {
@@ -1115,6 +1208,9 @@ export class HomeScene {
     }
     if (this.sel >= 0) this.selRing.rotation.z += dt;
     this.sparkles.update(dt);
+    this.follow(dt);
+    if (this.mode === 'build') this.cutaway();
+    else this.occlusion();
     this.renderer.render(this.scene, this.camera);
     this.raf = requestAnimationFrame(this.frame);
   };

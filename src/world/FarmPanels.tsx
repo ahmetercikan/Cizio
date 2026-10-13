@@ -434,10 +434,10 @@ export function LevelUp({ level, unlocks, onClose }: { level: number; unlocks: {
   );
 }
 
-export function RealmHud({ name, goal, progress, icon, onLeave }: { name: string; goal: string; progress: string; icon: string; onLeave: () => void }) {
+export function RealmHud({ name, goal, progress, icon, leave = 'Adaya dön', onLeave }: { name: string; goal: string; progress: string; icon: string; leave?: string; onLeave: () => void }) {
   return (
     <div className="realm-hud">
-      <button className="pill pill--sm pill--yellow" onClick={onLeave}><LogOut size={18} /> Adaya dön</button>
+      <button className="pill pill--sm pill--yellow" onClick={onLeave}><LogOut size={18} /> {leave}</button>
       <div className="realm-hud__goal"><b>{name}</b><span>{goal}</span></div>
       {progress && <span className="realm-hud__prog"><GameIcon name={icon} size={24} /> {progress}</span>}
     </div>

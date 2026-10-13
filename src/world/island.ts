@@ -10,15 +10,16 @@
  */
 import * as THREE from 'three';
 import { cloud, disposeScene, makeRenderer, Sparkles, star } from '../play3d/kit';
-import { Avatar3D, type Pose } from './avatar3d';
+import { spaceHelmet, Avatar3D, type Pose } from './avatar3d';
 import type { DollState } from '../dressup/catalog';
 import { isWater, WORLD_R } from './layout';
 import { petCard } from './puppet';
 import { BlockGrid, buildHorizon, buildTerrain, buildVegetation } from './terrain';
 import { buildPlaces } from './places';
 import { buildZones, starPlaces, WorldBuilder, type Activity, type SpotDef, type Vehicle } from './zones';
-import { buildMarket, buildPortals, buildShops, Homestead, REALMS, type FarmBridge, type RealmId } from './homestead';
-import { makeRealm, type Hero, type Realm } from './realms';
+import { buildMarket, buildPortals, buildShops, Homestead, realmName, type FarmBridge, type RealmId } from './homestead';
+import { type Hero, type Realm } from './realms';
+import { makeRealm } from './worlds';
 import { blockById, buyBlueprint, placedBlocks, placeStruct, removeStruct, struct, type FarmState, type PlaceKind } from './economy';
 import { blueprint as blueprintParts } from './build';
 import type { Cell } from './build';
@@ -56,7 +57,7 @@ function nameTag(name: string) {
 
 export interface Spot { id: string; pos: THREE.Vector3; r: number; label: string }
 
-export interface RealmInfo { id: RealmId; name: string; goal: string }
+export interface RealmInfo { id: RealmId; name: string; goal: string; leave: string; icon: string }
 
 export interface IslandEvents {
   onNear: (s: Spot | null) => void;
@@ -79,7 +80,7 @@ export interface IslandEvents {
   onRealmFinish?: (id: RealmId, bonus: number, text: string) => void;
   /** Kahraman inşa alanında mı (İnşa düğmesi için). */
   onBuildArea?: (inside: boolean) => void;
-  sound: { star: (i: number) => void; pop: () => void; note: (i: number) => void; kick: () => void; whoosh?: () => void; fx?: (name: string, i?: number) => void };
+  sound: { star: (i: number) => void; pop: () => void; note: (i: number) => void; kick: () => void; whoosh?: () => void; fx?: (name: string, i?: number) => void; engine?: (level: number, kind: string) => void };
 }
 
 export interface IslandOptions {
@@ -163,6 +164,10 @@ export class Island {
   // macera kapıları
   private realm: Realm | null = null;
   private realmBack = new THREE.Vector3();
+  /** Dünyadan çıkınca adada durulacak yer ve yön (bina kapısının önü gibi). */
+  private realmReturn: { x: number; z: number; h: number } | null = null;
+  private helmet: THREE.Object3D | null = null;
+  private engineOn = false;
   private seed = 1;
   /** Evim'deyken arkadaşlar adada görmesin. */
   away = false;
@@ -229,6 +234,7 @@ export class Island {
         this.ev.onDone(quest);
       },
       { note: (i) => this.ev.sound.note(i), kick: () => this.ev.sound.kick(), pop: () => this.ev.sound.pop(), star: (i) => this.ev.sound.star(i), whoosh: () => this.ev.sound.whoosh?.(), fx: (n, i) => this.ev.sound.fx?.(n, i) });
+    this.wb.enter = (id, back) => this.enterRealm(id, back);
     buildZones(this.wb, o.taken);
     buildPlaces(this.wb);
     mark('bölgeler');
@@ -350,7 +356,7 @@ export class Island {
     const v = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     this.ray.setFromCamera(v, this.camera);
     if (this.building && !this.realm) return this.buildTap();
-    if (this.drive || this.realm) return this.jump();
+    if (this.drive) return this.jump();
     const s = this.spotUnderTap();
     if (!s) return this.jump();
     const d = Math.hypot(s.x - this.pos.x, s.z - this.pos.z);
@@ -361,7 +367,7 @@ export class Island {
   }
   /** Dokunulan noktanın yakınındaki mekân (arazi ya da gökyüzü değilse). */
   private spotUnderTap(): SpotDef | null {
-    const hits = this.ray.intersectObjects(this.scene.children, true);
+    const hits = this.ray.intersectObjects(this.stage.children, true);
     for (const h of hits) {
       let o: THREE.Object3D | null = h.object;
       if (o === this.shadow || o === this.pick || o === this.sea) continue;
@@ -369,7 +375,7 @@ export class Island {
       if (o) continue; // kendi karakterine dokundu
       if (h.object === this.land || h.distance > 90) return null;
       let best: SpotDef | null = null, bd = Infinity;
-      for (const s of this.spots) {
+      for (const s of this.live) {
         if (s.dyn && s.dyn() === null) continue;
         const x = s.vehicle ? s.vehicle.pos.x : s.x, z = s.vehicle ? s.vehicle.pos.z : s.z;
         const d = Math.hypot(h.point.x - x, h.point.z - z);
@@ -413,8 +419,8 @@ export class Island {
   }
   /** Yakındaki mekânın etkinliği ya da aracı. */
   activity(id: string) {
-    if (this.act || this.drive || this.realm) return;
-    const s = this.spots.find((x) => x.id === id);
+    if (this.act || this.drive) return;
+    const s = this.live.find((x) => x.id === id);
     if (!s) return;
     this.target = null;
     this.pending = null;
@@ -514,9 +520,23 @@ export class Island {
     return this.myCar?.id ?? null;
   }
   /** Korna. */
+  /** Aracın türü: korna ve motor sesi için. */
+  private vehicleKind(): { horn: number; engine: string } {
+    const v = this.drive;
+    if (!v) return { horn: 0, engine: '' };
+    const car = this.myCar && this.myCar.spot.vehicle === v ? this.myCar.id : '';
+    if (car === 'bisiklet') return { horn: 3, engine: '' };
+    if (car === 'unicorn' || car === 'limuzin') return { horn: 4, engine: 'car' };
+    if (v.fly) return { horn: 4, engine: 'fly' };
+    if (!v.land) return { horn: 2, engine: 'boat' };
+    if (car === 'jip' || car === 'karavan') return { horn: 1, engine: 'truck' };
+    return { horn: 0, engine: 'car' };
+  }
   honk() {
-    this.ev.sound.note(4);
-    setTimeout(() => this.ev.sound.note(4), 160);
+    const k = this.vehicleKind().horn;
+    this.ev.sound.fx?.('horn', k);
+    // araba kornası: kısa ve uzun ("bip-biiip")
+    if (k <= 1) setTimeout(() => this.ev.sound.fx?.('horn', k), 420);
   }
   private carY(v: { fly?: boolean }, x: number, z: number) {
     const g = this.wb.ground(x, z);
@@ -669,6 +689,7 @@ export class Island {
     return this.renderer;
   }
   suspend() {
+    this.ev.sound.engine?.(-1, '');
     cancelAnimationFrame(this.raf);
     this.raf = 0;
     this.resizeObs.disconnect();
@@ -698,9 +719,11 @@ export class Island {
   setSeed(seed: number) {
     this.seed = seed >>> 0;
   }
-  enterRealm(id: RealmId) {
+  enterRealm(id: RealmId, back?: { x: number; z: number; h: number }) {
     if (this.realm) return;
     this.realmBack.copy(this.pos);
+    this.realmReturn = back ?? null;
+    if (this.drive) this.dismount();
     const realm = makeRealm(id, {
       progress: (t) => this.ev.onRealmProgress?.(t),
       msg: (t) => this.ev.onMessage(t),
@@ -708,7 +731,8 @@ export class Island {
         this.ev.onRealmFinish?.(id, bonus, text);
         this.ev.onDone(id);
       },
-      sound: { star: (i) => this.ev.sound.star(i), pop: () => this.ev.sound.pop() },
+      sound: { star: (i) => this.ev.sound.star(i), pop: () => this.ev.sound.pop(), note: (i) => this.ev.sound.note(i), fx: (n, i) => this.ev.sound.fx?.(n, i), whoosh: () => this.ev.sound.whoosh?.() },
+      leave: () => this.leaveRealm(),
     }, this.seed);
     this.realm = realm;
     if (this.building) this.setBuildMode(false);
@@ -725,25 +749,41 @@ export class Island {
     this.petPos.copy(this.pos).add(new THREE.Vector3(1.5, 0, 1));
     this.camera.position.set(this.pos.x + Math.sin(this.camYaw) * 13, this.pos.y + 8, this.pos.z + Math.cos(this.camYaw) * 13);
     this.setNear(null);
-    const def = REALMS.find((r) => r.id === id)!;
-    this.ev.onRealm?.({ id, name: def.name, goal: realm.goal });
+    if (realm.helmet) this.wearHelmet(true);
+    this.ev.onRealm?.({ id, name: realm.name || realmName(id), goal: realm.goal, leave: realm.leave, icon: realm.icon });
+  }
+  /** Uzay kaskı (Mars). */
+  private wearHelmet(on: boolean) {
+    if (!on) {
+      this.helmet?.removeFromParent();
+      return;
+    }
+    this.helmet ??= spaceHelmet();
+    this.avatar.head.add(this.helmet);
   }
   leaveRealm() {
     const r = this.realm;
     if (!r) return;
+    if (this.act) {
+      this.act = null;
+      this.ev.onBusy(false);
+    }
     this.realm = null;
+    this.wearHelmet(false);
     this.moveActors(this.scene);
     disposeScene(r.scene);
     r.dispose();
     // kapının önüne dön
-    const back = this.realmBack;
-    this.pos.set(back.x + 2.5, this.wb.ground(back.x + 2.5, back.z), back.z);
-    this.heading = Math.PI / 2;
+    const back = this.realmBack, ret = this.realmReturn;
+    const [x, z, h] = ret ? [ret.x, ret.z, ret.h] : [back.x + 2.5, back.z, Math.PI / 2];
+    this.pos.set(x, this.wb.ground(x, z), z);
+    this.heading = h;
     this.hero.vy = 0;
     this.hero.grounded = true;
     this.petPos.copy(this.pos).add(new THREE.Vector3(1.5, 0, 1));
-    this.camera.position.set(this.pos.x - 12, this.pos.y + 8, this.pos.z);
-    this.camYaw = this.camYawGoal = -Math.PI / 2;
+    this.camYaw = this.camYawGoal = h + Math.PI;
+    this.camera.position.set(this.pos.x + Math.sin(this.camYaw) * 12, this.pos.y + 8, this.pos.z + Math.cos(this.camYaw) * 12);
+    this.setNear(null);
     this.ev.onRealm?.(null);
   }
   get realmId(): RealmId | null {
@@ -788,6 +828,10 @@ export class Island {
     if (this.act) this.stepActivity(dt);
     else if (this.drive) this.stepDrive(dt);
     else this.stepWalk(dt);
+    if (this.engineOn && !this.drive) {
+      this.engineOn = false;
+      this.ev.sound.engine?.(-1, '');
+    }
     if (this.realm) {
       const out = this.realm.update(dt, this.clock, this.hero);
       if (out) this.leaveRealm();
@@ -806,7 +850,7 @@ export class Island {
     if (this.target) {
       const d = this.target.clone().sub(this.pos).setY(0);
       const l = d.length();
-      const sp = this.pending ? this.spots.find((s) => s.id === this.pending) : null;
+      const sp = this.pending ? this.live.find((s) => s.id === this.pending) : null;
       if (l < (sp ? sp.r * 0.8 : 0.4)) {
         this.target = null;
         if (sp) {
@@ -871,7 +915,7 @@ export class Island {
     } else if (this.hero.grounded && this.hero.vy <= 0 && f > this.pos.y - 0.7 && f < this.pos.y + 0.5) {
       this.pos.y += (f - this.pos.y) * Math.min(1, dt * 14);
     } else {
-      this.hero.vy -= GRAVITY * dt;
+      this.hero.vy -= GRAVITY * (this.realm?.gravity ?? 1) * dt;
       this.pos.y += this.hero.vy * dt;
       if (this.pos.y <= f && this.hero.vy <= 0) {
         if (this.hero.vy < -14) this.fx.burst(this.pos.clone().setY(f + 0.2), 6, '#ffffff');
@@ -887,7 +931,7 @@ export class Island {
         if (this.hero.vy > 0 && this.blockedAt(this.pos.x, this.pos.z, this.pos.y - 0.2)) this.hero.vy = 0;
       }
     }
-    if (this.realm) return;
+    if (this.realm) return this.scanNear();
     if (this.swimming) {
       this.swimTime += dt;
       if (this.swimTime > 8 && this.swimTime - dt <= 8) {
@@ -907,9 +951,18 @@ export class Island {
       }
     }
     this.stepMusic();
-    // en yakın mekân (kendi yarıçapı içinde)
+    this.scanNear();
+  }
+
+  /** Adadaki ya da içinde bulunulan dünyadaki mekânlar. */
+  private get live(): SpotDef[] {
+    return this.realm ? this.realm.spots : this.spots;
+  }
+
+  /** En yakın mekân (kendi yarıçapı içinde): eylem düğmesi. */
+  private scanNear() {
     let near: SpotDef | null = null, best = Infinity, label = '';
-    if (this.clock > this.nearQuietUntil) for (const s of this.spots) {
+    if (this.clock > this.nearQuietUntil) for (const s of this.live) {
       const x = s.vehicle ? s.vehicle.pos.x : s.x, z = s.vehicle ? s.vehicle.pos.z : s.z;
       const d = Math.hypot(x - this.pos.x, z - this.pos.z) / s.r;
       if (d >= 1 || d >= best) continue;
@@ -949,6 +1002,8 @@ export class Island {
   private stepDrive(dt: number) {
     const v = this.drive!;
     const { dir, mag } = this.moveDir();
+    this.engineOn = true;
+    this.ev.sound.engine?.(mag, this.vehicleKind().engine);
     if (mag > 0) {
       v.heading += angDiff(Math.atan2(dir.x, dir.z), v.heading) * Math.min(1, dt * 3);
       const f = new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading));
@@ -990,21 +1045,31 @@ export class Island {
     a.def.step(a.t, u, this.actor, dt);
     this.heading = this.actor.heading;
     if (u < 1) return;
+    const r0 = this.realm;
     const msg = a.def.end?.(this.actor);
-    this.heading = this.actor.heading;
+    if (this.realm === r0) this.heading = this.actor.heading;
     this.act = null;
     if (a.def.underwater) this.setUnderwater(false);
     this.ev.onBusy(false);
-    if (this.realm) return; // kapıdan geçildi
-    // etkinlik bitince kahraman yere (ya da suya) iner
-    const g = this.wb.ground(this.pos.x, this.pos.z);
-    if (Math.abs(this.pos.y - g) > 0.4) {
-      if (g < -0.7) this.pos.y = -0.55;
-      else this.pos.set(a.spot.x, this.wb.ground(a.spot.x, a.spot.z), a.spot.z);
+    // etkinlik bir dünyaya girip çıkardıysa (kapı, roket) yeri o ayarladı
+    if (this.realm !== r0) {
+      if (msg) this.ev.onMessage(msg);
+      return;
+    }
+    if (this.realm) {
+      const f = this.realm.floor(this.pos.x, this.pos.z, this.pos.y + 0.5);
+      if (Number.isFinite(f)) this.pos.y = Math.max(f, Math.min(this.pos.y, f + 0.4));
+    } else {
+      // etkinlik bitince kahraman yere (ya da suya) iner
+      const g = this.wb.ground(this.pos.x, this.pos.z);
+      if (Math.abs(this.pos.y - g) > 0.4) {
+        if (g < -0.7) this.pos.y = -0.55;
+        else this.pos.set(a.spot.x, this.wb.ground(a.spot.x, a.spot.z), a.spot.z);
+      }
     }
     if (msg) this.ev.onMessage(msg);
     this.ev.onDone(a.def.quest ?? a.spot.id);
-    this.sparkles.burst(this.pos.clone().setY(this.pos.y + 2), 14);
+    this.fx.burst(this.pos.clone().setY(this.pos.y + 2), 14);
   }
 
   private setUnderwater(on: boolean) {
@@ -1137,6 +1202,7 @@ export class Island {
     const sun = this.realm?.sun ?? this.sun;
     sun.position.set(this.pos.x - 30, this.pos.y + 60, this.pos.z + 26);
     sun.target.position.set(this.pos.x, this.pos.y, this.pos.z);
+    this.realm?.beforeRender?.(this.camera, this.pos);
     this.renderer.render(this.stage, this.camera);
   }
 
@@ -1251,6 +1317,7 @@ export class Island {
   }
 
   dispose() {
+    this.ev.sound.engine?.(-1, '');
     cancelAnimationFrame(this.raf);
     this.resizeObs.disconnect();
     this.avatar.dispose();

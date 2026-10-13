@@ -1,5 +1,5 @@
 /**
- * Kasabadaki Butik (nadir kıyafetler ada altınıyla) ve Oyun Çadırı (mini oyunlar: hafıza kartları, balon patlatma).
+ * Kasabadaki Butik (nadir kıyafetler ada altınıyla) ve Oyun Çadırı (8 mini oyun; yenileri src/world/MiniGames.tsx).
  * Mini oyunu bitiren altın kazanır; günde 3 kez de evine bir eşya ya da üstüne bir kıyafet (economy.ts miniReward).
  */
 import { PartyPopper, Shirt, Trophy, X } from 'lucide-react';
@@ -15,7 +15,7 @@ const SLOT_PRICE: Record<RareItem['slot'], number> = { back: 260, pet: 220, dres
 const SLOT_ICON: Record<RareItem['slot'], string> = { back: 'kanat', pet: 'pati', dress: 'elbise', hat: 'tac', shoes: 'ayakkabi', bg: 'gokkusagi' };
 export const rarePrice = (r: RareItem) => SLOT_PRICE[r.slot];
 
-function Panel({ title, icon, onClose, children }: { title: string; icon: ReactNode; onClose: () => void; children: ReactNode }) {
+export function Panel({ title, icon, onClose, children }: { title: string; icon: ReactNode; onClose: () => void; children: ReactNode }) {
   return (
     <Modal onClose={onClose} className="modal--wide farm-modal">
       <div className="art-view__head">
@@ -60,15 +60,28 @@ export function BoutiquePanel({ coins, owned, onBuy, onClose, onHint, onWear }: 
 // ------------------------------------------------------------------------------------------------
 // Oyun Çadırı
 // ------------------------------------------------------------------------------------------------
-export function GamesPanel({ left, onPlay, onClose }: { left: number; onPlay: (g: 'memory' | 'balloon') => void; onClose: () => void }) {
+export type MiniGameId = 'memory' | 'balloon' | 'catch' | 'mole' | 'simon' | 'puzzle' | 'math' | 'shadow';
+const GAMES: { id: MiniGameId; icon: string; name: string; hint: string }[] = [
+  { id: 'memory', icon: 'kartlar', name: 'Hafıza kartları', hint: 'Eşleri bul' },
+  { id: 'balloon', icon: 'balon', name: 'Balon patlat', hint: 'Doğru renkleri patlat' },
+  { id: 'catch', icon: 'cilek', name: 'Meyve Yakala', hint: 'Sepetle topla' },
+  { id: 'mole', icon: 'tarla', name: 'Köstebek Vur', hint: 'Çıkanlara dokun' },
+  { id: 'simon', icon: 'nota', name: 'Renk Dizisi', hint: 'Sırayı hatırla' },
+  { id: 'puzzle', icon: 'kutu', name: 'Kayan Yapboz', hint: '1-8 sırala' },
+  { id: 'math', icon: 'yildiz', name: 'Toplama Balonları', hint: 'Doğru sonucu bul' },
+  { id: 'shadow', icon: 'ampul', name: 'Gölgeyi Bul', hint: 'Resmin gölgesi' },
+];
+
+export function GamesPanel({ left, onPlay, onClose }: { left: number; onPlay: (g: MiniGameId) => void; onClose: () => void }) {
   return (
     <Panel title="Oyun Çadırı" icon={<PartyPopper size={24} style={{ verticalAlign: '-4px' }} />} onClose={onClose}>
       <p className="sub" style={{ marginTop: 0 }}>
         Oyunu bitir, altın kazan! {left > 0 ? `Bugün ${left} kez de evine bir eşya ya da sana yeni bir kıyafet çıkabilir.` : 'Bugünkü eşya ödülleri bitti; yarın yine gel. Altın kazanmaya devam!'}
       </p>
       <div className="mini-pick">
-        <button onClick={() => onPlay('memory')}><GameIcon name="kartlar" size={56} /><b>Hafıza kartları</b><small>Eşleri bul</small></button>
-        <button onClick={() => onPlay('balloon')}><GameIcon name="balon" size={56} /><b>Balon patlat</b><small>Doğru renkleri patlat</small></button>
+        {GAMES.map((g) => (
+          <button key={g.id} onClick={() => onPlay(g.id)}><GameIcon name={g.icon} size={52} /><b>{g.name}</b><small>{g.hint}</small></button>
+        ))}
       </div>
     </Panel>
   );

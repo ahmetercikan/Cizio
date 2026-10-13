@@ -260,9 +260,66 @@ const RIDE: Record<string, (i: number) => void> = {
   },
   /** Kısa sevinç: üç nota yukarı. */
   yay: () => [0, 2, 4].forEach((k) => fm(NOTE(k + 7), k * 0.09, 0.4, 0.08, 3.5, 1.6, 1)),
+  /**
+   * Korna (i: 0 araba, 1 jip/karavan, 2 tekne/jet ski düdüğü, 3 bisiklet zili, 4 sihirli araba).
+   * Gerçek arabalardaki gibi iki ton (yaklaşık 415 ve 520 Hz) birlikte; kare dalga, yumuşatılmış.
+   */
+  horn: (i) => {
+    if (i === 3) {
+      for (const k of [0, 0.16]) {
+        fm(2350, k, 0.55, 0.07, 1.47, 3, 0.4);
+        fm(3120, k, 0.4, 0.04, 1.47, 2, 0.4);
+      }
+      return;
+    }
+    if (i === 4) {
+      [0, 4, 7, 11].forEach((s, k) => fm(784 * 2 ** (s / 12), k * 0.07, 0.5, 0.06, 3.5, 1.6, 0.8));
+      return;
+    }
+    const [f1, f2, dur, g, lp] = i === 2 ? [118, 176, 1.3, 0.07, 700] : i === 1 ? [330, 415, 0.42, 0.045, 2000] : [415, 520, 0.36, 0.04, 2600];
+    for (const f of [f1, f2]) {
+      sweep('square', f, f * 0.99, 0, dur, g, { lp, wet: 0.12 });
+      sweep('sawtooth', f * 2, f * 1.98, 0, dur, g * 0.25, { lp, wet: 0 });
+    }
+  },
   /** Ayak sesi / tahta basamak. */
   step: () => noise(0, 0.05, 0.08, 700, 500, 1.2),
 };
+
+/**
+ * Sürerken motor uğultusu: kalıcı iki osilatör; perde ve ses hıza göre (level 0..1).
+ * kind: 'car' | 'truck' | 'boat' | 'fly' | '' (motor yok: bisiklet ya da araçtan inildi).
+ */
+let eng: { o1: OscillatorNode; o2: OscillatorNode; lp: BiquadFilterNode; g: GainNode } | null = null;
+export function engineSound(level: number, kind: string) {
+  const a = ac();
+  if (!a) return;
+  const t = a.currentTime;
+  if (!kind || level < 0) {
+    if (eng) eng.g.gain.setTargetAtTime(0, t, 0.12);
+    return;
+  }
+  if (!eng) {
+    const o1 = a.createOscillator(), o2 = a.createOscillator(), lp = a.createBiquadFilter(), g = a.createGain();
+    o1.type = 'sawtooth';
+    o2.type = 'square';
+    lp.type = 'lowpass';
+    lp.Q.value = 2;
+    g.gain.value = 0;
+    o1.connect(lp);
+    o2.connect(lp);
+    lp.connect(g).connect(master!);
+    o1.start();
+    o2.start();
+    eng = { o1, o2, lp, g };
+  }
+  const base = kind === 'boat' ? 58 : kind === 'fly' ? 110 : kind === 'truck' ? 40 : 50;
+  const f = base * (1 + level * 1.1);
+  eng.o1.frequency.setTargetAtTime(f, t, 0.12);
+  eng.o2.frequency.setTargetAtTime(f * 0.5 + 1.5, t, 0.12);
+  eng.lp.frequency.setTargetAtTime((kind === 'fly' ? 1200 : 380) + level * 700, t, 0.12);
+  eng.g.gain.setTargetAtTime(0.018 + level * 0.035, t, 0.15);
+}
 
 /** Ada sesleri: `name` RIDE tablosundan; i nota sırası gibi isteğe bağlı bir sayı. */
 export function rideSound(name: string, i = 0) {

@@ -618,7 +618,14 @@ export const REALMS = [
   { id: 'sky', name: 'Gökyüzü Parkuru', color: '#4dabf7', glow: '#bfe9ff', enter: 'Gökyüzü Parkuruna gir' },
   { id: 'candy', name: 'Şeker Diyarı', color: '#f783ac', glow: '#ffd1e8', enter: "Şeker Diyarı'na gir" },
 ] as const;
-export type RealmId = (typeof REALMS)[number]['id'];
+/** Binaların içi (adadaki kapılardan girilir). */
+export const INTERIORS = {
+  okul: 'Okul', hastane: 'Hastane', market: 'Market', kutuphane: 'Kütüphane', pastane: 'Pastane', itfaiye: 'İtfaiye',
+} as const;
+export type InteriorId = keyof typeof INTERIORS;
+export type RealmId = (typeof REALMS)[number]['id'] | 'mars' | InteriorId;
+/** Dünyanın adı (macera kapıları, Mars, binalar). */
+export const realmName = (id: RealmId): string => REALMS.find((r) => r.id === id)?.name ?? (id === 'mars' ? 'Mars' : INTERIORS[id as InteriorId] ?? id);
 
 export function buildPortals(b: WorldBuilder, enter: (id: RealmId) => void) {
   const P = zone('portal');

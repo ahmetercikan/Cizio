@@ -14,25 +14,26 @@ import { Modal } from '../components/ui';
 import { PRESETS } from '../dressup/catalog';
 import { Doll } from '../dressup/Doll';
 import { listArtworks, type Artwork } from '../lib/gallery';
-import { rideSound, sfx } from '../lib/sfx';
+import { engineSound, rideSound, sfx } from '../lib/sfx';
 import { music } from '../lib/music';
 import { speak } from '../lib/speech';
 import { dayKey, hashStr } from '../lib/util';
 import { ISLAND_REWARD, useApp, useProfile, useProfileData } from '../store/useApp';
-import type { Island, Spot } from '../world/island';
+import type { Island, RealmInfo, Spot } from '../world/island';
 import { coastAt, LAKE, SNOW_PEAK, WORLD_R, ZONES, type Zone } from '../world/layout';
 import { buyPlus, canBuy, managePlus, PLUS_ENABLED, restorePlus, usePlus } from '../world/plus';
 import { ISLAND_LINES, QUESTS, STARS_GOAL, todayQuests, type QuestId } from '../world/quests';
 import { Gate } from './Parent';
 import { advanceJourney, CROPS, ANIMALS, STRUCTS, fillOrders, type PlaceKind, miniReward, MINI_ITEMS_PER_DAY, type MiniPrize, newFarm, normalizeFarm, realmReward, unlocksAt, type FarmState, type Result } from '../world/economy';
 import { ownedCars, CoinChip, JourneyNote, PlayerBadge, BlueprintPanel, BuildBar, JournalPanel, KitchenPanel, LevelUp, MarketPanel, OrdersPanel, RealmDone, RealmHud, SeedPanel, type Apply } from '../world/FarmPanels';
-import type { FarmBridge, RealmId } from '../world/homestead';
+import { realmName, type FarmBridge, type RealmId } from '../world/homestead';
 import type { GhostInfo, HomeScene, SelInfo } from '../world/home';
 import { newHome } from '../world/homeData';
 import { CamButtons, Catalog, GhostCard, HomeTop, SelCard } from '../world/HomePanels';
 import { usePremium } from '../world/premium';
 import { GameIcon } from '../world/GameIcon';
 import { BalloonGame, BoutiquePanel, GamesPanel, MemoryGame, PrizeModal } from '../world/Shops';
+import { CatchGame, MathGame, MoleGame, PuzzleGame, ShadowGame, SimonGame } from '../world/MiniGames';
 import { RARE, rareKey } from '../lib/rewards';
 import { ISLAND_ONLINE } from '../online/config';
 import { useOnlineView } from '../online/OnlineHost';
@@ -134,8 +135,15 @@ function IslandPlay() {
   const [near, setNear] = useState<Spot | null>(null);
   const [busy, setBusy] = useState(false);
   const [driving, setDriving] = useState(false);
-  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | 'boutique' | 'games' | 'memory' | 'balloon' | null>(null);
+  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | 'boutique' | 'games' | 'memory' | 'balloon' | 'catch' | 'mole' | 'simon' | 'puzzle' | 'math' | 'shadow' | null>(null);
   const [prize, setPrize] = useState<{ prize: MiniPrize; coins: number } | null>(null);
+  /** Mini oyun bitti: kazandıysa ödül, değilse tekrar dene. */
+  const miniEnd = (won: boolean) => {
+    if (won) return miniWonRef.current();
+    flash('Az kaldı! Bir daha dene.');
+    setPanel('games');
+  };
+  const miniWonRef = useRef<() => void>(() => {});
   // sıradaki hedef notu (kapatılırsa hatırlanır)
   const [noteOpen, setNoteOpen] = useState(() => {
     try {
@@ -190,7 +198,7 @@ function IslandPlay() {
   const [building, setBuilding] = useState(false);
   const [tool, setTool] = useState('ahsap');
   // Macera kapıları
-  const [realm, setRealm] = useState<{ id: RealmId; name: string; goal: string } | null>(null);
+  const [realm, setRealm] = useState<RealmInfo | null>(null);
   const [realmProg, setRealmProg] = useState('');
   const [realmDone, setRealmDone] = useState<{ id: RealmId; name: string; text: string; coins: number } | null>(null);
   // Evim
@@ -308,7 +316,7 @@ function IslandPlay() {
           },
           onRealmProgress: setRealmProg,
           onRealmFinish: (id, bonus, text) => finishRef.current(id, bonus, text),
-          sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick(), whoosh: () => sfx.whoosh(), fx: (n, i) => rideSound(n, i) },
+          sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick(), whoosh: () => sfx.whoosh(), fx: (n, i) => rideSound(n, i), engine: (l, k) => engineSound(l, k) },
         });
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
         setReady(true);
@@ -464,7 +472,7 @@ function IslandPlay() {
     setHomeMode('live');
     setHomeOn(true);
     if (import.meta.env.DEV) Object.assign(window, { __home: h });
-    flash('Evine hoş geldin! Bir eşyaya dokun, onunla oyna.');
+    flash('Evine hoş geldin! Joystick ile içeride gez, eşyalara dokun.');
   };
   const homeRef = useRef(enterHome);
   homeRef.current = enterHome;
@@ -482,6 +490,7 @@ function IslandPlay() {
   };
   const setHomeModeAll = (m: 'live' | 'build') => {
     sfx.tab();
+    home.current?.setJoystick(0, 0);
     home.current?.setMode(m);
     setHomeMode(m);
   };
@@ -521,7 +530,7 @@ function IslandPlay() {
       return { ...a, s: { ...a.s, coins: a.s.coins + bonus } };
     });
     sfx.fanfare();
-    const name = ({ maze: 'Labirent', sky: 'Gökyüzü Parkuru', candy: 'Şeker Diyarı' } as const)[id];
+    const name = realmName(id);
     setTimeout(() => setRealmDone({ id, name, text, coins: r.s.coins - before }), 900);
   };
   const finishRef = useRef(finish);
@@ -629,6 +638,8 @@ function IslandPlay() {
     setPanel(null);
     setPrize({ prize: r.prize, coins: bridge.current.get().coins - before });
   };
+  miniWonRef.current = miniWon;
+
   const miniLeft = Math.max(0, MINI_ITEMS_PER_DAY - (farm.miniDay?.day === day ? farm.miniDay.n : 0));
 
   const sold = () => {
@@ -657,7 +668,8 @@ function IslandPlay() {
         <div className="home-ui">
           <HomeTop mode={homeMode} coins={farm.coins} onMode={setHomeModeAll} onLeave={leaveHome} />
           <CamButtons home={home.current} />
-          {homeMode === 'live' && !homeBusy && <div className="home-hint">Bir eşyaya dokun, onunla oyna! Yere dokununca oraya yürürsün.</div>}
+          {homeMode === 'live' && !homeBusy && <div className="home-hint">Joystick ile evinde gez. Bir eşyaya dokun, onunla oyna!</div>}
+          {!homeBusy && (homeMode === 'live' || ghost) && <Joystick onChange={(x, y) => home.current?.setJoystick(x, y)} />}
           {homeMode === 'build' && (ghost ? <GhostCard g={ghost} home={home.current} /> : sel ? <SelCard s={sel} home={home.current} /> : <Catalog home={home.current} coins={farm.coins} onPick={pickHome} onHint={flash} />)}
         </div>
       )}
@@ -666,7 +678,7 @@ function IslandPlay() {
       <header className="island__top">
         <button className="round-btn round-btn--light" aria-label="Adadan çık" onClick={() => nav('/')}><ArrowLeft size={26} strokeWidth={2.6} /></button>
         {realm ? (
-          <RealmHud name={realm.name} goal={realm.goal} progress={realmProg} icon={realm.id === 'candy' ? 'seker' : 'yildiz'} onLeave={() => world.current?.leaveRealm()} />
+          <RealmHud name={realm.name} goal={realm.goal} progress={realmProg} icon={realm.id === 'candy' ? 'seker' : realm.icon} leave={realm.leave} onLeave={() => world.current?.leaveRealm()} />
         ) : ready && (
           <PlayerBadge avatar={<AvatarArt id={profile.avatar} size={44} />} name={profile.name} s={farm} onOpen={() => setPanel('journal')} />
         )}
@@ -811,7 +823,13 @@ function IslandPlay() {
       )}
       {panel === 'games' && <GamesPanel left={miniLeft} onPlay={(g) => setPanel(g)} onClose={() => setPanel(null)} />}
       {panel === 'memory' && <MemoryGame onWin={miniWon} onClose={() => setPanel('games')} />}
-      {panel === 'balloon' && <BalloonGame onEnd={(won) => (won ? miniWon() : (flash('Az kaldı! Bir daha dene.'), setPanel('games')))} onClose={() => setPanel('games')} />}
+      {panel === 'balloon' && <BalloonGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
+      {panel === 'catch' && <CatchGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
+      {panel === 'mole' && <MoleGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
+      {panel === 'simon' && <SimonGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
+      {panel === 'puzzle' && <PuzzleGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
+      {panel === 'math' && <MathGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
+      {panel === 'shadow' && <ShadowGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
       {prize && (
         <PrizeModal prize={prize.prize} coins={prize.coins} onClose={() => setPrize(null)}
           onGo={(w) => { setPrize(null); if (w === 'home') void enterHome(); else nav('/giydir'); }} />

@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { cloud, mesh, outline, Sparkles, star, toon, tree } from '../play3d/kit';
 import type { RealmId } from './homestead';
+import type { SpotDef } from './zones';
 
 export interface Hero {
   pos: THREE.Vector3;
@@ -21,7 +22,9 @@ export interface RealmEvents {
   msg(text: string): void;
   /** Bitti: kazanılan ek altın (toplananlar). */
   finish(bonus: number, text: string): void;
-  sound: { star: (i: number) => void; pop: () => void };
+  sound: { star: (i: number) => void; pop: () => void; note?: (i: number) => void; fx?: (name: string, i?: number) => void; whoosh?: () => void };
+  /** Bu dünyadan ayrıl (ör. Mars'tan roketle dönüş). */
+  leave?: () => void;
 }
 
 export abstract class Realm {
@@ -34,14 +37,27 @@ export abstract class Realm {
   /** Kamera: [uzaklık, yükseklik]. */
   cam: [number, number] = [13, 7.5];
   done = false;
-  /** Dokunma (zıplama değil) hedefleri yok; yalnızca zemin. */
   abstract readonly id: RealmId;
+  /** Ekranda görünen ad (boşsa REALMS listesindeki ad). */
+  name = '';
+  /** Üstteki çıkış düğmesi. */
+  leave = 'Adaya dön';
+  /** İlerleme simgesi. */
+  icon = 'yildiz';
+  /** İçerideki dokunulabilir eşyalar ve etkinlikler (adadaki mekânlar gibi). */
+  spots: SpotDef[] = [];
+  /** Yerçekimi çarpanı (Mars: düşük, yüksek zıplanır). */
+  gravity = 1;
+  /** Kahraman uzay kaskı takar. */
+  helmet = false;
+  /** Çizimden önce (kameraya göre duvarları gizlemek gibi). */
+  beforeRender?(camera: THREE.Camera, hero: THREE.Vector3): void;
   /** Ekranda görünen hedef. */
   abstract goal: string;
   protected exitAt = new THREE.Vector3();
-  private exitObj: THREE.Object3D;
+  private exitObj: THREE.Object3D | null;
 
-  constructor(protected ev: RealmEvents, sky: string, fog: [number, number]) {
+  constructor(protected ev: RealmEvents, sky: string, fog: [number, number], exit: 'portal' | 'none' = 'portal') {
     this.scene.background = new THREE.Color(sky);
     this.scene.fog = new THREE.Fog(sky, fog[0], fog[1]);
     this.scene.add(new THREE.HemisphereLight('#ffffff', '#c9b6ff', 1.2));
@@ -54,11 +70,13 @@ export abstract class Realm {
     Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 200 });
     this.scene.add(sun, sun.target);
     this.sparkles = new Sparkles(this.scene);
-    this.exitObj = portalModel();
-    this.scene.add(this.exitObj);
+    this.exitObj = exit === 'portal' ? portalModel() : null;
+    if (this.exitObj) this.scene.add(this.exitObj);
+    this.exitAt.set(1e9, 0, 1e9);
   }
   protected placeExit(x: number, y: number, z: number, face: number) {
     this.exitAt.set(x, y, z);
+    if (!this.exitObj) return;
     this.exitObj.position.set(x, y, z);
     this.exitObj.rotation.y = face;
   }
@@ -72,7 +90,7 @@ export abstract class Realm {
   checkpoint = new THREE.Vector3();
   /** Her kare. Çıkış kapısına girildiyse true. */
   update(dt: number, t: number, hero: Hero): boolean {
-    this.exitObj.children[2].rotation.z = -t * 2;
+    if (this.exitObj) this.exitObj.children[2].rotation.z = -t * 2;
     this.sparkles.update(dt);
     if (hero.pos.y < this.killY) {
       hero.pos.copy(this.checkpoint);
@@ -582,10 +600,4 @@ export class CandyRealm extends Realm {
     }
     return super.update(dt, t, hero);
   }
-}
-
-export function makeRealm(id: RealmId, ev: RealmEvents, seed: number): Realm {
-  if (id === 'maze') return new MazeRealm(ev, seed);
-  if (id === 'sky') return new SkyRealm(ev);
-  return new CandyRealm(ev, seed);
 }

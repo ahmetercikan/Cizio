@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { mesh, outline, toon, tree } from '../play3d/kit';
 import { heightAt, ROADS, ROAD_START, ZONES, zone, type Zone } from './layout';
 import { house, sign, type Activity, type WorldBuilder } from './zones';
+import type { InteriorId } from './homestead';
 
 const sm = (u: number) => u * u * (3 - 2 * u);
 const clamp01 = (u: number) => Math.min(1, Math.max(0, u));
@@ -49,7 +50,7 @@ function frame(b: WorldBuilder, Z: Zone) {
 }
 
 /** Canvas yazılı levha (yalnızca ön yüz). */
-function board(text: string, bg: string, fg = '#ffffff', w = 6, h = 1.4, font = 600) {
+export function board(text: string, bg: string, fg = '#ffffff', w = 6, h = 1.4, font = 600) {
   const c = document.createElement('canvas');
   c.width = 1024;
   c.height = Math.round((1024 * h) / w);
@@ -109,13 +110,13 @@ function building(o: { w: number; d: number; h: number; wall: string; trim: stri
 }
 
 /** Kahramanın elindeki eşya (adada yürürken taşır). */
-function holdItem(a: { hand: THREE.Group }, item: THREE.Object3D) {
+export function holdItem(a: { hand: THREE.Group }, item: THREE.Object3D) {
   a.hand.getObjectByName('held')?.removeFromParent();
   item.name = 'held';
   a.hand.add(item);
 }
 
-function bench() {
+export function bench() {
   const g = new THREE.Group();
   const seat = outline(mesh(new THREE.BoxGeometry(2.4, 0.15, 0.7), toon('#b9773f')), 1.04);
   seat.position.y = 0.6;
@@ -472,23 +473,6 @@ function buildCity(b: WorldBuilder) {
   }
 
   // ---- hastane: muayene ve ambulans
-  spot('doctor', -12, 14.5, 2.2, 'Doktora muayene ol', {
-    dur: 6, pose: 'sit', cam: [10, 5],
-    step(t, _u, a, dt) {
-      a.pos.copy(G(-12.6, 14.5, 0.0));
-      a.heading = head(Math.PI / 2);
-      if (t > 1 && t < 5 && beat(t, dt, 1.1, 1)) b.sound.fx?.('heart');
-    },
-    end(a) {
-      b.sparkles.burst(a.pos.clone().setY(a.pos.y + 2.4), 14, '#ff6b8a');
-      b.sound.fx?.('yay');
-      return pick([
-        'Doktor: Kalbin pıt pıt atıyor, sapasağlamsın!',
-        'Doktor: Çok güçlüsün! Bol su içmeyi unutma.',
-        'Doktor: Harikasın! Sebze ve meyve ye, hep böyle kal.',
-      ]);
-    },
-  });
   put(bench(), -12.6, 14.5, L_);
   {
     const amb = new THREE.Group();
@@ -563,56 +547,10 @@ function buildCity(b: WorldBuilder) {
   // ---- kütüphane: kitap oku
   {
     put(bench(), -12.4, 3.2, L_);
-    const book = () => {
-      const g = new THREE.Group();
-      const c = outline(mesh(new THREE.BoxGeometry(0.5, 0.65, 0.12), toon(pick(['#ef4b4b', '#5b8def', '#2bb673', '#9775fa']))), 1.08);
-      g.add(c);
-      g.position.set(0, -0.05, 0.15);
-      return g;
-    };
-    spot('library', -12.4, 0, 2.2, 'Kitap oku', {
-      dur: 7, pose: 'sit', cam: [9, 4],
-      start: (a) => holdItem(a, book()),
-      step(t, _u, a, dt) {
-        a.pos.copy(G(-12.6, 3.2, 0));
-        a.heading = head(Math.PI / 2);
-        if (beat(t, dt, 1.6, 0.8)) b.sound.fx?.('page');
-      },
-      end(a) {
-        a.hand.getObjectByName('held')?.removeFromParent();
-        return pick([
-          'Kitapta okudun: Ahtapotun üç kalbi varmış!',
-          'Kitapta okudun: Kelebekler ayaklarıyla tat alırmış.',
-          'Kitapta okudun: Ay, Dünya’nın etrafında 27 günde döner.',
-          'Kitapta okudun: Zürafanın dili mor renkliymiş!',
-          'Kitapta okudun: Bal arıları dans ederek konuşurmuş.',
-        ]);
-      },
-    });
   }
 
   // ---- okul: derse gir, basket, seksek
   {
-    const door = G(-13.6, -21);
-    spot('school', -11.6, -21, 2.4, 'Derse gir', {
-      dur: 3.4, pose: (u) => (u < 0.6 ? 'walk' : 'wave'),
-      start: () => b.sound.fx?.('bell'),
-      step(_t, u, a) {
-        a.pos.lerpVectors(G(-10.6, -21), door, sm(clamp01(u / 0.6)));
-        a.heading = head(-Math.PI / 2);
-      },
-      end: () => {
-        b.sound.fx?.('yay');
-        return pick([
-          'Bugünkü ders: "elma" İngilizcede "apple" demek!',
-          'Bugünkü ders: 2 + 3 = 5. Parmaklarınla say!',
-          'Bugünkü ders: Gökkuşağının 7 rengi var.',
-          'Bugünkü ders: Bitkiler güneş ışığıyla büyür.',
-          'Bugünkü ders: "Kedi" İngilizcede "cat" demek!',
-          'Bugünkü ders: Bir haftada 7 gün var.',
-        ]);
-      },
-    });
     // basket potası (bahçede)
     const hoop = new THREE.Group();
     const hp = mesh(new THREE.CylinderGeometry(0.1, 0.12, 3.6, 8), toon('#5b5f6b'));
@@ -692,28 +630,6 @@ function buildCity(b: WorldBuilder) {
   }
 
   // ---- market: alışveriş
-  spot('supermarket', 12, 20, 2.4, 'Alışveriş yap', {
-    dur: 4, pose: (u) => (u < 0.8 ? 'walk' : 'hold'),
-    step(t, u, a, dt) {
-      const door = G(14, 20), out = G(11, 20);
-      const k = u < 0.4 ? u / 0.4 : u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4;
-      a.pos.lerpVectors(out, door, sm(clamp01(k)));
-      a.heading = head(u < 0.5 ? Math.PI / 2 : -Math.PI / 2);
-      if (beat(t, dt, 4, 1.8)) b.sound.fx?.('cash');
-    },
-    end(a) {
-      const bag = new THREE.Group();
-      const bd = outline(mesh(new THREE.BoxGeometry(0.6, 0.6, 0.35), toon('#e8f7e4')), 1.06);
-      bd.position.y = -0.35;
-      const ap = mesh(new THREE.SphereGeometry(0.16, 8, 6), toon('#ef4b4b'), false);
-      ap.position.set(0.1, 0.02, 0);
-      const br = mesh(new THREE.CapsuleGeometry(0.08, 0.4, 4, 6), toon('#e2a868'), false);
-      br.position.set(-0.12, 0.05, 0);
-      bag.add(bd, ap, br);
-      holdItem(a, bag);
-      return pick(['Elma, süt ve ekmek aldın!', 'Muz, peynir ve havuç aldın!', 'Yumurta, çilek ve yoğurt aldın!']);
-    },
-  });
 
   // ---- pastane: pasta ye
   spot('cafe', 12.5, 3.6, 2, 'Pasta ye', {
@@ -733,6 +649,29 @@ function buildCity(b: WorldBuilder) {
       return 'Çilekli pasta çok lezzetliydi!';
     },
   });
+
+  // ---- binaların kapıları: içeri girilir (src/world/interiors.ts)
+  const door = (id: InteriorId, lx: number, lz: number, out: number, label: string) => {
+    const sx = lx + Math.sin(out) * 1.6, sz = lz + Math.cos(out) * 1.6;
+    const [bx, bz] = F.L(lx + Math.sin(out) * 2.6, lz + Math.cos(out) * 2.6);
+    spot(`kapi-${id}`, sx, sz, 1.8, label, {
+      dur: 0.8, pose: 'walk',
+      step(_t, u, a) {
+        a.pos.lerpVectors(G(sx, sz), G(lx, lz), u);
+        a.heading = head(out + Math.PI);
+      },
+      end: () => {
+        b.sound.fx?.('step');
+        b.enter?.(id, { x: bx, z: bz, h: head(out) });
+      },
+    });
+  };
+  door('hastane', -14, 20, Math.PI / 2, 'Hastaneye gir');
+  door('kutuphane', -14, 0, Math.PI / 2, 'Kütüphaneye gir');
+  door('okul', -14, -21, Math.PI / 2, 'Okula gir');
+  door('market', 14, 20, -Math.PI / 2, 'Markete gir');
+  door('pastane', 14, 0, -Math.PI / 2, 'Pastaneye gir');
+  door('itfaiye', 14, -21, -Math.PI / 2, 'İtfaiyeye gir');
 
   // ---- itfaiye: yangını söndür
   {
