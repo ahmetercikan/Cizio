@@ -240,6 +240,19 @@ export const PATTERNS: Item[] = [
 const base = { face: 'mutlu', freckles: false, glasses: '', dress: '', dressColor: '#ff8fb1', hat: '', hatColor: '#ff6b4a', hand: '', bg: 'oda', pet: '' };
 
 /** Hazır karakterler: farklı ten, saç tipi ve rengi (hepsi sonradan değiştirilebilir). */
+/**
+ * Eksik ya da eski alanlı karakter kaydını (eski bir yedekten gelen) tamamlar: eksik her alan ilk hazır karakterden gelir.
+ */
+export function normalizeDoll(d: Partial<DollState> | undefined | null): DollState {
+  const p = PRESETS[0];
+  if (!d || typeof d !== 'object') return p;
+  const out = { ...p, ...d } as DollState;
+  for (const k of Object.keys(p) as (keyof DollState)[]) {
+    if (out[k] === undefined || out[k] === null || typeof out[k] !== typeof p[k]) (out as unknown as Record<string, unknown>)[k] = p[k];
+  }
+  return out;
+}
+
 export const PRESETS: DollState[] = [
   { ...base, gender: 'kiz', name: 'Alya', skin: SKINS[0], hair: 'uzun', hairColor: HAIR_COLORS[3], top: 'yildizli', topColor: '#ff8fb1', bottom: 'etek', bottomColor: '#5b8def', shoes: 'babet', shoesColor: '#e9487d', hat: 'fiyonk', hatColor: '#ff6b4a' },
   { ...base, gender: 'kiz', name: 'Zeynep', skin: SKINS[2], hair: 'atkuyrugu', hairColor: HAIR_COLORS[1], top: 'kazak', topColor: '#14a89a', bottom: 'pantolon', bottomColor: '#5b8def', shoes: 'spor', shoesColor: '#ffffff' },

@@ -60,6 +60,11 @@ export interface SpotDef {
   page?: boolean;
   /** Duruma göre değişen düğme yazısı (null: düğme gösterilmez). */
   dyn?: () => string | null;
+  /**
+   * Mekânın gövdesi (atlıkarınca, bina, dönme dolap…): karakter bu dairenin kenarına hangi yandan yaklaşırsa yaklaşsın
+   * düğme çıkar. Verilmezse yakındaki engelden kendiliğinden bulunur (WorldBuilder.autoBodies).
+   */
+  body?: { x: number; z: number; r: number };
   /** Duruma göre ne yapılacağı: bir etkinlik, React sayfası ya da yalnızca mesaj. */
   use?: () => Activity | 'page' | { msg: string } | null;
 }
@@ -123,6 +128,25 @@ export class WorldBuilder {
   }
   block(x: number, z: number, r: number) {
     this.grid.add({ x, z, r });
+    this.blocks.push({ x, z, r });
+  }
+  /** Bütün engeller (mekânların gövdesini bulmak için). */
+  blocks: { x: number; z: number; r: number }[] = [];
+  /**
+   * Gövdesi verilmemiş mekânlar için gövde bulur: mekân noktasına bitişik en büyük engel (ör. evin kapısındaki noktanın
+   * evi, atlıkarınca noktasının atlıkarıncası). Araçlarda gövde yok (araç zaten noktanın kendisi).
+   */
+  autoBodies() {
+    for (const s of this.spots) {
+      if (s.body || s.vehicle) continue;
+      let best: { x: number; z: number; r: number } | null = null;
+      for (const k of this.blocks) {
+        if (k.r < 1.2) continue;
+        const edge = Math.hypot(k.x - s.x, k.z - s.z) - k.r;
+        if (edge < s.r * 0.8 + 0.6 && (!best || k.r > best.r)) best = k;
+      }
+      if (best) s.body = best;
+    }
   }
   spot(s: SpotDef) {
     this.spots.push(s);
@@ -1670,6 +1694,25 @@ function buildFun(b: WorldBuilder) {
   }
 
   b.scene.add(lights(fixed, 0.18));
+  // oyuncakların gövdesi: hangi yandan gelinirse gelinsin binme düğmesi çıkar
+  const body = (id: string, lx: number, lz: number, r: number) => {
+    const s = b.spots.find((x) => x.id === id);
+    if (!s) return;
+    const [x, z] = L(lx, lz);
+    s.body = { x, z, r };
+  };
+  body('carousel', 0, 4, 5.4);
+  body('ferris', 0, -28, 4.6);
+  body('chairswing', 22, -8, 7.6);
+  body('droptower', 22, -30, 3.6);
+  body('pirate', -15, -36, 5.5);
+  body('bumper', 20, 14, 7.6);
+  body('coaster', -9.6, 12.5, 4);
+  body('trampoline', 11, -18, 2.6);
+  body('swing', 26, 31, 2.6);
+  body('slide', 18.5, 29, 2);
+  body('cottoncandy', -9, 31, 1.9);
+  body('balloon', 9, 31, 1.9);
 }
 
 // ------------------------------------------------------------------------------------------------

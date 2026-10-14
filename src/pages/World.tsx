@@ -11,7 +11,7 @@ import { AvatarArt } from '../components/Avatars';
 import { Doodles } from '../components/Doodles';
 import { Mascot } from '../components/Mascot';
 import { Modal } from '../components/ui';
-import { PRESETS } from '../dressup/catalog';
+import { normalizeDoll, PRESETS } from '../dressup/catalog';
 import { Doll } from '../dressup/Doll';
 import { listArtworks, type Artwork } from '../lib/gallery';
 import { engineSound, rideSound, sfx } from '../lib/sfx';
@@ -131,7 +131,7 @@ function IslandPlay() {
   const ref = useRef<HTMLCanvasElement>(null);
   const world = useRef<Island | null>(null);
   const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | false>(false);
   const [near, setNear] = useState<Spot | null>(null);
   const [busy, setBusy] = useState(false);
   const [driving, setDriving] = useState(false);
@@ -279,12 +279,14 @@ function IslandPlay() {
         const T0 = performance.now();
         const [{ Island }, tex] = await Promise.all([import('../world/island'), import('../world/textures')]);
         if (import.meta.env.DEV) console.log(`[perf] modüller ${Math.round(performance.now() - T0)}ms`);
-        const doll = data.doll ?? PRESETS[0];
+        const doll = normalizeDoll(data.doll);
+        // resimlerden biri açılamazsa (eski yedek, bozuk dosya) o resim olmadan devam edilir
+        const soft = <T,>(p: Promise<T>, fb: T) => p.catch((e) => (console.warn(e), fb));
         const [pet, art, mascot, cards] = await Promise.all([
-          doll.pet ? tex.petCanvas(doll) : Promise.resolve(null),
-          tex.artCanvases(profile.id),
+          doll.pet ? soft(tex.petCanvas(doll), null) : Promise.resolve(null),
+          soft(tex.artCanvases(profile.id), []),
           tex.mascotCanvas(),
-          Promise.all(CARD_IDS.map(async (id) => [id, await tex.lessonCanvas(id)] as const)),
+          Promise.all(CARD_IDS.map(async (id) => [id, await soft(tex.lessonCanvas(id), null)] as const)).then((l) => l.filter((x): x is [string, HTMLCanvasElement] => !!x[1])),
         ]);
         if (import.meta.env.DEV) console.log(`[perf] resimler ${Math.round(performance.now() - T0)}ms`);
         if (!alive || !ref.current) return;
@@ -336,7 +338,7 @@ function IslandPlay() {
         if (!backHome) say(ISLAND_LINES.welcome);
       } catch (e) {
         console.error(e);
-        if (alive) setFailed(true);
+        if (alive) setFailed(String((e as Error)?.message ?? e).slice(0, 140) || 'hata');
       }
     })();
     return () => {
@@ -445,7 +447,7 @@ function IslandPlay() {
     const w = world.current;
     if (!w || home.current || !ref.current) return;
     const { HomeScene } = await import('../world/home');
-    const h = new HomeScene(w.gl, ref.current, { doll: data.doll ?? PRESETS[0], pet: media.current.pet, art: media.current.art }, {
+    const h = new HomeScene(w.gl, ref.current, { doll: normalizeDoll(data.doll), pet: media.current.pet, art: media.current.art }, {
       get: () => normalizeFarm(useApp.getState().data[profile.id]?.farm).home ?? newHome(),
       coins: () => bridge.current.get().coins,
       save: (next, coins) => applyQuiet((s) => (coins < 0 && s.coins < -coins ? { s, err: `Bunun için ${-coins} altın gerekiyor. Çiftlikte ürün yetiştirip pazarda satabilirsin!` } : { s: { ...s, coins: s.coins + coins, home: next } })).err ?? null,
@@ -587,7 +589,15 @@ function IslandPlay() {
   if (failed) {
     return (
       <div className="bg live-center">
-        <div className="live-center__body"><h1 className="title-xl">Ada bu cihazda açılamadı</h1><button className="pill" onClick={() => nav('/')}>Geri dön</button></div>
+        <div className="live-center__body">
+          <h1 className="title-xl">Ada açılamadı</h1>
+          <p className="sub">Bir şeyler ters gitti. Tekrar denemek çoğu zaman yeter.</p>
+          <div className="farm-order__btns">
+            <button className="pill" onClick={() => location.reload()}>Tekrar dene</button>
+            <button className="btn-outline" onClick={() => nav('/')}>Geri dön</button>
+          </div>
+          <small style={{ opacity: 0.5 }}>{failed}</small>
+        </div>
       </div>
     );
   }
@@ -610,7 +620,7 @@ function IslandPlay() {
     known.current = new Set();
     goTo.current = friendPid ?? null;
     try {
-      const h = await r.joinRoom(roomId, myId, data.doll ?? PRESETS[0], (peers) => {
+      const h = await r.joinRoom(roomId, myId, normalizeDoll(data.doll), (peers) => {
         world.current?.setPeers(peers);
         const live = Object.entries(peers).filter(([, p]) => p.live && p.look);
         setPeerNames(live.map(([, p]) => p.live!.n));

@@ -149,6 +149,15 @@ export class MarsRealm extends Realm {
     this.scene.add(this.astro.root);
     this.astro.head.add(spaceHelmet());
     this.solids.push({ x: 18, z: -2, r: 0.8 });
+    // eşyanın gövdesi (üs, sera, araç, astronot…): hangi yandan gelinirse gelinsin düğme çıkar
+    for (const s of this.spots) {
+      let best: { x: number; z: number; r: number } | null = null;
+      for (const k of this.solids) {
+        if (k.r < 0.5) continue;
+        if (Math.hypot(k.x - s.x, k.z - s.z) - k.r < s.r * 0.8 + 0.6 && (!best || k.r > best.r)) best = k;
+      }
+      if (best) s.body = best;
+    }
     this.spawn.set(5, marsHeight(5, 5), 5);
     this.spawnH = Math.PI * 0.75;
     this.checkpoint.copy(this.spawn);

@@ -244,6 +244,7 @@ export class Island {
     this.chunkStatics();
     this.home = new Homestead(this.wb, o.farm, (x, z) => this.canBuildAt(x, z));
     mark('çiftlik+pazar+kapılar');
+    this.wb.autoBodies();
     buildVegetation(this.scene, this.grid, this.wb.keepOut);
     mark('bitki örtüsü');
     this.spots = this.wb.spots;
@@ -359,11 +360,23 @@ export class Island {
     if (this.drive) return this.jump();
     const s = this.spotUnderTap();
     if (!s) return this.jump();
-    const d = Math.hypot(s.x - this.pos.x, s.z - this.pos.z);
-    if (d < s.r + 0.5) return this.activity(s.id);
-    // uzak: önce yanına yürü
-    this.target = new THREE.Vector3(s.x, 0, s.z);
+    if (this.spotDist(s, this.pos.x, this.pos.z) < 1.15) return this.activity(s.id);
+    // uzak: önce yanına yürü (gövdesi varsa gövdenin bu yana bakan kenarına)
+    if (s.body) {
+      const dx = this.pos.x - s.body.x, dz = this.pos.z - s.body.z, l = Math.hypot(dx, dz) || 1;
+      this.target = new THREE.Vector3(s.body.x + (dx / l) * (s.body.r + 1.1), 0, s.body.z + (dz / l) * (s.body.r + 1.1));
+    } else this.target = new THREE.Vector3(s.x, 0, s.z);
     this.pending = s.id;
+  }
+  /**
+   * Mekâna uzaklık (1'in altı: yakında). Ya mekân noktasının yarıçapı içinde ya da gövdesinin kenarına 1,8 birimden
+   * yakın: atlıkarıncaya, binaya hangi yandan gelinirse gelinsin.
+   */
+  private spotDist(s: SpotDef, x: number, z: number) {
+    const cx = s.vehicle ? s.vehicle.pos.x : s.x, cz = s.vehicle ? s.vehicle.pos.z : s.z;
+    let d = Math.hypot(cx - x, cz - z) / s.r;
+    if (s.body) d = Math.min(d, Math.max(0, Math.hypot(s.body.x - x, s.body.z - z) - s.body.r) / 1.8);
+    return d;
   }
   /** Dokunulan noktanın yakınındaki mekân (arazi ya da gökyüzü değilse). */
   private spotUnderTap(): SpotDef | null {
@@ -378,8 +391,9 @@ export class Island {
       for (const s of this.live) {
         if (s.dyn && s.dyn() === null) continue;
         const x = s.vehicle ? s.vehicle.pos.x : s.x, z = s.vehicle ? s.vehicle.pos.z : s.z;
-        const d = Math.hypot(h.point.x - x, h.point.z - z);
-        if (d < s.r + 4 && d < bd) [best, bd] = [s, d];
+        let d = Math.hypot(h.point.x - x, h.point.z - z) - s.r;
+        if (s.body) d = Math.min(d, Math.hypot(h.point.x - s.body.x, h.point.z - s.body.z) - s.body.r);
+        if (d < 4 && d < bd) [best, bd] = [s, d];
       }
       return best;
     }
@@ -851,7 +865,7 @@ export class Island {
       const d = this.target.clone().sub(this.pos).setY(0);
       const l = d.length();
       const sp = this.pending ? this.live.find((s) => s.id === this.pending) : null;
-      if (l < (sp ? sp.r * 0.8 : 0.4)) {
+      if (sp ? this.spotDist(sp, this.pos.x, this.pos.z) < 0.8 || l < 0.4 : l < 0.4) {
         this.target = null;
         if (sp) {
           this.pending = null;
@@ -963,8 +977,7 @@ export class Island {
   private scanNear() {
     let near: SpotDef | null = null, best = Infinity, label = '';
     if (this.clock > this.nearQuietUntil) for (const s of this.live) {
-      const x = s.vehicle ? s.vehicle.pos.x : s.x, z = s.vehicle ? s.vehicle.pos.z : s.z;
-      const d = Math.hypot(x - this.pos.x, z - this.pos.z) / s.r;
+      const d = this.spotDist(s, this.pos.x, this.pos.z);
       if (d >= 1 || d >= best) continue;
       const l = s.dyn ? s.dyn() : s.label;
       if (l === null) continue;

@@ -138,6 +138,15 @@ export class InteriorRealm extends Realm {
     this.checkpoint.copy(this.spawn);
     this.placeExit(0, 0, this.D / 2 + 0.9, 0);
     this.killY = -5;
+    // eşyanın gövdesi: hangi yandan gelinirse gelinsin düğme çıkar
+    for (const s of this.spots) {
+      let best: { x: number; z: number; w: number; d: number } | null = null;
+      for (const k of this.solids) {
+        const ex = Math.max(0, Math.abs(s.x - k.x) - k.w / 2), ez = Math.max(0, Math.abs(s.z - k.z) - k.d / 2);
+        if (Math.hypot(ex, ez) < s.r * 0.8 + 0.4 && (!best || k.w * k.d > best.w * best.d) && k.w * k.d < 60) best = k;
+      }
+      if (best) s.body = { x: best.x, z: best.z, r: Math.max(best.w, best.d) / 2 * 0.85 };
+    }
   }
 
   // ----------------------------------------------------------------------------------------------

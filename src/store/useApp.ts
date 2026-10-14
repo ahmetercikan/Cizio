@@ -636,7 +636,12 @@ export const useApp = create<AppState>()(
       },
 
       replaceAll(s) {
-        set(s);
+        // eski bir yedek: eksik ayarlar ve profil alanları varsayılanlarla tamamlanır
+        const data: Record<string, ProfileData> = {};
+        for (const [k, v] of Object.entries(s.data ?? {})) data[k] = { ...emptyData(), ...(v as ProfileData) };
+        const profiles = Array.isArray(s.profiles) ? s.profiles : [];
+        const activeId = profiles.some((p) => p.id === s.activeId) ? s.activeId : (profiles[0]?.id ?? null);
+        set({ profiles, data, activeId, settings: { ...DEFAULT_SETTINGS, ...s.settings } });
       },
     }),
     {

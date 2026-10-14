@@ -48,13 +48,14 @@ const SIDE_ROT: Record<Side, number> = { n: 0, w: Math.PI / 2, s: Math.PI, e: -M
 const SIDES: Side[] = ['n', 'e', 's', 'w'];
 
 interface Act { dur: number; t: number; pose: Pose | ((u: number) => Pose); step: (t: number, u: number) => void; end: () => void }
-interface WallMesh { full: THREE.Object3D; stub: THREE.Object3D; x: number; z: number; side: 'n' | 'w'; outer: boolean; low?: boolean; seen?: number }
+interface WallMesh { full: THREE.Object3D; stub: THREE.Object3D; x: number; z: number; side: 'n' | 'w'; outer: boolean; mats: THREE.MeshStandardMaterial[]; fade: number; seen?: number }
 
 export class HomeScene {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(55, 1, 0.3, 160);
   private dist = 4;
   private camReady = false;
+  private dt = 0.016;
   private joy = new THREE.Vector2();
   private sun: THREE.DirectionalLight;
   private sparkles: Sparkles;
@@ -270,8 +271,18 @@ export class HomeScene {
       const pos = w.side === 'n' ? new THREE.Vector3(w.x - L.w / 2 + 0.5, 0, w.z - L.d / 2) : new THREE.Vector3(w.x - L.w / 2, 0, w.z - L.d / 2 + 0.5);
       full.position.copy(pos);
       stub.position.copy(pos);
+      // her duvarın kendi malzemesi: karakteri kapatınca yalnızca o duvar saydamlaşır
+      const mats: THREE.MeshStandardMaterial[] = [];
+      full.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        const c = (m.material as THREE.MeshStandardMaterial).clone();
+        c.transparent = true;
+        m.material = c;
+        mats.push(c);
+      });
       this.houseG.add(full, stub);
-      this.wallMeshes.push({ full, stub, x: w.x, z: w.z, side: w.side, outer: w.outer });
+      this.wallMeshes.push({ full, stub, x: w.x, z: w.z, side: w.side, outer: w.outer, mats, fade: 1 });
     }
     // şato: evin köşelerinde kuleler (kameranın uzak tarafındakiler görünür)
     this.towers = [];
@@ -421,7 +432,7 @@ export class HomeScene {
     const C = new THREE.Vector2(this.camera.position.x, this.camera.position.z);
     const H = new THREE.Vector2(this.pos.x, this.pos.z);
     const dir = H.clone().sub(C);
-    const perp = new THREE.Vector2(-dir.y, dir.x).normalize().multiplyScalar(0.4);
+    const perp = new THREE.Vector2(-dir.y, dir.x).normalize().multiplyScalar(0.25);
     const rays = [H, H.clone().add(perp), H.clone().sub(perp)];
     const cross = (a: THREE.Vector2, b: THREE.Vector2, c: THREE.Vector2, d: THREE.Vector2) => {
       const r = b.clone().sub(a), q = d.clone().sub(c);
@@ -433,17 +444,20 @@ export class HomeScene {
     for (const w of this.wallMeshes) {
       const A = new THREE.Vector2(w.x - L.w / 2, w.z - L.d / 2);
       const B = w.side === 'n' ? new THREE.Vector2(A.x + 1, A.y) : new THREE.Vector2(A.x, A.y + 1);
-      // kamerayla karakter arasında ya da kameraya çok yakın duvarlar alçalır
-      const mid = A.clone().add(B).multiplyScalar(0.5);
-      const t = mid.clone().sub(C).dot(dir) / dir.lengthSq();
-      const near = t > -0.5 && t < 0.92 && Math.abs((mid.x - C.x) * dir.y - (mid.y - C.y) * dir.x) / dir.length() < 2.3;
-      const low = near || rays.some((h) => cross(C, h, A, B));
-      if (low) w.seen = this.clock;
-      const want = low || this.clock - (w.seen ?? -9) < 0.6;
-      if (want !== w.low) {
-        w.low = want;
-        w.full.visible = !want;
-        w.stub.visible = want;
+      // kamerayla karakter arasındaki duvar yok olmaz: yumuşakça yarı saydam olur (karakter hep görünür)
+      if (rays.some((h) => cross(C, h, A, B))) w.seen = this.clock;
+      const want = this.clock - (w.seen ?? -9) < 0.5 ? 0.22 : 1;
+      if (!w.full.visible || w.stub.visible) {
+        w.full.visible = true;
+        w.stub.visible = false;
+      }
+      if (Math.abs(w.fade - want) > 0.01) {
+        w.fade += (want - w.fade) * Math.min(1, this.dt * 7);
+        if (Math.abs(w.fade - want) < 0.02) w.fade = want;
+        for (const m of w.mats) {
+          m.opacity = w.fade;
+          m.depthWrite = w.fade > 0.98;
+        }
       }
     }
     const cx = this.camera.position.x - this.pos.x, cz = this.camera.position.z - this.pos.z;
@@ -499,6 +513,14 @@ export class HomeScene {
 
   /** Kameraya bakan duvarları alçalt (eşya modu: bebek evi görünümü). */
   private cutaway() {
+    for (const w of this.wallMeshes) {
+      if (w.fade === 1) continue;
+      w.fade = 1;
+      for (const m of w.mats) {
+        m.opacity = 1;
+        m.depthWrite = true;
+      }
+    }
     const cx = Math.sin(this.yaw), cz = Math.cos(this.yaw);
     for (const w of this.wallMeshes) {
       const n = w.side === 'n' ? [0, 1] : [1, 0];
@@ -1158,6 +1180,7 @@ export class HomeScene {
   private frame = (now: number) => {
     if (!this.running) return;
     const dt = Math.min(0.05, (now - this.last) / 1000);
+    this.dt = dt;
     this.last = now;
     this.clock += dt;
     // kamera dönüşü

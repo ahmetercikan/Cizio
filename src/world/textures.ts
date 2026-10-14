@@ -92,12 +92,32 @@ export async function mascotCanvas(): Promise<HTMLCanvasElement> {
   return svgToCanvas(withSize(svg, 256, 256), 256, 256);
 }
 
-/** Galerideki son resimler (sanat galerisinin sehpaları için). */
+/** Resim dosyasını çözer (createImageBitmap SVG'yi açamaz: o zaman <img> ile). */
+async function decode(blob: Blob): Promise<CanvasImageSource & { width: number; height: number; close?: () => void }> {
+  try {
+    return await createImageBitmap(blob);
+  } catch {
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return img;
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  }
+}
+
+/**
+ * Galerideki son resimler (sanat galerisinin sehpaları için). Açılamayan resim (ör. eski bir yedekten gelen bozuk
+ * dosya) atlanır; adanın açılmasını engellemez.
+ */
 export async function artCanvases(profileId: string, n = 5): Promise<HTMLCanvasElement[]> {
-  const arts = (await listArtworks(profileId)).filter((a) => a.kind !== 'style').slice(0, n);
-  return Promise.all(
+  const arts = (await listArtworks(profileId).catch(() => [])).filter((a) => a.kind !== 'style' && a.blob).slice(0, n + 4);
+  const out = await Promise.allSettled(
     arts.map(async (a) => {
-      const bmp = await createImageBitmap(a.blob);
+      const bmp = await decode(a.blob);
       const c = document.createElement('canvas');
       c.width = c.height = 256;
       const ctx = c.getContext('2d')!;
@@ -109,4 +129,5 @@ export async function artCanvases(profileId: string, n = 5): Promise<HTMLCanvasE
       return c;
     }),
   );
+  return out.filter((r): r is PromiseFulfilledResult<HTMLCanvasElement> => r.status === 'fulfilled').map((r) => r.value).slice(0, n);
 }
