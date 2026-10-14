@@ -1,6 +1,6 @@
 # Çizio 1.5.0 (versionCode 7) — Google Play yayın rehberi
 
-Play'deki son sürüm 1.4.0 (versionCode 6, incelemede). 1.5.0, 1.4.0'dan sonraki bütün yenilikleri içerir.
+Play'deki son sürüm 1.4.0 (versionCode 6, onaylandı ve yayında). 1.5.0, 1.4.0'dan sonraki bütün yenilikleri içerir.
 (Daha önce hazırlanan 1.6.0 ve 1.7.0 paketleri hiç yüklenmedi ve silindi.)
 
 ## Yüklenecek dosyalar
@@ -46,29 +46,24 @@ Her biri için:
 ## 2) Yeni sürümü yükle
 
 1. Play Console → Çizio → **Test ve yayınla → Üretim** → **Yeni sürüm oluştur**.
-   (1.4.0 hâlâ incelemedeyse Play, yeni sürümün onun yerine geçeceğini söyler; onaylayın.)
 2. **App Bundle'ları yükle** → `cizio-1.5.0.aab`. Sürüm adı otomatik gelir: `7 (1.5.0)`.
 3. **Sürüm notları** → `<tr-TR>` ile `</tr-TR>` arasına aşağıdakini yapıştırın.
 4. **Sonraki** → **Kaydet** → **Sürümü incelemeye gönder**.
 
 ### Sürüm notları (tr-TR)
 
+Play en çok 500 karakter kabul eder; bu metin ~420 karakter.
+
 ```
 Yenilikler:
-• Yeni dünya: Çizio Adası! Giydirdiğin karakterle kocaman 3B adada gez: lunapark, göl, plaj, orman kampı, çiftlik, karlı dağ, dinozor vadisi, şato, roket
-• Su eğlencesi: jet ski, sörf, şnorkel, kuğu tekne, su kaydırağı
-• Adada arkadaşlarınla buluş: ebeveyn onayıyla en çok 10 arkadaş aynı adada
-• Çiftliğim: tohum ek, sula, topla; tavuk, inek, koyun ve arı besle; pazarda sat, seviye atla
-• Minecraft gibi blokla ev yap, hazır yapılar kur
-• Macera kapıları: Labirent, Gökyüzü Parkuru, Şeker Diyarı (arkadaşlarla birlikte)
-• Evim: kendi evini kur! 45 eşya, renkler, duvar ve zemin, daha büyük evler; eşyalarla oyna
-• Kendi adanı kur: adanın her yerine blokla inşa et, çiftliğini istediğin yere kur
-• Arabanı al, adayı gez! Butik'te nadir kıyafetler, Oyun Çadırı'nda mini oyunlar ve hediyeler
-• Ekrana dokun, zıpla!
-• Çizimin canlansın: göz kırpar, tekerlek döner, balık yüzer
-• Çizdiğinle oyna artık 3 boyutlu: sağa sola kaç, zıpla, yıldız topla
-• Hikaye kitabım: çizimlerinden masal yap, Çizio okusun
-• Arkadaşlarla oyna: ebeveyn onayıyla meydan okuma, düello, birlikte boyama
+• Çizio Adası: kocaman 3B ada! Lunapark, şehir, köy, hayvanat bahçesi, plaj, havalimanı
+• Okul, hastane, market, kütüphane, pastane ve itfaiyeye gir
+• Roketle Mars'a git, uzaylılarla tanış!
+• Kendi evini kur, içinde gez, eşyalarını yerleştir
+• Çiftlik kur, pazarda sat, blokla inşa et
+• Ebeveyn onayıyla arkadaşlarınla aynı adada oyna
+• 8 mini oyun, arabalar, fon müziği
+• Çizim Atölyesi artık daha hızlı açılıyor
 ```
 
 ## Bu sürümde neler var (ayrıntı)
@@ -129,6 +124,10 @@ Yenilikler:
 - **Mini oyunlar 8'e çıktı:** Meyve Yakala, Köstebek Vur, Renk Dizisi, Kayan Yapboz, Toplama Balonları, Gölgeyi Bul.
 - **Gerçekçi korna ve motor sesi:** arabalarda iki tonlu korna, jip/karavanda kalın korna, teknede gemi düdüğü,
   bisiklette zil; sürerken hıza göre değişen motor sesi.
+- **Hız:** Çizim Atölyesi'ndeki ders resimleri artık tek tek yeniden işlenmiyor; doğrudan ve yalnızca ekrana
+  yaklaşınca yükleniyor (aşağı kaydırınca resimler beklemeden gelir). Ağır sayfalar (ada, giydirme, İngilizce, oyunlar)
+  ilk açıldıklarında yükleniyor: uygulamanın ilk açılış dosyası 1,7 MB'tan 0,8 MB'a indi. Web sürümünde ders resimleri
+  önbellekte kalır.
 - **Fon müziği:** adada kısık sesle neşeli bir şarkı çalar (uygulamanın kendi bestesi, dosya yok); oyuncağa binince
   kısılır, uygulama arka plana geçince durur; sol kenardaki nota düğmesiyle kapatılır. Ses ayarı kapalıysa çalmaz.
 - **Lunapark sesleri:** hız treninde zincir takırtısı, ray gürültüsü ve "viii!", atlıkarıncada org valsi, dönme dolapta

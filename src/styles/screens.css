@@ -3124,3 +3124,10 @@
 .frame--yildiz::after { content: ''; position: absolute; right: -4px; top: -4px; width: 18px; height: 18px; background: #ffc83d; clip-path: polygon(50% 0, 61% 36%, 100% 38%, 69% 60%, 80% 100%, 50% 76%, 20% 100%, 31% 60%, 0 38%, 39% 36%); }
 .frame--cicek { background: repeating-conic-gradient(#ff8fb1 0 30deg, #fff 30deg 60deg); }
 .appbar__avatar.frame { padding: 3px; }
+
+/* Ders eskizi kutusu (Sketch.tsx SketchImg): hazır resim içinde ortalanır */
+.sketch-img { display: inline-block; vertical-align: middle; overflow: hidden; }
+.sketch-img > img { display: block; width: 100%; height: 100%; object-fit: contain; box-sizing: border-box; }
+
+/* Sayfa yüklenirken (App.tsx Suspense) */
+.page-wait { min-height: 100dvh; }

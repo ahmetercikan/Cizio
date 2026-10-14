@@ -36,6 +36,12 @@ export default defineConfig({
         globIgnores: ['**/node_modules/**/*', 'voice/**/*', 'assets/client-*.js'],
         runtimeCaching: [
           {
+            // Ders eskizleri (public/thumbs): bir kez inince hep önbellekten (atölyede kaydırırken beklemesin).
+            urlPattern: ({ url }) => url.pathname.includes('/thumbs/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'thumbs', expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 60 } },
+          },
+          {
             // Manifest güncellenebilir: önce ağ, çevrimdışıysa önbellek.
             urlPattern: ({ url }) => url.pathname.includes('/voice/') && url.pathname.endsWith('/manifest.json'),
             handler: 'NetworkFirst',

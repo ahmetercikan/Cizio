@@ -1,30 +1,49 @@
-import { useEffect, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, type ComponentType, type ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { setSfxEnabled } from './lib/sfx';
 import { setNaturalVoice, unlockAudio } from './lib/speech';
-import Adventure from './pages/Adventure';
-import Challenge from './pages/Challenge';
-import Coop from './pages/Coop';
-import DrawGame, { DrawGamePicker } from './pages/DrawGame';
-import DressUp from './pages/DressUp';
-import Duel from './pages/Duel';
-import EnglishHome, { EnglishGames, EnglishPlay, EnglishStories, EnglishStoryPage, EnglishTime, EnglishTopic, EnglishWords } from './pages/English';
-import FreeDraw from './pages/FreeDraw';
-import Friends from './pages/Friends';
-import Journal from './pages/Journal';
-import League from './pages/League';
-import LiveDuel from './pages/LiveDuel';
 import Learn, { CoursePage } from './pages/Learn';
-import LessonPage from './pages/LessonPage';
 import Onboarding from './pages/Onboarding';
-import Parent from './pages/Parent';
 import Playground from './pages/Playground';
 import Profiles from './pages/Profiles';
-import Shop from './pages/Shop';
-import StoryShelf, { StoryReader } from './pages/StoryBook';
 import Worlds from './pages/Worlds';
-import World from './pages/World';
+
+// Ağır sayfalar ilk açıldıklarında yüklenir (uygulama daha hızlı açılır); sık kullanılanlar boşta önceden yüklenir.
+const named = <M extends Record<string, unknown>, K extends keyof M>(load: () => Promise<M>, key: K) =>
+  lazy(() => load().then((m) => ({ default: m[key] as ComponentType })));
+const loadEnglish = () => import('./pages/English');
+const loadWorld = () => import('./pages/World');
+const loadLesson = () => import('./pages/LessonPage');
+const loadFree = () => import('./pages/FreeDraw');
+const loadDress = () => import('./pages/DressUp');
+const Adventure = lazy(() => import('./pages/Adventure'));
+const Challenge = lazy(() => import('./pages/Challenge'));
+const Coop = lazy(() => import('./pages/Coop'));
+const DrawGame = lazy(() => import('./pages/DrawGame'));
+const DrawGamePicker = named(() => import('./pages/DrawGame'), 'DrawGamePicker');
+const DressUp = lazy(loadDress);
+const Duel = lazy(() => import('./pages/Duel'));
+const EnglishHome = lazy(loadEnglish);
+const EnglishGames = named(loadEnglish, 'EnglishGames');
+const EnglishPlay = named(loadEnglish, 'EnglishPlay');
+const EnglishStories = named(loadEnglish, 'EnglishStories');
+const EnglishStoryPage = named(loadEnglish, 'EnglishStoryPage');
+const EnglishTime = named(loadEnglish, 'EnglishTime');
+const EnglishTopic = named(loadEnglish, 'EnglishTopic');
+const EnglishWords = named(loadEnglish, 'EnglishWords');
+const FreeDraw = lazy(loadFree);
+const Friends = lazy(() => import('./pages/Friends'));
+const Journal = lazy(() => import('./pages/Journal'));
+const League = lazy(() => import('./pages/League'));
+const LiveDuel = lazy(() => import('./pages/LiveDuel'));
+const LessonPage = lazy(loadLesson);
+const Parent = lazy(() => import('./pages/Parent'));
+const Shop = lazy(() => import('./pages/Shop'));
+const StoryShelf = lazy(() => import('./pages/StoryBook'));
+const StoryReader = named(() => import('./pages/StoryBook'), 'StoryReader');
+const World = lazy(loadWorld);
+
 import { initPlus } from './world/plus';
 import { initPremium } from './world/premium';
 import { OnlineSync } from './online/OnlineHost';
@@ -47,6 +66,12 @@ export default function App() {
   // Çizio Plus (Google Play aboneliği) yalnızca Android uygulamasında başlatılır
   useEffect(() => void initPlus().catch(() => {}), []);
   useEffect(() => void initPremium().catch(() => {}), []);
+  // sık açılan sayfaları uygulama boştayken hazırla (ilk dokunuşta bekletmesin)
+  useEffect(() => {
+    const idle = (f: () => void) => ('requestIdleCallback' in window ? (window as Window & { requestIdleCallback: (f: () => void) => number }).requestIdleCallback(f) : setTimeout(f, 1500));
+    const t = setTimeout(() => idle(() => void Promise.all([loadLesson(), loadFree(), loadDress(), loadEnglish(), loadWorld()]).catch(() => {})), 2500);
+    return () => clearTimeout(t);
+  }, []);
   // iOS: ses ancak bir dokunuştan sonra çalabilir; ilk dokunuşta ses öğesinin kilidini aç.
   useEffect(() => {
     const once = () => unlockAudio();
@@ -57,6 +82,7 @@ export default function App() {
   return (
     <HashRouter>
       <ErrorBoundary>
+      <Suspense fallback={<div className="bg page-wait" />}>
       <Routes>
         <Route path="/hosgeldin" element={<Onboarding />} />
         <Route path="/profiller" element={<Profiles />} />
@@ -93,6 +119,7 @@ export default function App() {
         <Route path="/ebeveyn" element={<Parent />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
       <HomeReturn />
       </ErrorBoundary>
       <OnlineSync />
