@@ -50,4 +50,4 @@ Eğitim (Education) — Hedef kitle: 6-8 ve 9-12 yaş
 
 ## İletişim
 E-posta: [Play Console geliştirici e-postanız]
-Gizlilik politikası: https://ahmetercikan.github.io/ciziktir/gizlilik.html
+Gizlilik politikası: https://ahmetercikan.github.io/Cizio/gizlilik.html

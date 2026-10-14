@@ -13,7 +13,7 @@ Play Console → **Uygulama oluştur**
 ## 2) Kontrol paneli → "Uygulamanızı kurun" listesi
 
 ### Gizlilik politikası
-`https://ahmetercikan.github.io/ciziktir/gizlilik.html`
+`https://ahmetercikan.github.io/Cizio/gizlilik.html`
 
 ### Uygulama erişimi
 **Tüm işlevler özel erişim olmadan kullanılabilir** (giriş/hesap yok).
