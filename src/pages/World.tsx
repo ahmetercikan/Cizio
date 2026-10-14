@@ -321,16 +321,19 @@ function IslandPlay() {
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
         setReady(true);
         // evdeki bir eşyadan (gardırop, şövale…) başka sayfaya gidip dönünce eve geri gel
+        let backHome = false;
         try {
           if (homeReturnPending()) {
             setHomeReturn(false);
+            backHome = true;
             setTimeout(() => homeRef.current(), 300);
           }
         } catch {
           /* yok say */
         }
         if (import.meta.env.DEV) Object.assign(window, { __island: world.current, __app: useApp });
-        say(ISLAND_LINES.welcome);
+        // eve geri dönülüyorsa "adaya hoş geldin" denmez
+        if (!backHome) say(ISLAND_LINES.welcome);
       } catch (e) {
         console.error(e);
         if (alive) setFailed(true);
@@ -452,6 +455,7 @@ function IslandPlay() {
         if (pg === 'giydir') markDone('home');
         try {
           setHomeReturn(true);
+          sessionStorage.setItem('cizio-home-spot', JSON.stringify(home.current?.heroSpot ?? null));
         } catch {
           /* yok say */
         }
@@ -472,7 +476,19 @@ function IslandPlay() {
     setHomeMode('live');
     setHomeOn(true);
     if (import.meta.env.DEV) Object.assign(window, { __home: h });
-    flash('Evine hoş geldin! Joystick ile içeride gez, eşyalara dokun.');
+    // bir eşyadan (gardırop, şövale…) dönülüyorsa karakter o eşyanın önünde başlar
+    let back = false;
+    try {
+      const s = JSON.parse(sessionStorage.getItem('cizio-home-spot') ?? 'null');
+      sessionStorage.removeItem('cizio-home-spot');
+      if (s?.tile) {
+        h.placeHero(s);
+        back = true;
+      }
+    } catch {
+      /* yok say */
+    }
+    if (!back) flash('Evine hoş geldin! Joystick ile içeride gez, eşyalara dokun.');
   };
   const homeRef = useRef(enterHome);
   homeRef.current = enterHome;

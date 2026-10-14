@@ -1,4 +1,4 @@
-# Çizio 1.5.0 (versionCode 7) — Google Play yayın rehberi
+# Çizio 1.5.0 (versionCode 8) — Google Play yayın rehberi
 
 Play'deki son sürüm 1.4.0 (versionCode 6, onaylandı ve yayında). 1.5.0, 1.4.0'dan sonraki bütün yenilikleri içerir.
 (Daha önce hazırlanan 1.6.0 ve 1.7.0 paketleri hiç yüklenmedi ve silindi.)
@@ -46,7 +46,7 @@ Her biri için:
 ## 2) Yeni sürümü yükle
 
 1. Play Console → Çizio → **Test ve yayınla → Üretim** → **Yeni sürüm oluştur**.
-2. **App Bundle'ları yükle** → `cizio-1.5.0.aab`. Sürüm adı otomatik gelir: `7 (1.5.0)`.
+2. **App Bundle'ları yükle** → `cizio-1.5.0.aab`. Sürüm adı otomatik gelir: `8 (1.5.0)`. (Paket 7 incelemedeyse yeni paket onun yerine geçer.)
 3. **Sürüm notları** → `<tr-TR>` ile `</tr-TR>` arasına aşağıdakini yapıştırın.
 4. **Sonraki** → **Kaydet** → **Sürümü incelemeye gönder**.
 
@@ -131,6 +131,9 @@ Yenilikler:
 - **Telefon yan çevrilince:** bütün ekranlar yatay telefonda üst üste binmeden görünür: alt menü sola dikey çubuk
   olur, pencereler ekrana sığar, çizimde kalemler kâğıdın soluna ve araçlar sağına geçer, ders kartında "Başla" hep
   görünür, Giydir'de karakter ve dolap yan yana; adada düğmeler küçülür, inşa çubuğu ve bildirimler çakışmaz.
+- **Evim düzeltmeleri (paket 8):** zemindeki titreme ve gölge çizgileri giderildi, duvarlar kamera hareket ettikçe
+  yanıp sönmüyor, karakter duvara ve eşyaya gömülmüyor, ev karaktere göre daha büyük (karakter küçüldü, duvarlar
+  yükseldi); gardırop, şövale gibi eşyalardan dönünce karakter o eşyanın önünde başlar ve "adaya hoş geldin" denmez.
 - **Fon müziği:** adada kısık sesle neşeli bir şarkı çalar (uygulamanın kendi bestesi, dosya yok); oyuncağa binince
   kısılır, uygulama arka plana geçince durur; sol kenardaki nota düğmesiyle kapatılır. Ses ayarı kapalıysa çalmaz.
 - **Lunapark sesleri:** hız treninde zincir takırtısı, ray gürültüsü ve "viii!", atlıkarıncada org valsi, dönme dolapta

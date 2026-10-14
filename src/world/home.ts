@@ -41,19 +41,19 @@ export interface HomeEvents {
 }
 
 const FLOOR_Y = 0.1;
-const WALL_H = 2.3, STUB_H = 0.32, WALL_T = 0.12;
-const SCALE = 0.48;
-const HIP = 0.6; // oturan karakterin kalçası ile kökü arası (ölçekli)
+const WALL_H = 2.7, STUB_H = 0.32, WALL_T = 0.12;
+const SCALE = 0.37;
+const HIP = 1.25 * SCALE; // oturan karakterin kalçası ile kökü arası (ölçekli)
 const SIDE_ROT: Record<Side, number> = { n: 0, w: Math.PI / 2, s: Math.PI, e: -Math.PI / 2 };
 const SIDES: Side[] = ['n', 'e', 's', 'w'];
 
 interface Act { dur: number; t: number; pose: Pose | ((u: number) => Pose); step: (t: number, u: number) => void; end: () => void }
-interface WallMesh { full: THREE.Object3D; stub: THREE.Object3D; x: number; z: number; side: 'n' | 'w'; outer: boolean }
+interface WallMesh { full: THREE.Object3D; stub: THREE.Object3D; x: number; z: number; side: 'n' | 'w'; outer: boolean; low?: boolean; seen?: number }
 
 export class HomeScene {
   private scene = new THREE.Scene();
-  private camera = new THREE.PerspectiveCamera(55, 1, 0.05, 300);
-  private dist = 4.2;
+  private camera = new THREE.PerspectiveCamera(55, 1, 0.3, 160);
+  private dist = 4;
   private camReady = false;
   private joy = new THREE.Vector2();
   private sun: THREE.DirectionalLight;
@@ -107,8 +107,8 @@ export class HomeScene {
     this.sun = new THREE.DirectionalLight('#fff3e2', 1.6);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
-    this.sun.shadow.bias = -0.0004;
-    this.sun.shadow.normalBias = 0.03;
+    this.sun.shadow.bias = -0.0012;
+    this.sun.shadow.normalBias = 0.08;
     this.sun.shadow.radius = 4;
     this.scene.add(this.sun, this.sun.target);
     this.scene.add(this.lotG, this.houseG, this.itemsG);
@@ -120,7 +120,7 @@ export class HomeScene {
     if (o.pet) {
       this.pet = petCard(o.pet);
       if (this.pet) {
-        this.pet.scale.multiplyScalar(0.5);
+        this.pet.scale.multiplyScalar(0.4);
         this.scene.add(this.pet);
       }
     }
@@ -205,7 +205,7 @@ export class HomeScene {
     const P = this.P, L = this.L;
     // arsa: altta toprak dilimi, üstte çimen (diorama)
     const base = new THREE.Mesh(new THREE.BoxGeometry(L.w + 0.6, 0.8, L.d + 0.6), soft('#c9b29a'));
-    base.position.y = -0.4;
+    base.position.y = -0.44;
     base.receiveShadow = true;
     const grass = new THREE.Mesh(new THREE.BoxGeometry(L.w + 0.6, 0.1, L.d + 0.6), soft('#cfe6b8'));
     grass.position.y = -0.05;
@@ -436,10 +436,15 @@ export class HomeScene {
       // kamerayla karakter arasında ya da kameraya çok yakın duvarlar alçalır
       const mid = A.clone().add(B).multiplyScalar(0.5);
       const t = mid.clone().sub(C).dot(dir) / dir.lengthSq();
-      const near = t > -0.2 && t < 0.95 && Math.abs((mid.x - C.x) * dir.y - (mid.y - C.y) * dir.x) / dir.length() < 1.1;
+      const near = t > -0.5 && t < 0.92 && Math.abs((mid.x - C.x) * dir.y - (mid.y - C.y) * dir.x) / dir.length() < 2.3;
       const low = near || rays.some((h) => cross(C, h, A, B));
-      w.full.visible = !low;
-      w.stub.visible = low;
+      if (low) w.seen = this.clock;
+      const want = low || this.clock - (w.seen ?? -9) < 0.6;
+      if (want !== w.low) {
+        w.low = want;
+        w.full.visible = !want;
+        w.stub.visible = want;
+      }
     }
     const cx = this.camera.position.x - this.pos.x, cz = this.camera.position.z - this.pos.z;
     for (const t of this.towers) t.obj.visible = t.dx * cx + t.dz * cz < 0;
@@ -470,7 +475,7 @@ export class HomeScene {
     const mag = Math.min(1, mv.length());
     mv.normalize();
     const sp = 2.3 * mag * dt;
-    const R = 0.2;
+    const R = 0.3;
     for (const axis of ['x', 'z'] as const) {
       const step = mv[axis] * sp;
       if (!step) continue;
@@ -513,11 +518,26 @@ export class HomeScene {
   // ----------------------------------------------------------------------------------------------
   // Kahraman
   // ----------------------------------------------------------------------------------------------
+  /** Karakterin durduğu karo ve yönü (başka sayfaya gidip dönünce aynı yerde başlamak için). */
+  get heroSpot() {
+    return { tile: this.heroTile(), heading: this.heading, yaw: this.yawGoal };
+  }
+  placeHero(s: { tile: [number, number]; heading: number; yaw: number }) {
+    const [x, z] = s.tile;
+    if (roomAt(this.P, x, z) === null) return;
+    this.pos.copy(this.tileCenter(x, z, this.floorAt(x, z)));
+    this.heading = s.heading;
+    this.yaw = this.yawGoal = s.yaw;
+    this.route = [];
+    this.petPos.copy(this.pos).add(new THREE.Vector3(0.6, 0, 0.3));
+    this.camReady = false;
+  }
   private placeHeroAtDoor() {
     const L = this.L, P = this.P;
     const x = P.front.x + L.hx, z = P.front.z + L.hz + 1;
     this.pos.copy(this.tileCenter(x, z, 0));
     this.heading = Math.PI;
+    this.yaw = this.yawGoal = 0;
     this.petPos.copy(this.pos).add(new THREE.Vector3(0.8, 0, 0.4));
   }
   private heroTile(): [number, number] {
