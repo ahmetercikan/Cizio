@@ -11,6 +11,7 @@ import './styles/english.css';
 import './styles/online.css';
 import './styles/magic.css';
 import './styles/plus.css';
+import './styles/landscape.css';
 
 // Çevrimdışı çalışma ve "Ana ekrana ekle" için servis çalışanı; yeni sürüm gelince kendini günceller.
 // Android/iOS uygulamasında dosyalar zaten pakette; servis çalışanı yalnızca web'de.

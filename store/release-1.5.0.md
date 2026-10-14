@@ -63,7 +63,7 @@ Yenilikler:
 • Çiftlik kur, pazarda sat, blokla inşa et
 • Ebeveyn onayıyla arkadaşlarınla aynı adada oyna
 • 8 mini oyun, arabalar, fon müziği
-• Çizim Atölyesi artık daha hızlı açılıyor
+• Daha hızlı; telefon yan çevrilince de düzgün görünüyor
 ```
 
 ## Bu sürümde neler var (ayrıntı)
@@ -128,6 +128,9 @@ Yenilikler:
   yaklaşınca yükleniyor (aşağı kaydırınca resimler beklemeden gelir). Ağır sayfalar (ada, giydirme, İngilizce, oyunlar)
   ilk açıldıklarında yükleniyor: uygulamanın ilk açılış dosyası 1,7 MB'tan 0,8 MB'a indi. Web sürümünde ders resimleri
   önbellekte kalır.
+- **Telefon yan çevrilince:** bütün ekranlar yatay telefonda üst üste binmeden görünür: alt menü sola dikey çubuk
+  olur, pencereler ekrana sığar, çizimde kalemler kâğıdın soluna ve araçlar sağına geçer, ders kartında "Başla" hep
+  görünür, Giydir'de karakter ve dolap yan yana; adada düğmeler küçülür, inşa çubuğu ve bildirimler çakışmaz.
 - **Fon müziği:** adada kısık sesle neşeli bir şarkı çalar (uygulamanın kendi bestesi, dosya yok); oyuncağa binince
   kısılır, uygulama arka plana geçince durur; sol kenardaki nota düğmesiyle kapatılır. Ses ayarı kapalıysa çalmaz.
 - **Lunapark sesleri:** hız treninde zincir takırtısı, ray gürültüsü ve "viii!", atlıkarıncada org valsi, dönme dolapta

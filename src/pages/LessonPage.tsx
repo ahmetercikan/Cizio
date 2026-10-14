@@ -131,7 +131,7 @@ function Player({ lesson }: { lesson: Lesson }) {
       const dt = Math.min(0.1, (now - prev) / 1000);
       prev = now;
       const end = tl.steps[curRef.current].end;
-      const nt = Math.min(end, tRef.current + dt * speed);
+      const nt = Math.min(end, tRef.current + dt * (Number.isFinite(speed) && speed > 0 ? speed : 1));
       tRef.current = nt;
       setT(nt);
       if (nt >= end) {

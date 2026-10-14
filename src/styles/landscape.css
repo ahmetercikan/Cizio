@@ -1,0 +1,193 @@
+/* =====================================================================
+   Telefon yan çevrilince (yatay, kısa ekran): hiçbir şey üst üste binmesin.
+   Alt menü sola dikey ray olur, pencereler ekrana sığar, çizim ekranında kalemler
+   kâğıdın soluna, araçlar sağına geçer; adada düğmeler küçülür.
+   Yalnızca yatay ve en çok 540 px yüksek ekranlarda devreye girer (telefonlar);
+   tabletler ve dikey ekranlar etkilenmez. Son yüklenir (main.tsx).
+   ===================================================================== */
+
+/* Dükkândaki sandık kartı dar yerde düğmeyi dışarı taşırmasın (her boyutta) */
+.shop-chest { flex-wrap: wrap; }
+
+@media (orientation: landscape) and (max-height: 540px) {
+  :root {
+    --rail: 84px;
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* ---------- Kabuk: üst çubuk inceldi, alt menü sola dikey ray ---------- */
+  .appbar { padding: calc(var(--safe-top) + 6px) calc(var(--safe-right) + 16px) 2px calc(var(--safe-left) + 16px); gap: 8px; }
+  .appbar__brand { font-size: 21px; }
+  .app__main {
+    padding: 4px calc(var(--safe-right) + 18px) calc(var(--safe-bottom) + 24px) calc(var(--safe-left) + var(--rail) + 16px);
+  }
+  .tabbar,
+  .tabbar.tabbar--2 {
+    left: calc(var(--safe-left) + 8px);
+    top: calc(50% + 26px);
+    bottom: auto;
+    transform: translateY(-50%);
+    width: 74px;
+    max-height: calc(100dvh - 72px);
+    flex-direction: column;
+    gap: 3px;
+    padding: 5px;
+    border-radius: 22px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .tabbar__item { flex: none; padding: 6px 2px 4px; font-size: 11px; border-radius: 16px; }
+  .tabbar__item svg { width: 20px; height: 20px; }
+  .title-xl { font-size: clamp(24px, 4.2vw, 32px); }
+
+  /* ---------- Pencereler ekrana sığsın (gerekirse kendi içinde kaysın) ---------- */
+  .modal-backdrop { padding: 8px calc(var(--safe-right) + 8px) 8px calc(var(--safe-left) + 8px); }
+  .modal { max-height: calc(100dvh - 16px); padding: 14px 18px; }
+  .modal .art-view__head { margin-bottom: 4px; }
+  .island__panel { gap: 8px; }
+  .island__panel > svg:first-child { display: none; } /* görev penceresindeki büyük Çizio */
+  .island__qlist li { padding: 7px 12px; }
+  .island-map__wrap { width: min(100%, calc(100dvh - 150px)); margin: 0 auto 6px; }
+  .keypad { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .keypad button { min-height: 0; padding: 6px 0; }
+
+  /* Oyun Çadırı ve mini oyunlar */
+  .mini-pick { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .mini-pick button { padding: 8px 6px; gap: 2px; border-radius: 16px; }
+  .mini-pick .gicon { width: 36px !important; height: 36px !important; }
+  .mini-pick small { font-size: 11px; }
+  .mini-memory { grid-template-columns: repeat(6, 1fr); max-width: min(100%, calc((100dvh - 150px) * 2.2)); gap: 8px; }
+  .mini-sky, .mg-field { height: calc(100dvh - 140px); }
+  .mg-holes { max-width: calc(100dvh - 140px); gap: 8px; }
+  .mg-simon { max-width: calc(100dvh - 150px); gap: 10px; }
+  .mg-puzzle { max-width: calc(100dvh - 140px); }
+  .mg-tile .gicon { width: 28px !important; height: 28px !important; }
+  .mg-math { grid-template-columns: auto 1fr; align-items: center; gap: 8px 16px; }
+  .mg-q { font-size: 22px; }
+  .mg-q .gicon { width: 22px !important; height: 22px !important; }
+  .mg-q--text { font-size: 30px; }
+  .mg-answers { grid-column: 1 / -1; }
+  .mg-ans { aspect-ratio: 1.5; font-size: 28px; }
+  .mg-shadow { grid-template-columns: auto 1fr; align-items: center; }
+  .mg-shadow__target { padding: 6px 12px; }
+  .mg-shadow__target .gicon { width: 84px !important; height: 84px !important; }
+  .mg-shadow__opts { grid-template-columns: repeat(4, 1fr); }
+  .mg-shadow__opt .gicon { width: 56px !important; height: 56px !important; }
+
+  /* Giydir: bebek solda (ekran yüksekliğine sığar), dolap sağda */
+  .studio { grid-template-columns: auto 1fr; gap: 14px; }
+  .studio__left { position: sticky; top: 0; width: min(36vw, calc((100dvh - 150px) * 300 / 440 + 12px)); min-width: 0; }
+  .studio__stage { width: 100%; justify-self: stretch; }
+  .studio__actions { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .studio-btn { padding: 6px 4px; font-size: 13px; }
+
+  /* ---------- Çizim ekranı (Atölye ve dersler) ---------- */
+  .player__top { padding: calc(var(--safe-top) + 6px) calc(var(--safe-right) + 12px) 2px calc(var(--safe-left) + 12px); gap: 10px; }
+  .player__bottom { padding: 4px calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 6px) calc(var(--safe-left) + 12px); }
+  .player--tools .player__wrap { padding: 0 86px 0 8px; }
+  .player--tools.player--palette .player__wrap { padding: 0 86px 0 124px; }
+  .player--left.player--tools .player__wrap { padding: 0 8px 0 86px; }
+  .player--left.player--tools.player--palette .player__wrap { padding: 0 124px 0 86px; }
+  /* araçlar sağda dikey; sığmazsa kendi içinde kayar */
+  .tools-float,
+  .player--left .tools-float {
+    top: calc(50% - 6px);
+    bottom: auto;
+    left: auto;
+    right: calc(var(--safe-right) + 8px);
+    transform: translateY(-50%);
+    display: block;
+  }
+  .player--left .tools-float { right: auto; left: calc(var(--safe-left) + 8px); }
+  .capsule { max-height: calc(100dvh - 128px); overflow-y: auto; scrollbar-width: none; flex-direction: column; }
+  /* kalemler kâğıdın solunda, uçları kâğıda dönük */
+  .palette-float,
+  .player--left .palette-float {
+    left: calc(var(--safe-left) + 62px);
+    right: auto;
+    top: 50%;
+    bottom: auto;
+    width: calc(100dvh - 120px);
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  .player--left .palette-float { left: auto; right: calc(var(--safe-right) + 62px); transform: translate(50%, -50%) rotate(-90deg); }
+  .palette { height: 92px; }
+  .palette__pencil { width: 26px; height: 84px; }
+  /* Atölyede kaydet düğmeleri sağ altta, kâğıdın üstüne binmeden */
+  .player__bottom--end { position: absolute; right: calc(var(--safe-right) + 8px); bottom: calc(var(--safe-bottom) + 6px); padding: 0; z-index: 7; }
+  .player__bottom--end .pill { min-height: 44px; min-width: 0; height: 44px; padding: 0 16px; }
+  .player__bottom--end .round-btn { width: 44px; height: 44px; }
+  /* dersin tanıtım kartı sağda, başlığın altında; çizim solda */
+  .player--intro .player__wrap { padding: 0 min(380px, 50vw) 0 0; }
+  .intro {
+    top: calc(var(--safe-top) + 62px);
+    bottom: calc(var(--safe-bottom) + 8px);
+    right: calc(var(--safe-right) + 10px);
+    left: auto;
+    transform: none;
+    width: min(360px, 48vw);
+    padding: 14px 16px;
+    gap: 8px;
+    overflow-y: auto;
+    align-content: start;
+  }
+  .intro .title-lg, .intro h2 { font-size: 22px; }
+  .intro__q { font-size: 15px; margin-top: 0; }
+  .mode-cards { gap: 8px; }
+  .mode-cards button { padding: 8px 6px; gap: 2px; }
+  .mode-cards button svg { width: 22px; height: 22px; }
+  .mode-cards b { font-size: 15px; }
+  .mode-cards span { font-size: 11px; }
+  .intro__hint { font-size: 12px; }
+  /* Başla düğmesi hep görünsün: kartın altına yapışık */
+  .intro__start { position: sticky; bottom: 0; margin-top: 2px; min-height: 50px; height: 50px; }
+  .ref-float { width: 96px; top: calc(var(--safe-top) + 58px); }
+  .feedback-card { bottom: calc(var(--safe-bottom) + 64px); padding: 10px 14px; }
+
+  /* ---------- Çizio Adası ---------- */
+  .joystick { width: 104px; height: 104px; left: calc(var(--safe-left) + 14px); bottom: calc(var(--safe-bottom) + 12px); }
+  .joystick__knob { width: 46px; height: 46px; }
+  .island--building .joystick { bottom: calc(var(--safe-bottom) + 12px); }
+  .island__emotes { right: calc(var(--safe-right) + 10px); bottom: calc(var(--safe-bottom) + 10px); gap: 6px; }
+  .island__emotes .game__btn { min-width: 46px; height: 46px; }
+  .island__act { bottom: calc(var(--safe-bottom) + 14px); }
+  .island__act.pill, .island__drive .pill { min-height: 48px; min-width: 0; height: 48px; font-size: 17px; padding: 0 20px; }
+  .island__build { right: calc(var(--safe-right) + 10px); bottom: calc(var(--safe-bottom) + 64px); width: 56px; height: 56px; border-radius: 18px; }
+  .island__car { right: calc(var(--safe-right) + 72px); bottom: calc(var(--safe-bottom) + 64px); width: 56px; height: 56px; border-radius: 18px; }
+  .island__mini { width: 76px; height: 76px; }
+  .island__toast { top: auto; bottom: calc(var(--safe-bottom) + 72px); font-size: 16px; padding: 8px 16px; max-width: min(70vw, 520px); }
+  .island--building .island__toast { top: calc(var(--safe-top) + 74px); bottom: auto; }
+  .hud-side { top: calc(var(--safe-top) + 66px); left: calc(var(--safe-left) + 12px); gap: 6px; }
+  .hud-side__btn { width: 46px; height: 46px; border-radius: 15px; }
+  .hud-side__btn--sm { width: 38px; height: 38px; }
+  .hud-note__text { font-size: 12px; padding: 5px 4px 5px 8px; }
+  .realm-hud { gap: 6px; }
+  .realm-hud__goal { padding: 4px 12px; }
+  .realm-hud__goal b { font-size: 15px; }
+  .realm-hud__goal span { font-size: 12px; }
+  .realm-hud__prog { padding: 5px 12px; font-size: 16px; }
+  /* inşa çubuğu joystick'in sağında, alçak */
+  .build-bar { left: calc(var(--safe-left) + 128px); padding: 6px 10px calc(var(--safe-bottom) + 6px); border-radius: 18px 0 0 0; }
+  .build-bar__tabs { margin-bottom: 4px; }
+  .build-bar__tabs button { padding: 4px 10px; font-size: 13px; }
+  .build-tool { width: 60px; padding: 4px 3px; }
+  .build-tool small { font-size: 11px; }
+  .build-bar__row { padding-bottom: 4px; }
+  .build-bar__actions .pill, .build-bar__actions .btn-outline { min-height: 40px; min-width: 0; height: 40px; padding: 0 14px; font-size: 15px; }
+
+  /* Evim */
+  .home-top { top: calc(var(--safe-top) + 8px); left: calc(var(--safe-left) + 10px); right: calc(var(--safe-right) + 10px); }
+  .home-top__modes button { padding: 7px 12px; font-size: 15px; }
+  .home-cam { top: calc(var(--safe-top) + 62px); right: calc(var(--safe-right) + 10px); gap: 4px; grid-auto-flow: column; }
+  .home-cam button { width: 38px; height: 38px; }
+  .home-hint { bottom: calc(var(--safe-bottom) + 10px); font-size: 13px; padding: 7px 14px; max-width: calc(100% - 300px); }
+  .home-cat { left: calc(var(--safe-left) + 8px); right: calc(var(--safe-right) + 8px); padding: 6px 10px calc(var(--safe-bottom) + 6px); }
+  .home-cat__tabs { padding-bottom: 4px; }
+  .home-cat__tabs button { padding: 5px 10px; font-size: 13px; }
+  .home-card { width: 92px; padding: 6px 4px; }
+  .home-card img { width: 64px; height: 64px; }
+  .home-card--plan { width: 150px; padding: 8px; }
+  .home-finish { max-height: 30vh; }
+  .home-ghost, .home-sel { left: auto; right: calc(var(--safe-right) + 10px); transform: none; width: min(380px, calc(100% - 150px)); bottom: calc(var(--safe-bottom) + 8px); padding: 10px 12px; gap: 6px; }
+}
