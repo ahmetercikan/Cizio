@@ -449,3 +449,8 @@
 .mg-shadow__opt.no { background: #ffe3e3; border-color: #ffb3b3; }
 .mg-silhouette svg * { fill: #3a3f4a !important; stroke: #3a3f4a !important; }
 @media (max-width: 520px) { .mg-answers, .mg-shadow__opts { grid-template-columns: repeat(2, 1fr); } }
+
+/* Evim: dar dikey ekranda üst çubuk iki satır olur; kamera düğmeleri altın göstergesinin altına insin */
+@media (max-width: 560px) and (orientation: portrait) {
+  .home-cam { top: calc(var(--safe-top) + 132px); }
+}
