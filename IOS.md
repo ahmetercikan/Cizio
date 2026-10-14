@@ -4,6 +4,11 @@
 > oku ve iOS sürümünü hazırla" diyecek. Aşağıdaki adımları sırayla uygula; kullanıcının yapması gereken (hesap, ödeme,
 > onay) adımlarda dur ve ona ne yapacağını sade Türkçeyle anlat.
 
+> **Durum (14 Ekim 2026):** Bölüm 2, 3 ve 4 tamamlandı ve `ios/` depoya eklendi (simgeler, açılış ekranı,
+> Info.plist izinleri, sürüm 1.5.0 / build 1, iPhone + iPad, Mac/Vision kapalı, bölge `tr`). Mac'te yalnızca
+> `npm ci` → `npm run ios:sync` → `npx cap open ios`, ardından Xcode'da **Team** seçimi (bölüm 4) ve bölüm 5'ten
+> devam et. Kullanıcı için sade adımlar ve App Store metinleri: `store/app-store-1.5.0.md`.
+
 ## 0. Bağlam ve çalışma kuralları
 
 - **Uygulama:** Çizio — 5-9 yaş çocuklar için Türkçe çizim dersleri, Giydirme Stüdyosu, English Club ve 3B "Çizio
