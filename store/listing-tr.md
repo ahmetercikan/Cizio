@@ -4,10 +4,12 @@
 Çizio: Adım Adım Çizim Öğren
 
 ## Kısa açıklama (en fazla 80 karakter)
-Adım adım çiz, 3B Çizio Adası'nda oyna, karakterini giydir, İngilizce öğren!
+Çocuklar için adım adım çizim öğren, boyama yap, 3B adada oyna, İngilizce öğren!
 
 ## Tam açıklama (en fazla 4000 karakter)
-Çizio, 5-9 yaş çocuklar için sesli anlatımlı ve reklamsız bir öğrenme ve oyun uygulaması. Çocuk dört dünyadan birini seçer: Çizim Atölyesi, Giydirme Stüdyosu, English Club ve Çizio Adası.
+Çocuğunuz çizim öğrenmek mi istiyor? Çizio ile resim çizmeyi adım adım, sesli anlatımla öğrenir; çizdiğini boyar, kocaman 3B Çizio Adası'nda oynar ve İngilizce öğrenir. 5-9 yaş çocuklar için reklamsız, güvenli bir çizim, boyama ve eğitici oyun uygulaması.
+
+Çocuk dört dünyadan birini seçer: Çizim Atölyesi, Giydirme Stüdyosu, English Club ve Çizio Adası.
 
 ✏️ ÇİZİM ATÖLYESİ: ADIM ADIM, KALEMLE GÖSTEREREK
 Her derste gerçekçi bir kalem, kâğıda çizimi adım adım çizer. Çocuk izler, sonra aynısını kendi kâğıdına ya da ekrana çizer. Çizio'nun sıcak sesi her adımı anlatır.
