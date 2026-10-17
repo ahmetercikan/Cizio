@@ -4,17 +4,22 @@
 > oku ve iOS sürümünü hazırla" diyecek. Aşağıdaki adımları sırayla uygula; kullanıcının yapması gereken (hesap, ödeme,
 > onay) adımlarda dur ve ona ne yapacağını sade Türkçeyle anlat.
 
-> **Durum (14 Ekim 2026):** Bölüm 2, 3 ve 4 tamamlandı ve `ios/` depoya eklendi (simgeler, açılış ekranı,
-> Info.plist izinleri, sürüm 1.5.0 / build 1, iPhone + iPad, Mac/Vision kapalı, bölge `tr`). Mac'te yalnızca
-> `npm ci` → `npm run ios:sync` → `npx cap open ios`, ardından Xcode'da **Team** seçimi (bölüm 4) ve bölüm 5'ten
-> devam et. Kullanıcı için sade adımlar ve App Store metinleri: `store/app-store-1.5.0.md`.
+> **Durum (17 Ekim 2026):** Bölüm 2, 3, 4 ve 7'nin imzalama kısmı tamamlandı. İmza ekibi **AQ2Y664A4Z
+> (ABDURRAHMAN KAAN DIKEC, Individual)**; kullanıcının kendi hesabı yalnızca ücretsiz *Personal Team*
+> (`K5AVKBUJ8R`) olduğu için App Store'a yükleyemiyor. `com.ahmetercikan.cizio` paket kimliği o ücretsiz ekibe
+> kayıtlı kaldığından **iOS paket kimliği `com.ahmetercikan.cizioapp`** oldu (Android `com.ahmetercikan.cizio`
+> olarak kalıyor). App Store dağıtım imzasıyla IPA üretildi ve doğrulandı. Kalan iş: App Store Connect'te
+> uygulama kaydı ve yükleme (bölüm 6-7). Kullanıcı için sade adımlar ve App Store metinleri:
+> `store/app-store-1.5.0.md`.
 
 ## 0. Bağlam ve çalışma kuralları
 
 - **Uygulama:** Çizio — 5-9 yaş çocuklar için Türkçe çizim dersleri, Giydirme Stüdyosu, English Club ve 3B "Çizio
   Adası". React 18 + TypeScript + Vite 5 web uygulaması; Capacitor 8 ile yerel uygulamaya sarılır.
-- **Android zaten Google Play'de** (paket `com.ahmetercikan.cizio`, sürüm 1.5.0). iOS aynı kodla, **aynı paket
-  kimliğiyle** (`com.ahmetercikan.cizio`) yayınlanacak. İlk iOS sürümü: **1.5.0, build 1**.
+- **Android zaten Google Play'de** (paket `com.ahmetercikan.cizio`, sürüm 1.5.0). iOS aynı kodla, ama **farklı
+  paket kimliğiyle** (`com.ahmetercikan.cizioapp`) yayınlanıyor: `com.ahmetercikan.cizio` kimliği ücretsiz
+  Personal Team'e kayıtlı kaldı ve Apple'da paket kimlikleri dünyada tek. Paket kimliği kullanıcıya görünmez.
+  İlk iOS sürümü: **1.5.0, build 1**.
 - **Kullanıcıyla iletişim:** Kullanıcı teknik değil. **Her zaman Türkçe ve sade** yaz; teknik terim gerekirse kısaca açıkla.
   Apple hesabı, ödeme, App Store Connect'te tıklanacak yerler gibi onun yapacağı işleri adım adım, ekranda göreceği
   adlarla anlat. Ekran görüntüsü isteyebilirsin.
@@ -95,9 +100,13 @@ iOS'ta satın alma yok; dokunma.
   - Build: `1`
   - Minimum Deployments: Capacitor'ın ayarladığını bırak.
   - Supported Destinations: iPhone ve iPad (Mac/Vision kapalı).
-- **Signing & Capabilities:** "Automatically manage signing" açık, **Team** = kullanıcının geliştirici hesabı.
-  Bundle ID, Apple Developer portalında yoksa Xcode kendisi kaydeder.
+- **Signing & Capabilities:** "Automatically manage signing" açık, **Team** = `ABDURRAHMAN KAAN DIKEC`
+  (AQ2Y664A4Z). Ücretsiz *Personal Team* seçilirse App Store'a yükleme yapılamaz.
 - Ek yetenek (Push, iCloud vb.) **ekleme**; gerekmiyor.
+
+Otomatik imzalamada `CODE_SIGN_IDENTITY` elle `Apple Distribution` yapılmaz — Xcode "conflicting provisioning
+settings" hatası verir. Proje genelinde `Apple Development` kalır; dağıtım imzasını `xcodebuild -exportArchive`
+adımı atar.
 
 ## 5. Dene (simülatör ve gerçek cihaz)
 
@@ -129,7 +138,7 @@ https://appstoreconnect.apple.com → **Uygulamalar → + → Yeni Uygulama**:
 | Platform | iOS |
 | Ad (en çok 30 karakter) | `Çizio: Adım Adım Çizim Öğren` |
 | Ana dil | Türkçe |
-| Paket kimliği | `com.ahmetercikan.cizio` |
+| Paket kimliği | `com.ahmetercikan.cizioapp` |
 | SKU | `cizio-ios` |
 | Kullanıcı erişimi | Tam erişim |
 
@@ -189,6 +198,24 @@ npx tsx scripts/store-shots.mts ipad
 1. `npm run ios:sync`
 2. Xcode → üstte cihaz: **Any iOS Device (arm64)** → menü **Product → Archive**.
 3. Organizer açılır → **Distribute App** → **App Store Connect** → **Upload** → varsayılanlarla ilerle.
+
+Aynısı komut satırından (Xcode açmaya gerek yok):
+
+```bash
+npm run ios:sync
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+  -destination 'generic/platform=iOS' -archivePath /tmp/Cizio.xcarchive \
+  -allowProvisioningUpdates archive
+# ExportOptions.plist: method=app-store-connect, teamID=AQ2Y664A4Z, signingStyle=automatic
+xcodebuild -exportArchive -archivePath /tmp/Cizio.xcarchive \
+  -exportOptionsPlist ExportOptions.plist -exportPath /tmp/export -allowProvisioningUpdates
+# yükleme (App Store Connect API anahtarı gerekir)
+xcrun altool --upload-app -f /tmp/export/App.ipa -t ios \
+  --apiKey <KeyID> --apiIssuer <IssuerID>
+```
+
+Yüklemeden önce App Store Connect'te `com.ahmetercikan.cizioapp` paket kimliğiyle uygulama kaydı oluşmuş olmalı
+(bölüm 6), yoksa yükleme reddedilir.
 4. 10-30 dakika içinde App Store Connect → **TestFlight**'ta build "İşleniyor"dan "Test için hazır"a geçer.
    Kullanıcıya TestFlight uygulamasıyla kendi iPhone'unda denemesini öner.
 5. App Store sekmesi → **1.5.0** → **Build** bölümünden bu build'i seç.
