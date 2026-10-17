@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { cloud, mesh, outline, Sparkles, star, toon, tree } from '../play3d/kit';
 import type { Pose } from './avatar3d';
+import { boatModel, jetskiModel, tractorModel } from './vehicles';
 import { heightAt, isWater, LAKE, SNOW_PEAK, VOLCANO, zone } from './layout';
 import type { BlockGrid } from './terrain';
 import type { RealmId } from './homestead';
@@ -268,21 +269,6 @@ function coneModel(s = 1) {
   const top = outline(mesh(new THREE.SphereGeometry(0.26 * s, 12, 10), toon(['#ff8fb1', '#fff1c7', '#9be7de'][Math.floor(Math.random() * 3)])), 1.06);
   top.position.y = 0.38 * s;
   g.add(cone, top);
-  return g;
-}
-
-function boatModel(color = '#ff6b4a') {
-  const g = new THREE.Group();
-  const hull = outline(mesh(new THREE.BoxGeometry(2.4, 0.9, 4.4), toon(color)), 1.03);
-  hull.position.y = 0.1;
-  const rim = mesh(new THREE.BoxGeometry(2.5, 0.15, 4.5), toon('#ffffff'));
-  rim.position.y = 0.6;
-  const mast = mesh(new THREE.CylinderGeometry(0.07, 0.07, 4, 6), toon('#9b6b43'));
-  mast.position.y = 2.6;
-  const sail = mesh(new THREE.ConeGeometry(1.5, 3.2, 3), toon('#ffffff'));
-  sail.position.set(0, 2.8, 0.5);
-  sail.scale.z = 0.12;
-  g.add(hull, rim, mast, sail);
   return g;
 }
 
@@ -1973,19 +1959,8 @@ function buildBeach(b: WorldBuilder, taken: string[]) {
   // jet ski (sürülür)
   {
     const [x, z] = b.polar(A + 0.08, sr + 12);
-    const js = new THREE.Group();
-    const body = outline(mesh(new THREE.BoxGeometry(1.2, 0.6, 2.8), toon('#ffc83d')), 1.04);
-    body.position.y = 0.2;
-    const nose = outline(mesh(new THREE.ConeGeometry(0.6, 1.1, 4), toon('#ffc83d')), 1.04);
-    nose.rotation.x = Math.PI / 2;
-    nose.position.set(0, 0.2, 1.9);
-    const seat = mesh(new THREE.BoxGeometry(0.7, 0.3, 1.2), toon('#3a2b27'));
-    seat.position.set(0, 0.6, -0.4);
-    const bar = mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6), toon('#3a2b27'));
-    bar.rotation.z = Math.PI / 2;
-    bar.position.set(0, 1.0, 0.5);
-    js.add(body, nose, seat, bar);
-    const v: Vehicle = { model: js, pos: new THREE.Vector3(x, 0, z), heading: A, speed: 24, water: true, seatY: 0.55 };
+    const { model: js, seat: jseat } = jetskiModel('#ffc83d');
+    const v: Vehicle = { model: js, pos: new THREE.Vector3(x, 0, z), heading: A, speed: 24, water: true, seatY: 0.55, seat: jseat };
     b.scene.add(js);
     b.spot({ id: 'jetski', x, z, r: 4, label: 'Jet ski sür', vehicle: v });
     const [sx, sz] = sand(0.08, 4);
@@ -2064,28 +2039,16 @@ function buildBeach(b: WorldBuilder, taken: string[]) {
       },
     });
   }
-  // tekne turu: adanın etrafında
+  // tekne: kıyının hemen açığında, kullanıcı sürer (joystick); kıyıya yaklaşıp "İn" deyince karaya çıkar.
+  // Araç olduğu için uzak bölge gizlemesine girmez (eskiden binince altından kayboluyordu).
   {
-    const [x, z] = b.polar(A - 0.12, sr + 8);
-    const boat = boatModel();
-    b.place(boat, x, z, A + Math.PI / 2, -0.35);
-    const R = Math.hypot(x, z) + 30;
-    const [dx, dz] = sand(-0.12, 2);
-    b.spot({
-      id: 'boat', x: dx, z: dz, r: 3, label: 'Tekneyle adayı gez',
-      act: {
-        dur: 30, pose: 'sit', cam: [34, 20],
-        step(t, u, a) {
-          const ang = A - 0.12 + u * Math.PI * 2;
-          const rr = R * (u < 0.05 ? u / 0.05 : u > 0.95 ? (1 - u) / 0.05 : 1) * 0.15 + R * 0.85;
-          boat.position.set(Math.cos(ang) * rr, -0.35 + Math.sin(t * 2) * 0.12, Math.sin(ang) * rr);
-          boat.rotation.y = -ang;
-          a.pos.set(boat.position.x, 0.45, boat.position.z);
-          a.heading = -ang;
-        },
-        end: () => void boat.position.set(x, -0.35, z),
-      },
-    });
+    const [x, z] = b.polar(A - 0.12, sr + 6);
+    const { model: boat, seat } = boatModel();
+    const v: Vehicle = { model: boat, pos: new THREE.Vector3(x, 0, z), heading: A + Math.PI / 2, speed: 16, water: true, seatY: 0.6, seat, cam: [20, 10] };
+    boat.position.copy(v.pos);
+    boat.rotation.y = v.heading;
+    b.scene.add(boat);
+    b.spot({ id: 'boat', x, z, r: 7, label: 'Tekneyi sür', vehicle: v });
   }
   // kıyı hazineleri
   ([[A + 0.22, 't0'], [Math.PI + 0.3, 't1'], [-0.5, 't2']] as const).forEach(([ang, id]) => {
@@ -2274,31 +2237,9 @@ function buildFarm(b: WorldBuilder) {
   });
   // traktör: kullanıcı sürer (üstü açık sürücü yeri)
   {
-    const tr = new THREE.Group();
-    const tb = outline(mesh(new THREE.BoxGeometry(1.6, 1.2, 2.6), toon('#2bb673')), 1.03);
-    tb.position.y = 1.1;
-    const seatBox = mesh(new THREE.BoxGeometry(0.9, 0.3, 0.8), toon('#3a2b27'));
-    seatBox.position.set(0, 1.85, -0.6);
-    const roof = outline(mesh(new THREE.BoxGeometry(1.6, 0.15, 1.5), toon('#ffd43b')), 1.03);
-    roof.position.set(0, 3.5, -0.5);
-    tr.add(tb, seatBox, roof);
-    for (const [px, pz] of [[-0.7, -1.15], [0.7, -1.15], [-0.7, 0.15], [0.7, 0.15]]) {
-      const post = mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.8, 6), toon('#3a2b27'), false);
-      post.position.set(px, 2.6, pz);
-      tr.add(post);
-    }
-    const pipe = mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.2, 8), toon('#5b5f6b'), false);
-    pipe.position.set(0.5, 2.2, 0.9);
-    tr.add(pipe);
-    for (const [wx, wz, r] of [[-0.95, -0.7, 0.9], [0.95, -0.7, 0.9], [-0.85, 1, 0.5], [0.85, 1, 0.5]] as const) {
-      const w = mesh(new THREE.CylinderGeometry(r, r, 0.35, 14), toon('#3a2b27'));
-      w.rotation.z = Math.PI / 2;
-      w.position.set(wx, r, wz);
-      w.name = 'wheel';
-      tr.add(w);
-    }
+    const { model: tr, seat: tseat } = tractorModel();
     const x0 = F.x + 2, z0 = F.z - 14;
-    const tv: Vehicle = { model: tr, pos: new THREE.Vector3(x0, b.h(x0, z0), z0), heading: Math.PI / 2, speed: 11, water: false, seatY: 1.4, land: true, seat: [0, 1.15, -0.6], cam: [15, 7], engine: 'truck' };
+    const tv: Vehicle = { model: tr, pos: new THREE.Vector3(x0, b.h(x0, z0), z0), heading: Math.PI / 2, speed: 11, water: false, seatY: 1.4, land: true, seat: tseat, cam: [16, 8], engine: 'truck' };
     tr.position.copy(tv.pos);
     tr.rotation.y = tv.heading;
     b.scene.add(tr);

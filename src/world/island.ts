@@ -466,6 +466,8 @@ export class Island {
   }
   private mount(s: SpotDef) {
     this.drive = s.vehicle!;
+    // kamera aracın arkasına geçsin (önünde kalıp binaya girmesin)
+    this.camYawGoal = this.camYaw + angDiff(this.drive.heading + Math.PI, this.camYaw);
     this.ev.onDrive(true);
     this.ev.onDone(s.id);
     this.setNear(null);
@@ -538,7 +540,7 @@ export class Island {
     if (!this.myCar) {
       const model = carModel(id);
       this.scene.add(model);
-      const v = { model, pos: new THREE.Vector3(), heading: this.heading, speed: def.speed, water: false, seatY: def.seatY, land: !def.fly, fly: def.fly };
+      const v = { model, pos: new THREE.Vector3(), heading: this.heading, speed: def.speed, water: false, seatY: def.seatY, land: !def.fly, fly: def.fly, seat: model.userData.seat as [number, number, number] };
       const spot: SpotDef = { id: 'car', x: 0, z: 0, r: 4, label: `${def.name} ile gez`, vehicle: v };
       this.spots.push(spot);
       this.myCar = { id, spot };
@@ -1112,7 +1114,14 @@ export class Island {
       return;
     }
     this.speed = 0;
-    this.pos.set(v.pos.x, v.pos.y + v.seatY + Math.sin(this.clock * 3) * 0.05, v.pos.z);
+    v.pos.y = Math.sin(this.clock * 2 + v.pos.x) * 0.08;
+    v.model.position.copy(v.pos);
+    const lean = Math.max(-0.2, Math.min(0.2, -angDiff(v.heading, h0) / Math.max(dt, 1e-3) * 0.12));
+    v.model.rotation.set(Math.sin(this.clock * 1.7) * 0.03, v.heading, v.model.rotation.z + (lean + Math.sin(this.clock * 1.3) * 0.04 - v.model.rotation.z) * Math.min(1, dt * 4), 'YXZ');
+    if (v.seat) {
+      v.model.updateMatrixWorld();
+      this.pos.copy(v.model.localToWorld(new THREE.Vector3(...v.seat)));
+    } else this.pos.set(v.pos.x, v.pos.y + v.seatY, v.pos.z);
     this.heading = v.heading;
   }
 
@@ -1176,7 +1185,7 @@ export class Island {
     // araçlar: binilmeyenler suda sallanır
     for (const s of this.spots) {
       const v = s.vehicle;
-      if (!v || v.land || v.fly) continue;
+      if (!v || v.land || v.fly || v === this.drive) continue;
       v.pos.y = Math.sin(this.clock * 2 + v.pos.x) * 0.08;
       v.model.position.copy(v.pos);
       v.model.rotation.y = v.heading;
@@ -1384,8 +1393,9 @@ export class Island {
       r.tag.position.set(r.pos.x, r.pos.y + 4.1, r.pos.z);
       if (r.car) {
         r.car.visible = vis;
-        r.car.position.set(r.pos.x, r.pos.y - (carDef(r.carId)?.seatY ?? 0.8), r.pos.z);
+        const st = (r.car.userData.seat as [number, number, number] | undefined) ?? [0, carDef(r.carId)?.seatY ?? 0.8, 0];
         r.car.rotation.y = r.h;
+        r.car.position.set(r.pos.x, r.pos.y, r.pos.z).sub(new THREE.Vector3(...st).applyAxisAngle(new THREE.Vector3(0, 1, 0), r.h));
       }
     }
   }

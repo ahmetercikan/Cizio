@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { flowers, mesh, outline, toon, tree } from '../play3d/kit';
 import { heightAt, ROADS, ROAD_START, ZONES, zone, type Zone } from './layout';
+import { ambulanceModel, firetruckModel, planeModel } from './vehicles';
 import { house, sign, type Activity, type Vehicle, type WorldBuilder } from './zones';
 import type { InteriorId } from './homestead';
 
@@ -481,34 +482,8 @@ function buildCity(b: WorldBuilder) {
   // ---- hastane: muayene ve ambulans
   put(bench(), -12.6, 14.5, L_);
   {
-    const amb = new THREE.Group();
-    const white = toon('#ffffff', { emissive: '#4a4f58' });
-    const body = outline(mesh(new THREE.BoxGeometry(2, 2, 3.4), white), 1.03);
-    body.position.set(0, 1.4, -0.4);
-    const cab = outline(mesh(new THREE.BoxGeometry(2, 1.4, 1.4), white), 1.03);
-    cab.position.set(0, 1.1, 1.9);
-    const stripe = mesh(new THREE.BoxGeometry(2.04, 0.35, 4.8), toon('#ef4b4b'), false);
-    stripe.position.set(0, 1.2, 0.3);
-    const ws = mesh(new THREE.BoxGeometry(1.7, 0.6, 0.1), toon('#cfeaff', { emissive: '#22333d' }), false);
-    ws.position.set(0, 1.5, 2.62);
-    const red = mesh(new THREE.BoxGeometry(0.5, 0.3, 0.4), new THREE.MeshBasicMaterial({ color: '#ff3b3b' }), false);
-    red.position.set(-0.4, 2.55, 0.8);
-    const blue = mesh(new THREE.BoxGeometry(0.5, 0.3, 0.4), new THREE.MeshBasicMaterial({ color: '#3b7bff' }), false);
-    blue.position.set(0.4, 2.55, 0.8);
-    amb.add(body, cab, stripe, ws, red, blue);
-    const crossA = new THREE.Group();
-    for (const [w, h] of [[0.9, 0.3], [0.3, 0.9]]) crossA.add(mesh(new THREE.BoxGeometry(0.05, h, w), toon('#ef4b4b'), false));
-    crossA.position.set(1.03, 1.9, -0.6);
-    const crossB = crossA.clone();
-    crossB.position.x = -1.03;
-    amb.add(crossA, crossB);
-    for (const [wx, wz] of [[-1, -1.4], [1, -1.4], [-1, 1.6], [1, 1.6]]) {
-      const w = mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.3, 12), toon('#3a2b27'));
-      w.rotation.z = Math.PI / 2;
-      w.position.set(wx, 0.45, wz);
-      amb.add(w);
-    }
-    amb.children.forEach((c) => (c as THREE.Mesh).geometry?.type === 'CylinderGeometry' && (c.name = 'wheel'));
+    // gerçek boyutta ambulans: camlı kabin, yüksek arka bölüm, tepe lambaları
+    const { model: amb, seat: aseat, beacons: [red, blue] } = ambulanceModel();
     b.scene.add(amb);
     let lights = false;
     b.tick((_dt, t) => {
@@ -519,7 +494,7 @@ function buildCity(b: WorldBuilder) {
     // sürülebilir ambulans: joystick ile sür, korna yerine siren
     const av: Vehicle = {
       model: amb, pos: G(-9.6, 22), heading: head(Math.PI), speed: 18, water: false, seatY: 0.4, land: true,
-      seat: [-0.45, 0.35, 1.75], cam: [17, 8], hornFx: 'siren', engine: 'truck',
+      seat: aseat, cam: [19, 10], hornFx: 'siren', engine: 'truck',
       update: () => void (lights = true),
       onLeave: () => void (lights = false),
     };
@@ -684,31 +659,8 @@ function buildCity(b: WorldBuilder) {
         f.visible = burn > 0.02;
       });
     });
-    const truck = new THREE.Group();
-    const body = outline(mesh(new THREE.BoxGeometry(2.2, 1.8, 5.2), toon('#ef4b4b')), 1.03);
-    body.position.y = 1.3;
-    const cab = outline(mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6), toon('#ef4b4b')), 1.03);
-    cab.position.set(0, 2.6, 1.6);
-    const ws = mesh(new THREE.BoxGeometry(1.9, 0.7, 0.1), toon('#cfeaff', { emissive: '#22333d' }), false);
-    ws.position.set(0, 2.7, 2.42);
-    const ladder = mesh(new THREE.BoxGeometry(0.8, 0.2, 4.6), toon('#cfd4dc'));
-    ladder.position.set(0, 2.35, -0.6);
-    const reel = mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 12), toon('#ffd43b'));
-    reel.rotation.z = Math.PI / 2;
-    reel.position.set(1.15, 1.3, -1.4);
-    truck.add(body, cab, ws, ladder, reel);
-    for (const [wx, wz] of [[-1.1, -1.6], [1.1, -1.6], [-1.1, 1.6], [1.1, 1.6]]) {
-      const w = mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.35, 12), toon('#3a2b27'));
-      w.rotation.z = Math.PI / 2;
-      w.position.set(wx, 0.5, wz);
-      truck.add(w);
-    }
-    truck.children.forEach((c) => (c as THREE.Mesh).geometry?.type === 'CylinderGeometry' && c !== reel && (c.name = 'wheel'));
-    const tred = mesh(new THREE.BoxGeometry(0.6, 0.3, 0.4), new THREE.MeshBasicMaterial({ color: '#661010' }), false);
-    tred.position.set(-0.6, 3.35, 1.6);
-    const tblue = mesh(new THREE.BoxGeometry(0.6, 0.3, 0.4), new THREE.MeshBasicMaterial({ color: '#10204a' }), false);
-    tblue.position.set(0.6, 3.35, 1.6);
-    truck.add(tred, tblue);
+    // gerçek boyutta itfaiye: merdiven, hortum makarası, dolap kapakları, tepe lambaları
+    const { model: truck, seat: fseat, beacons: [tred, tblue] } = firetruckModel();
     b.scene.add(truck);
     let tl = false;
     b.tick((_dt, t) => {
@@ -717,8 +669,8 @@ function buildCity(b: WorldBuilder) {
       (tblue.material as THREE.MeshBasicMaterial).color.set(tl && !on ? '#3b7bff' : '#10204a');
     });
     const tv: Vehicle = {
-      model: truck, pos: G(10.4, -15), heading: head(Math.PI + 0.15), speed: 16, water: false, seatY: 0.6, land: true,
-      seat: [0, 2.45, -1], cam: [19, 9], hornFx: 'siren', engine: 'truck',
+      model: truck, pos: G(10.4, -15), heading: head(0.15), speed: 16, water: false, seatY: 0.6, land: true,
+      seat: fseat, cam: [20, 10], hornFx: 'siren', engine: 'truck',
       update: () => void (tl = true),
       onLeave: () => void (tl = false),
     };
@@ -1305,49 +1257,18 @@ function buildAirport(b: WorldBuilder) {
     b.tick((_dt, t) => void (g.rotation.y = F.yaw + Math.sin(t * 0.7) * 0.4));
   }
   // uçak
-  const plane = new THREE.Group();
-  const body = outline(mesh(new THREE.CapsuleGeometry(0.9, 6, 6, 14), toon('#ffffff', { emissive: '#4a4f58' })), 1.03);
-  body.rotation.x = Math.PI / 2;
-  const nose = mesh(new THREE.SphereGeometry(0.6, 10, 8), toon('#ef4b4b'));
-  nose.position.z = 3.9;
-  const stripe = mesh(new THREE.CylinderGeometry(0.93, 0.93, 4.6, 14, 1, true), toon('#ef4b4b'), false);
-  stripe.rotation.x = Math.PI / 2;
-  stripe.scale.set(1, 1, 0.25);
-  stripe.position.y = -0.2;
-  const wing = outline(mesh(new THREE.BoxGeometry(11, 0.22, 1.8), toon('#ef4b4b')), 1.03);
-  wing.position.set(0, -0.1, 0.4);
-  const tailW = mesh(new THREE.BoxGeometry(3.6, 0.15, 1), toon('#ef4b4b'));
-  tailW.position.set(0, 0.2, -3.4);
-  const fin = outline(mesh(new THREE.BoxGeometry(0.15, 1.8, 1.3), toon('#ef4b4b')), 1.04);
-  fin.position.set(0, 1.1, -3.4);
-  const win = mesh(new THREE.BoxGeometry(1.2, 0.5, 1.2), toon('#9ad7ff', { emissive: '#15303f' }), false);
-  win.position.set(0, 0.7, 2.2);
-  const prop = new THREE.Group();
-  for (const r of [0, Math.PI / 2]) {
-    const bl = mesh(new THREE.BoxGeometry(0.18, 2.6, 0.06), toon('#3a2b27'), false);
-    bl.rotation.z = r;
-    prop.add(bl);
-  }
-  prop.position.z = 4.5;
-  plane.add(body, nose, stripe, wing, tailW, fin, win, prop);
-  for (const [x, z] of [[-1.2, 0.6], [1.2, 0.6], [0, 3]]) {
-    const w = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.2, 10), toon('#3a2b27'));
-    w.rotation.z = Math.PI / 2;
-    w.position.set(x, -1.2, z);
-    const leg = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.6, 5), toon('#5b5f6b'), false);
-    leg.position.set(x, -0.9, z);
-    plane.add(w, leg);
-  }
+  // gerçek boyutta uçak: kanatlar, pencereler, açık kokpit, üç kanatlı pervane, iniş takımı
+  const { model: plane, seat: pseat, prop } = planeModel();
   plane.userData.moving = true; // adanın her yerinde uçar: uzak bölge gizlemesine girmez
   b.scene.add(plane);
   let propSpeed = 0;
   b.tick((dt) => void (prop.rotation.z += dt * propSpeed));
   // uçak pistin başında park hâlinde (tekerlekleri yerde)
-  const pts = [V(-34, F.hAt(-34, -10) + 1.5, -10)];
+  const pts = [V(-34, F.hAt(-34, -10) + 1.85, -10)];
   // kullanıcı uçurur: joystick yönü, uçak yükselir, "İn" ile karada iner
   const pv: Vehicle = {
     model: plane, pos: pts[0].clone(), heading: F.head(Math.PI / 2), speed: 32, water: false, seatY: 0.4, fly: true,
-    alt: 26, park: 1.5, bank: true, seat: [0, 0.1, 2.0], cam: [24, 9], engine: 'fly',
+    alt: 26, park: 1.85, bank: true, seat: pseat, cam: [26, 10], engine: 'fly',
     update: (dt, mag) => {
       propSpeed = 18 + mag * 22;
       if (Math.random() < dt * 4) b.sound.fx?.('engine');
