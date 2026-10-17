@@ -1,5 +1,16 @@
 # Çizio iOS 1.5.0 (build 1): App Store'a gönderme adımları
 
+> **Durum (17 Ekim 2026):** Build 1.5.0 (1) yüklendi ve sürüme bağlandı. Mağaza sayfasının tamamı dolduruldu:
+> ad, alt başlık, açıklama, anahtar kelimeler, ekran görüntüleri, kategori (Eğitim + Eğlence), yaş
+> derecelendirmesi **4+**, Uygulama Gizliliği (yayında), fiyat **ücretsiz / 175 ülke**, inceleme notu ve
+> iletişim bilgileri. **Kalan tek adım: TestFlight'ta denemek ve "İncelemeye Gönder".**
+>
+> - Apple hesabı: **ABDURRAHMAN KAAN DIKEC (`AQ2Y664A4Z`)** — kullanıcının kendi hesabı ücretsiz *Personal Team*
+>   olduğu için App Store'a yükleme yapamıyor.
+> - iOS paket kimliği: **`com.ahmetercikan.cizioapp`** (`com.ahmetercikan.cizio` ücretsiz ekibe kayıtlı kaldı;
+>   Android tarafı değişmedi). App Store Connect uygulama kimliği: `6823984917`.
+> - TestFlight iç test grubu: **Çizio Deneme**, test eden: `ahmet.ercikan@icloud.com`.
+
 `ios/` klasörü hazır: simgeler, açılış ekranı, izin metinleri, sürüm 1.5.0 / build 1, iPhone + iPad, Türkçe.
 Bundan sonrası **Mac'te ve Apple hesabında** yapılır. Teknik ayrıntılar: `IOS.md`.
 
@@ -31,9 +42,9 @@ Xcode ilk açılışta Capacitor paketlerini indirir (sol altta "Fetching…"); 
 
 Xcode solda **App** → ortada **TARGETS → App** → **Signing & Capabilities**:
 - **Automatically manage signing** işaretli kalsın.
-- **Team**: kendi adın (Personal Team değil, üyeliğin onaylanınca çıkan takım).
+- **Team**: `ABDURRAHMAN KAAN DIKEC` (Personal Team değil — ücretsiz hesapla App Store'a yükleme olmaz).
 
-Diğer her şey (ad, paket kimliği `com.ahmetercikan.cizio`, sürüm 1.5.0, build 1) hazır; değiştirme.
+Diğer her şey (ad, paket kimliği `com.ahmetercikan.cizioapp`, sürüm 1.5.0, build 1) hazır; değiştirme.
 
 ## D) Dene
 
@@ -58,7 +69,7 @@ https://appstoreconnect.apple.com → **Uygulamalar → + → Yeni Uygulama**
 | Platformlar | iOS |
 | Ad | `Çizio: Adım Adım Çizim Öğren` |
 | Ana dil | Türkçe |
-| Paket kimliği | `com.ahmetercikan.cizio` |
+| Paket kimliği | `com.ahmetercikan.cizioapp` |
 | SKU | `cizio-ios` |
 | Kullanıcı erişimi | Tam erişim |
 
@@ -72,8 +83,13 @@ https://appstoreconnect.apple.com → **Uygulamalar → + → Yeni Uygulama**
 - "Mac" ve "Apple Vision Pro" kullanılabilirliği görünürse **kapat** (projede zaten kapalı).
 
 ### Yaş derecelendirmesi
-Sonda "Çocuklar için yapıldı" (Made for Kids) sorusunda **6-8 yaş**'ı seç (aşağıdaki nota bak). Diğer her soruya **Yok / Hayır**. Sınırsız web erişimi: **Hayır**. Kullanıcı iletişimi sorusunda "denetimli" seçeneği
-varsa onu seç (yalnızca ebeveyn onaylı arkadaşlar, hazır tepkiler; mesajlaşma yok).
+Apple anketi 7 adım. Verilen cevaplar (sonuç: **4+**):
+- **Parental Controls: Evet** (ebeveyn bölümü çarpma sorusuyla korunur)
+- Age Assurance: Hayır · Unrestricted Web Access: Hayır · User-Generated Content: Hayır · Social Media: Hayır
+- **Social Media Disabled for Users Under 13: Hayır** — bu soru "Declared Age Range API'yi çağırıyor musunuz"
+  demek; Çizio çağırmıyor. **Evet denirse derece 13+'a fırlıyor.**
+- Messaging and Chat: Hayır · Advertising: Hayır
+- Diğer altı adımın hepsinde **None / No**.
 
 ### Uygulama Gizliliği
 "Veri topluyor musunuz?" → **Evet**. Yalnızca şunlar, hepsi **Uygulama İşlevselliği**, **kimliğe bağlı**, **izleme yok**:
@@ -86,8 +102,9 @@ varsa onu seç (yalnızca ebeveyn onaylı arkadaşlar, hazır tepkiler; mesajla�
 Başka hiçbir şey işaretlenmez (konum, kişiler, reklam, analiz, tanılama yok).
 
 ### 1.5.0 sürüm sayfası
-- **Ekran görüntüleri:** 6,9" iPhone → `store/screenshots/iphone/` (8 resim);
-  13" iPad → `store/screenshots/ipad/` (8 resim). Sürükleyip bırak.
+- **Ekran görüntüleri:** `store/promo/ios/` → iPhone `iphone-6-3-*` (1206×2622, zorunlu boyut, 8 resim) ve
+  iPad `ipad-13-*` (2064×2752, 8 resim). Sekiz görsel tek geniş şeritten kesildiği için mağazada yan yana
+  geçişli görünür.
 - **Tanıtım metni:**
   `Kocaman 3B Çizio Adası, okul, hastane, Mars ve 8 mini oyun! Adım adım çiz, karakterini giydir, oynayarak İngilizce öğren.`
 - **Anahtar kelimeler:**
@@ -105,8 +122,12 @@ Başka hiçbir şey işaretlenmez (konum, kişiler, reklam, analiz, tanılama yo
 Sonra **İncelemeye Gönder**.
 
 ### Çocuklar Kategorisi notu
-Kids kategorisi mağazada görünürlük sağlar ama Apple'ın 1.3 ve 5.1.4 kurallarına sıkı bakılır. Önce Kids ile gönder.
-Reddedilirse e-postadaki madde numarasını not et; Kids kategorisini kaldırıp yaş 4+ ile yeniden gönder.
+Apple'ın yeni yaş derecelendirme anketinde ayrı bir "Made for Kids / Kids" seçimi yok; kategori listesinde de
+"Çocuklar" bulunmuyor. Derece anketten hesaplanıyor (bizde 4+) ve yalnızca **yukarı** çekilebiliyor.
+
+### Açıklamada emoji kullanma
+App Store açıklaması emojileri "geçersiz karakter" sayıp kaydetmeyi reddediyor (Google Play kabul ediyor).
+`store/listing-tr.md` metnindeki emojiler App Store'a girilirken çıkarılmalı.
 
 ## Açıklama (App Store, en çok 4000 karakter)
 
