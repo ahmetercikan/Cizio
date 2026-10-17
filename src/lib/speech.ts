@@ -194,48 +194,80 @@ function fetchBlob(m: VoiceManifest, key: string, low = false): Promise<Blob> {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** iPhone/iPad uygulaması: bellekteki (blob) ses orada çalınamayabiliyor; dosya doğrudan adresinden çalınır. */
+const iosApp = native && Capacitor.getPlatform() === 'ios';
+/** Son doğal ses denemesinin sonucu (Ebeveyn ekranındaki "Sesi dene" bunu gösterir). */
+let lastVoice = '';
+
 function playNatural(m: VoiceManifest, key: string, text: string, opts: SpeakOptions, my: number) {
   const a = getAudio();
   if (!a) return speakSynth(text, opts);
   let fellBack = false;
-  const fallback = () => {
+  const fallback = (why: string) => {
     if (my !== token || fellBack) return;
     fellBack = true;
     audioActive = false;
+    lastVoice = `Doğal ses çalınamadı (${why}); cihazın sesi kullanıldı.`;
     speakSynth(text, opts);
   };
   audioActive = true;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, rej) => {
-    timer = setTimeout(() => rej(new Error('voice timeout')), FILE_TIMEOUT_MS);
-  });
-  Promise.race([fetchBlob(m, key), timeout])
-    .then((blob) => {
-      clearTimeout(timer);
+  const rate = clamp((opts.rate ?? 0.95) / 0.95, 0.8, 1.25);
+  /** Bir kaynaktan çal; olmazsa `fail` çağrılır. */
+  const start = (src: string, fail: (why: string) => void) => {
+    if (my !== token) return;
+    a.onended = () => {
       if (my !== token) return;
-      if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
-      currentObjectUrl = URL.createObjectURL(blob);
-      const rate = clamp((opts.rate ?? 0.95) / 0.95, 0.8, 1.25);
-      a.onended = () => {
-        if (my !== token) return;
-        a.onended = a.onerror = null;
-        audioActive = false;
-        opts.onEnd?.();
-      };
-      a.onerror = fallback;
-      a.src = currentObjectUrl;
-      const pa = a as HTMLAudioElement & { webkitPreservesPitch?: boolean; mozPreservesPitch?: boolean };
-      pa.preservesPitch = true;
-      pa.webkitPreservesPitch = true;
-      pa.mozPreservesPitch = true;
-      a.defaultPlaybackRate = rate;
-      a.playbackRate = rate;
-      return a.play();
-    })
-    .catch(() => {
-      clearTimeout(timer);
-      fallback();
+      a.onended = a.onerror = null;
+      audioActive = false;
+      opts.onEnd?.();
+    };
+    a.onerror = () => fail(`hata ${a.error?.code ?? '?'}`);
+    a.src = src;
+    const pa = a as HTMLAudioElement & { webkitPreservesPitch?: boolean; mozPreservesPitch?: boolean };
+    pa.preservesPitch = true;
+    pa.webkitPreservesPitch = true;
+    pa.mozPreservesPitch = true;
+    a.defaultPlaybackRate = rate;
+    a.playbackRate = rate;
+    a.play().then(
+      () => {
+        if (my === token) lastVoice = 'Doğal ses çalışıyor.';
+      },
+      (e: unknown) => fail(e instanceof Error ? e.name : 'oynatılamadı'),
+    );
+  };
+  const viaBlob = (fail: (why: string) => void) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, rej) => {
+      timer = setTimeout(() => rej(new Error('zaman aşımı')), FILE_TIMEOUT_MS);
     });
+    Promise.race([fetchBlob(m, key), timeout])
+      .then((blob) => {
+        clearTimeout(timer);
+        if (my !== token) return;
+        if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: 'audio/mpeg' }));
+        start(currentObjectUrl, fail);
+      })
+      .catch((e: unknown) => {
+        clearTimeout(timer);
+        fail(e instanceof Error ? e.message : 'indirilemedi');
+      });
+  };
+  if (iosApp) {
+    // önce dosyanın kendisi, olmazsa bellekten, en son cihazın sesi
+    let tried = false;
+    start(fileUrl(m, key), (why) => {
+      if (tried) return;
+      tried = true;
+      viaBlob((why2) => fallback(`${why} / ${why2}`));
+    });
+  } else viaBlob(fallback);
+}
+
+/** Doğal sesin durumu: dosya listesi yüklendi mi, son denemede ne oldu. */
+export function voiceStatus() {
+  return { manifest: !!manifest, lines: manifest ? Object.keys(manifest.lines).length : 0, last: lastVoice };
 }
 
 /**
@@ -258,8 +290,22 @@ export function speak(text: string, opts: SpeakOptions = {}) {
   void Promise.race([loadManifest(), wait]).then((m) => {
     if (my !== token) return;
     if (m && key in m.lines) playNatural(m, key, text, opts, my);
-    else speakSynth(text, opts);
+    else {
+      if (!m) lastVoice = 'Ses dosyalarının listesi yüklenemedi; cihazın sesi kullanıldı.';
+      speakSynth(text, opts);
+    }
   });
+}
+
+/** Ebeveyn ekranı: kayıtlı bir Türkçe cümleyi çalar, biraz sonra ne olduğunu söyler. */
+export async function testVoice(): Promise<string> {
+  const m = await loadManifest();
+  if (!m) return 'Ses dosyalarının listesi yüklenemedi.';
+  const line = Object.values(m.lines).find((t) => /[ışğüöçİ]/.test(t) && t.length < 60) ?? Object.values(m.lines)[0];
+  lastVoice = '';
+  speak(line);
+  await new Promise((r) => setTimeout(r, 2500));
+  return lastVoice || 'Doğal ses hâlâ yükleniyor…';
 }
 
 export function stopSpeaking() {

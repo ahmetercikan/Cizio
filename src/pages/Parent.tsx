@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Confirm, Modal, TopBar, useToast } from '../components/ui';
 import { lessons, lessonsByPath, paths } from '../lessons';
 import { blobToDataUrl, dataUrlToBlob, deleteArtworksOf, listArtworks, saveArtwork, type Artwork } from '../lib/gallery';
-import { setNaturalVoice, speak, speechSupported, turkishVoices } from '../lib/speech';
+import { setNaturalVoice, speak, speechSupported, testVoice, turkishVoices } from '../lib/speech';
 import { saveFile } from '../lib/files';
 import { addDays, dayKey, TR_DAYS } from '../lib/util';
 import { useApp } from '../store/useApp';
@@ -222,6 +222,7 @@ export default function Parent() {
           <input type="checkbox" className="switch" checked={s.settings.naturalVoice}
             onChange={(e) => { s.updateSettings({ naturalVoice: e.target.checked }); setNaturalVoice(e.target.checked); }} />
         </label>
+        <VoiceCheck />
         <label className="toggle-row">
           Ses efektleri
           <input type="checkbox" className="switch" checked={s.settings.sfx} onChange={(e) => s.updateSettings({ sfx: e.target.checked })} />
@@ -298,6 +299,19 @@ export default function Parent() {
         />
       )}
       {toast}
+    </div>
+  );
+}
+
+/** Doğal sesi dene: kayıtlı bir cümle çalar ve sonucu yazar (ses gelmiyorsa nedenini görmek için). */
+function VoiceCheck() {
+  const [msg, setMsg] = useState('');
+  return (
+    <div className="toggle-row">
+      <button className="btn-outline btn-outline--sm" onClick={() => { setMsg('Deneniyor…'); void testVoice().then(setMsg); }}>
+        <Volume2 size={18} /> Sesi dene
+      </button>
+      {msg && <small className="muted">{msg}</small>}
     </div>
   );
 }
