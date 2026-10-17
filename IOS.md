@@ -183,15 +183,33 @@ Ayrıntılar `public/gizlilik.html` ve `store/release-1.5.0.md` (Veri güvenliğ
 
 **Tanıtım metni (170):** `Kocaman 3B Çizio Adası, okul, hastane, Mars ve 8 mini oyun! Adım adım çiz, karakterini giydir, oynayarak İngilizce öğren.`
 
-**Ekran görüntüleri:** zorunlu boyutlar 6,9" iPhone (1290×2796) ve 13" iPad (2064×2752). Hazır olanlar:
-`store/screenshots/iphone/` ve `store/screenshots/ipad/` (Çizio Adası). Atölye, Giydir ve English Club ekranları da
-eklenebilir. Yeniden üretmek için:
+**Ekran görüntüleri:** Apple'ın güncel kurallarında (App Store Connect → screenshot specifications) zorunlu
+boyutlar şunlar:
+
+| Boyut | Piksel | Durum |
+|---|---|---|
+| iPhone, Dynamic Island (medium) | 1206×2622 (ya da 1179×2556) | **zorunlu** |
+| iPad 13" | 2064×2752 | iPad'de çalışıyorsa **zorunlu** |
+| iPhone, Dynamic Island (large) | 1290×2796 | isteğe bağlı |
+| iPhone Duo dış / iç ekran | 1398×2034 / 2007×2853 | isteğe bağlı; **Nisan 2027**'den sonra iOS 27.1 SDK ile derlenen uygulamalarda zorunlu |
+
+Alfa kanalı (saydamlık) olmayacak, `.png` ya da `.jpg`. Kullanıma hazır, başlıklı kartlar: `store/promo/ios/`
+(`iphone-6-3-*`, `iphone-6-9-*`, `ipad-13-*`). Üretim iki adım:
+
 ```bash
-npx vite --port 5288 &           # geliştirme sunucusu
-npx tsx scripts/store-shots.mts iphone
-npx tsx scripts/store-shots.mts ipad
+npx vite --port 5288 &                   # geliştirme sunucusu
+npx tsx scripts/store-shots.mts phone    # ham ada görüntüleri → store/screenshots/yeni/
+npx tsx scripts/store-shots.mts tablet
+npx tsx scripts/store-promo.mts          # başlıklı kartlar → store/promo/ ve store/promo/ios/
 ```
-(Chrome ya da Edge gerekir; yoksa `CHROME_PATH` ile yolunu ver.)
+
+(Chrome ya da Edge gerekir; yoksa `CHROME_PATH` ile yolunu ver.) `store/screenshots/iphone/` ve `ipad/` klasörleri
+14 Ekim'deki ham ada görüntüleridir, artık kullanılmıyor.
+
+**iPhone Duo:** uygulamanın katlanınca gerçekten uyum sağlaması için iOS 27 SDK (tam uyum için 27.1) gerekir, yani
+Xcode 27.1 — o da macOS 27 ister. Xcode 26.x ile derlenen uygulama Duo'da çalışır ama iç ekranda ortada,
+kenarlarında boşlukla görünür. Gerçekten uyarlamadan Duo ekran görüntüsü yüklemeyin: Apple ürün sayfasına
+"iPhone Duo için optimize edildi" rozeti koyuyor.
 
 ## 7. Derle ve yükle
 

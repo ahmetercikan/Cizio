@@ -1,10 +1,11 @@
 /**
  * Mağaza tanıtım kartları: ham ekran görüntülerini başlıklı, renkli "pazarlama" görsellerine çevirir.
  *   npx tsx scripts/store-promo.mts
- * Girdi: store/screenshots/ (ham görüntüler). Çıktı: store/promo/
+ * Girdi: store/screenshots/ (ham görüntüler). Çıktı: store/promo/ ve store/promo/ios/
  *   - phone-01…08.png (1080×1920, Google Play telefon)
  *   - tablet-01…08.png (1920×1200, Google Play tablet)
  *   - feature-graphic.png (1024×500, Google Play öne çıkan görsel)
+ *   - ios/<boyut>-01…08.png (App Store; boyutlar IOS_SIZES içinde)
  * Tarayıcı: CHROME_PATH ya da işletim sistemine göre Chrome/Edge.
  */
 import { chromium } from 'playwright-core';
@@ -88,11 +89,53 @@ const render = async (html: string, w: number, h: number, out: string) => {
   await p.screenshot({ path: out });
   await p.close();
 };
+// App Store kartları: Play kartlarıyla aynı tasarım, Apple'ın istediği piksel boyutlarında.
+// Dar olanlar (en/boy < 0,6) telefon görüntüsünü dikey çerçevede, geniş olanlar tablet
+// görüntüsünü yatay çerçevede gösterir. Boyutlar: App Store Connect "screenshot specifications".
+interface IosSize { id: string; w: number; h: number }
+const IOS_SIZES: IosSize[] = [
+  { id: 'iphone-6-3', w: 1206, h: 2622 }, // Dynamic Island (medium) — zorunlu
+  { id: 'iphone-6-9', w: 1290, h: 2796 }, // Dynamic Island (large)
+  { id: 'ipad-13', w: 2064, h: 2752 }, // 13" iPad — iPad'de çalışan uygulamalar için zorunlu
+];
+
+function iosPhoneCard(s: Slide, i: number, W: number, H: number) {
+  const u = W / 1080; // tasarım genişliği 1080'e göre ölçek
+  const dw = 780 * u, dh = dw * (1500 / 780);
+  return `<div class="card" style="--a:${s.bg[0]};--b:${s.bg[1]};--ink:${s.ink}">
+    <div class="dots"></div><div class="blob" style="width:${700 * u}px;height:${700 * u}px;right:${-260 * u}px;top:${-300 * u}px"></div><div class="blob" style="width:${420 * u}px;height:${420 * u}px;left:${-180 * u}px;bottom:${0.09 * H}px"></div>
+    <div class="txt" style="left:${70 * u}px;right:${60 * u}px;top:${0.057 * H}px;gap:${22 * u}px"><h1 style="font-size:${104 * u}px">${s.title}</h1><p style="font-size:${40 * u}px;margin-left:${4 * u}px">${s.sub}</p></div>
+    <div class="dev" style="left:${(W - dw) / 2}px;top:${0.27 * H}px;width:${dw}px;height:${dh}px;border-radius:${46 * u}px;padding:${14 * u}px;transform:rotate(${i % 2 ? 3 : -3}deg)"><img src="${img(s.shot)}" style="border-radius:${34 * u}px"></div>
+    ${s.badge ? `<div class="badge" style="right:${56 * u}px;top:${0.235 * H}px;font-size:${40 * u}px;padding:${14 * u}px ${30 * u}px">${s.badge}</div>` : ''}
+  </div>`;
+}
+
+function iosTabletCard(s: Slide, i: number, W: number, H: number) {
+  const u = W / 2064;
+  const dw = 0.88 * W, dh = dw * (690 / 1060);
+  return `<div class="card" style="--a:${s.bg[0]};--b:${s.bg[1]};--ink:${s.ink}">
+    <div class="dots"></div><div class="blob" style="width:${900 * u}px;height:${900 * u}px;left:${-340 * u}px;top:${-380 * u}px"></div><div class="blob" style="width:${560 * u}px;height:${560 * u}px;right:${-200 * u}px;bottom:${-220 * u}px"></div>
+    <div class="txt" style="left:${120 * u}px;right:${120 * u}px;top:${0.085 * H}px;gap:${28 * u}px;align-items:center;text-align:center"><h1 style="font-size:${148 * u}px">${s.title}</h1><p style="font-size:${56 * u}px">${s.sub}</p>${s.badge ? `<div class="badge" style="font-size:${52 * u}px;padding:${16 * u}px ${38 * u}px">${s.badge}</div>` : ''}</div>
+    <div class="dev" style="left:${(W - dw) / 2}px;top:${0.4 * H}px;width:${dw}px;height:${dh}px;border-radius:${54 * u}px;padding:${18 * u}px;transform:rotate(${i % 2 ? 2 : -2}deg)"><img src="${img(s.tablet)}" style="border-radius:${38 * u}px"></div>
+  </div>`;
+}
+
 for (const [i, s] of SLIDES.entries()) {
   const n = String(i + 1).padStart(2, '0');
   await render(phone(s, i), 1080, 1920, `${OUT}/phone-${n}.png`);
   await render(tablet(s, i), 1920, 1200, `${OUT}/tablet-${n}.png`);
 }
 await render(feature(), 1024, 500, `${OUT}/feature-graphic.png`);
+
+const IOS_OUT = resolve('store/promo/ios');
+mkdirSync(IOS_OUT, { recursive: true });
+for (const size of IOS_SIZES) {
+  const dar = size.w / size.h < 0.6;
+  for (const [i, s] of SLIDES.entries()) {
+    const n = String(i + 1).padStart(2, '0');
+    const html = dar ? iosPhoneCard(s, i, size.w, size.h) : iosTabletCard(s, i, size.w, size.h);
+    await render(html, size.w, size.h, `${IOS_OUT}/${size.id}-${n}.png`);
+  }
+}
 await b.close();
-console.log('hazır:', OUT, ROOT ? '' : '');
+console.log('hazır:', OUT, 've', IOS_OUT);
