@@ -95,8 +95,8 @@ export function coastAt(ang: number) {
   return LAND_R + 9 * Math.sin(ang * 3 + 0.4) + 6 * Math.sin(ang * 7 + 1.3) + 3 * Math.sin(ang * 13);
 }
 
-/** Bölgelerin dışında kalan ama düz olması gereken yerler (futbol sahası). */
-const FLAT_SPOTS = [{ x: 52, z: 30, a: 18, b: 30 }];
+/** Bölgelerin dışında kalan ama düz olması gereken yerler (futbol ve basket sahaları). */
+const FLAT_SPOTS = [{ x: 52, z: 70, a: 22, b: 34 }, { x: 52, z: 102, a: 15, b: 26 }];
 
 /** Bölgelerin düzlüğü: yapıların olduğu yerlerde tepe dalgası yok. */
 function flatMask(x: number, z: number) {

@@ -111,6 +111,26 @@ export class WorldBuilder {
   keepOut: { x: number; z: number; r: number }[] = [];
   starSpots: [number, number][] = [];
   ball!: THREE.Mesh;
+  /**
+   * Arkadaşlarla paylaşılan oyun durumları (futbol topu, basket topu): her oyunun son durumu canlı pakete eklenir,
+   * arkadaşlardan gelenler `netIn` ile oyuna verilir.
+   */
+  netOut: Record<string, Record<string, unknown>> = {};
+  netAt = 0;
+  netIn: Record<string, (data: never, from: string) => void> = {};
+  netSend(kind: string, data: Record<string, unknown>) {
+    this.netOut[kind] = { ...data, s: Date.now() };
+    this.netAt = Date.now();
+  }
+  /** Bir arkadaşın adadaki yeri (görünmüyorsa null) ve adadaki arkadaş sayısı. */
+  peerPos: (pid: string) => THREE.Vector3 | null = () => null;
+  peerCount: () => number = () => 0;
+  /** Gecenin koyuluğu (0 gündüz, 1 gece): stadyum ışıkları buna göre yanar. */
+  night: () => number = () => 0;
+  /** Kendi adım (basket skor tabelası). */
+  myName = 'Sen';
+  /** Sokak lambalarının ampulleri (gece haleleri ve ışıkları için). */
+  lamps: THREE.Vector3[] = [];
   musicTiles: { x: number; z: number; note: number; mesh: THREE.Mesh }[] = [];
   /** Su altı süsleri (şnorkelde görünür). */
   reef = new THREE.Group();
@@ -436,8 +456,6 @@ function buildTown(b: WorldBuilder) {
     b.musicTiles.push({ x: tx, z: mz, note: i, mesh: t });
   });
   b.place(sign('Müzik', '#ffffff'), 0, mz - 3);
-  // futbol stadyumu
-  buildFootball(b, 52, 30);
   // çiçek bahçesi
   buildGarden(b, -40, -40);
   // fener direkleri ve bayraklar
@@ -447,6 +465,7 @@ function buildTown(b: WorldBuilder) {
     const l = mesh(new THREE.SphereGeometry(0.3, 10, 8), toon('#fff6c9', { emissive: '#665500' }));
     b.place(p, Math.cos(a) * 10, Math.sin(a) * 10, 0, 1.7);
     b.place(l, Math.cos(a) * 10, Math.sin(a) * 10, 0, 3.5);
+    b.lamps.push(l.position.clone());
   }
   // yol tabelaları (bölgelere)
   const placed: number[] = [];
@@ -459,81 +478,6 @@ function buildTown(b: WorldBuilder) {
     const [x, z] = b.polar(a, near ? 17.5 : 13.5);
     b.place(sign(zn.name, '#fff1c7'), x, z, b.facing(x, z, 0, 0) + Math.PI);
   }
-}
-
-function buildFootball(b: WorldBuilder, x: number, z: number) {
-  b.keepOut.push({ x, z, r: 20 }); // sahada ağaç ve kaya olmasın
-  const field = mesh(new THREE.PlaneGeometry(22, 13), toon('#6cc35a'), false);
-  field.rotation.x = -Math.PI / 2;
-  b.place(field, x, z, 0, 0.06);
-  const lm = toon('#ffffff');
-  for (const [lx, lz, w, d] of [[0, -6.5, 22, 0.15], [0, 6.5, 22, 0.15], [-11, 0, 0.15, 13], [11, 0, 0.15, 13], [0, 0, 0.15, 13]]) {
-    const l = mesh(new THREE.BoxGeometry(w, 0.02, d), lm, false);
-    b.place(l, x + lx, z + lz, 0, 0.08);
-  }
-  for (const side of [-1, 1]) {
-    const goal = new THREE.Group();
-    for (const gz of [-1.8, 1.8]) {
-      const post = mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.9, 6), toon('#ffffff'));
-      post.position.set(0, 0.95, gz);
-      goal.add(post);
-    }
-    const bar = mesh(new THREE.CylinderGeometry(0.09, 0.09, 3.7, 6), toon('#ffffff'));
-    bar.rotation.x = Math.PI / 2;
-    bar.position.y = 1.9;
-    const net = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.9), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
-    net.rotation.y = Math.PI / 2;
-    net.position.set(side * 0.8, 0.95, 0);
-    goal.add(bar, net);
-    b.place(goal, x + side * 11, z);
-  }
-  // tribünler
-  for (const sz of [-9, 9]) {
-    for (let r = 0; r < 3; r++) {
-      const st = mesh(new THREE.BoxGeometry(20, 0.5, 1.2), toon(['#5b8def', '#ffc83d', '#ff6b4a'][r]));
-      b.place(st, x, z + sz + Math.sign(sz) * r * 1.2, 0, 0.25 + r * 0.5);
-    }
-    b.block(x - 6, z + sz + Math.sign(sz) * 1.2, 3);
-    b.block(x + 6, z + sz + Math.sign(sz) * 1.2, 3);
-    b.block(x, z + sz + Math.sign(sz) * 1.2, 3);
-  }
-  const ball = outline(mesh(new THREE.IcosahedronGeometry(0.42, 1), toon('#ffffff')), 1.06);
-  ball.add(mesh(new THREE.IcosahedronGeometry(0.43, 0), new THREE.MeshToonMaterial({ color: '#3a2b27', wireframe: true }), false));
-  b.place(ball, x, z, 0, 0.42);
-  b.ball = ball;
-  const vel = new THREE.Vector3();
-  let cool = 0;
-  b.tick((dt, _t, a) => {
-    const p = ball.position;
-    const dx = p.x - a.pos.x, dz = p.z - a.pos.z, d = Math.hypot(dx, dz);
-    if (d < 1.2 && Math.abs(a.pos.y - p.y) < 1.5) {
-      vel.set((dx / (d || 1)) * 12, 0, (dz / (d || 1)) * 12);
-      b.sound.kick();
-    }
-    p.addScaledVector(vel, dt);
-    vel.multiplyScalar(Math.pow(0.35, dt));
-    ball.rotation.x += vel.z * dt * 2;
-    ball.rotation.z -= vel.x * dt * 2;
-    cool -= dt;
-    if (Math.abs(p.z - z) < 1.7 && Math.abs(p.x - x) > 11 && cool <= 0) {
-      cool = 2;
-      b.sparkles.burst(p.clone().setY(1.4), 24);
-      b.done('goal', 'Gooool!');
-      setTimeout(() => {
-        p.set(x, b.h(x, z) + 0.42, z);
-        vel.set(0, 0, 0);
-      }, 900);
-    }
-    if (Math.abs(p.z - z) > 6.3) {
-      p.z = z + Math.sign(p.z - z) * 6.3;
-      vel.z *= -0.7;
-    }
-    if (Math.abs(p.x - x) > 11.2 && Math.abs(p.z - z) >= 1.7) {
-      p.x = x + Math.sign(p.x - x) * 11.2;
-      vel.x *= -0.7;
-    }
-    if (Math.abs(p.x - x) > 12.5) p.x = x + Math.sign(p.x - x) * 12.5;
-  });
 }
 
 function buildGarden(b: WorldBuilder, x: number, z: number) {

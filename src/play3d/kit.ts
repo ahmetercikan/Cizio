@@ -27,6 +27,13 @@ export function toon(color: string | number, opts: { emissive?: string; transpar
   return m;
 }
 
+/** Gece yanan malzemeler: açık sarı renkli ve kendinden ışıklı (lamba, pencere, far). */
+export function litMaterials() {
+  const out: THREE.MeshToonMaterial[] = [];
+  for (const [k, m] of mats) if (/^#fff(3b0|6c9)\|#/.test(k)) out.push(m);
+  return out;
+}
+
 export function mesh(geo: THREE.BufferGeometry, mat: THREE.Material, shadow = true) {
   const m = new THREE.Mesh(geo, mat);
   m.castShadow = shadow;

@@ -379,10 +379,10 @@ export function newHome(): HomeState {
       { id: 'gardirop', x: Y + 5, z: Y + 0, r: 0, c: 0 },
       { id: 'calisma', x: Y + 8, z: Y + 0, r: 0, c: 0 },
       { id: 'sovale', x: Y + 5, z: Y + 3, r: 0, c: 0 },
-      { id: 'oyuncak', x: Y + 11, z: Y + 3, r: 3, c: 0 },
+      { id: 'oyuncak', x: Y + 11, z: Y + 3, r: 1, c: 0 },
       // banyo
       { id: 'kuvet', x: Y + 10, z: Y + 8, r: 2, c: 0 },
-      { id: 'lavabo', x: Y + 11, z: Y + 5, r: 3, c: 0 },
+      { id: 'lavabo', x: Y + 11, z: Y + 5, r: 1, c: 0 },
       // bahçe
       { id: 'agac', x: 1, z: 2, r: 0, c: 0 },
       { id: 'agac', x: Y + 13, z: 2, r: 0, c: 1 },
@@ -402,9 +402,24 @@ export function normalizeHome(h: Partial<HomeState> | undefined): HomeState {
   if ((h.v ?? 1) < 2) {
     // 1. sürüm (küçük odalar): eşyalar odalarıyla yeni büyük plana taşınır
     const A = OLD_PLANS.find((p) => p.id === out.plan) ?? OLD_PLANS[0];
-    return { ...movePlan(out, A, plan(out.plan)), v: 2 };
+    const m = movePlan(out, A, plan(out.plan));
+    return { ...m, items: m.items.map((p) => faceRoom(plan(m.plan), p)), v: 2 };
   }
-  return out;
+  return { ...out, items: out.items.map((p) => faceRoom(plan(out.plan), p)) };
+}
+
+/** Duvara dönük duran eşyayı (arkası boşsa) odaya çevir: lavabo, şövale, oyuncak kutusu duvara bakmasın. */
+export function faceRoom(P: Plan, p: Placed): Placed {
+  const it = item(p.id);
+  if (!it || it.wall || it.flat) return p;
+  const side = (r: number): Side => {
+    const [fx, fz] = facing(r);
+    return fz < 0 ? 'n' : fz > 0 ? 's' : fx > 0 ? 'e' : 'w';
+  };
+  const tiles = footprint(p);
+  const front = tiles.some(([x, z]) => wallAt(P, x, z, side(p.r)));
+  const back = tiles.some(([x, z]) => wallAt(P, x, z, side(p.r + 2)));
+  return front && !back ? { ...p, r: (p.r + 2) % 4 } : p;
 }
 
 /** Döndürülmüş ayak izi (karolar). */

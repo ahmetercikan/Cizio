@@ -61,7 +61,7 @@ export function watchHome(room: string, cb: (data: string | null) => void): Unsu
   return onValue(ref(rtdb(), `rooms/${room}/home`), (s) => cb((s.val() as string | null) ?? null), () => cb(null));
 }
 
-export interface Live { x: number; z: number; y: number; h: number; p: string; n: string; w?: string; v?: string; t?: number }
+export interface Live { x: number; z: number; y: number; h: number; p: string; n: string; w?: string; v?: string; t?: number; b?: string }
 export interface Presence { room: string; ts: number }
 
 /** Arkadaşların şu an adada olup olmadığı ve hangi odada oldukları. */
@@ -131,10 +131,10 @@ export async function joinRoom(room: string, me: string, look: DollState, onPeer
   let last = '';
   return {
     send(l) {
-      const key = `${l.x.toFixed(1)}|${l.z.toFixed(1)}|${l.y.toFixed(1)}|${l.h.toFixed(2)}|${l.p}|${l.w ?? ''}|${l.v ?? ''}`;
+      const key = `${l.x.toFixed(1)}|${l.z.toFixed(1)}|${l.y.toFixed(1)}|${l.h.toFixed(2)}|${l.p}|${l.w ?? ''}|${l.v ?? ''}|${l.b ?? ''}`;
       if (key === last) return;
       last = key;
-      void update(liveRef, { x: +l.x.toFixed(2), z: +l.z.toFixed(2), y: +l.y.toFixed(2), h: +l.h.toFixed(2), p: l.p, n: l.n, w: l.w ?? '', v: l.v ?? '', t: serverTimestamp() }).catch(() => {});
+      void update(liveRef, { x: +l.x.toFixed(2), z: +l.z.toFixed(2), y: +l.y.toFixed(2), h: +l.h.toFixed(2), p: l.p, n: l.n, w: l.w ?? '', v: l.v ?? '', b: l.b ?? '', t: serverTimestamp() }).catch(() => {});
     },
     async leave() {
       offLooks();

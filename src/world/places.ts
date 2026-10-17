@@ -223,6 +223,7 @@ function buildRoads(b: WorldBuilder) {
   const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1, 0.14, 3.6, 6).translate(0, 1.8, 0), toon('#4a4f5c'), lampAt.length);
   const bulb = new THREE.InstancedMesh(new THREE.SphereGeometry(0.38, 10, 8).translate(0, 3.8, 0), toon('#fff3b0', { emissive: '#6a5f20' }), lampAt.length);
   lampAt.forEach((p, i) => {
+    b.lamps.push(new THREE.Vector3(p.x, p.y + 3.8, p.z));
     m4.makeTranslation(p.x, p.y, p.z);
     pole.setMatrixAt(i, m4);
     bulb.setMatrixAt(i, m4);

@@ -258,6 +258,29 @@ const RIDE: Record<string, (i: number) => void> = {
     noise(0, 0.9, 0.18, 260, 160, 1.5, 0.3);
     sweep('sawtooth', 110, 80, 0, 0.9, 0.05, { vib: 20, vibRate: 30, lp: 500, wet: 0.3 });
   },
+  /** Hakem düdüğü: iki kısa öttürme. */
+  referee: () => {
+    sweep('sine', 2700, 2650, 0, 0.16, 0.06, { vib: 90, vibRate: 38, wet: 0.2 });
+    sweep('sine', 2700, 2600, 0.22, 0.45, 0.06, { vib: 90, vibRate: 38, wet: 0.3 });
+  },
+  /** Tribün sevinci: kabaran kalabalık sesi ve "yeey". */
+  cheer: () => {
+    noise(0, 1.4, 0.12, 900, 1600, 0.6, 0.4);
+    noise(0.1, 1.1, 0.06, 2600, 3200, 0.8, 0.4);
+    [0, 2, 4, 7].forEach((k, i) => fm(NOTE(k + 7), 0.15 + i * 0.07, 0.35, 0.05, 3.5, 1.4, 0.6));
+  },
+  /** Basket filesi: fışş. */
+  swish: () => noise(0, 0.32, 0.12, 3800, 1800, 0.7, 0.3),
+  /** Top sektirme: tok güm. */
+  bounce: () => {
+    fm(95, 0, 0.12, 0.16, 1, 1.4, 0.05);
+    noise(0, 0.04, 0.05, 600, 400, 1);
+  },
+  /** Çembere çarpma: çınn. */
+  rim: () => {
+    fm(520, 0, 0.5, 0.07, 2.76, 3, 0.4);
+    fm(1310, 0, 0.35, 0.04, 1.41, 2, 0.4);
+  },
   /** Kısa sevinç: üç nota yukarı. */
   yay: () => [0, 2, 4].forEach((k) => fm(NOTE(k + 7), k * 0.09, 0.4, 0.08, 3.5, 1.6, 1)),
   /**

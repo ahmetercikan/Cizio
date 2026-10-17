@@ -9,12 +9,13 @@
  * Kurallar src/world/homeData.ts, modeller src/world/homeModels.ts. Ada ile aynı WebGL çiziciyi kullanır.
  */
 import * as THREE from 'three';
+import { skyAt } from './daynight';
 import { Sparkles } from '../play3d/kit';
 import { Avatar3D, type Pose } from './avatar3d';
 import type { DollState } from '../dressup/catalog';
 import { petCard } from './puppet';
 import {
-  canPlace, changePlan, facing, FLOORS, footprint, item, lot, normalizeHome, occupied, path, plan, PLANS, roomAt, sellPrice, useTile, wallAt, walls, WALLS,
+  canPlace, changePlan, faceRoom, facing, FLOORS, footprint, item, lot, normalizeHome, occupied, path, plan, PLANS, roomAt, sellPrice, useTile, wallAt, walls, WALLS,
   type HomeState, type Placed, type Side, type Use,
 } from './homeData';
 import { clearFloorTex, clearGeos, clearMats, floorTexture, furniture, soft } from './homeModels';
@@ -113,8 +114,22 @@ export class HomeScene {
     field.position.y = -0.12;
     field.receiveShadow = true;
     this.scene.add(field);
-    this.scene.add(new THREE.HemisphereLight('#ffffff', '#e6dcf5', 1.25));
+    const hemi = new THREE.HemisphereLight('#ffffff', '#e6dcf5', 1.25);
+    this.scene.add(hemi);
     this.sun = new THREE.DirectionalLight('#fff3e2', 1.6);
+    // gece: lacivert gökyüzü, ay ışığı, evin lambası daha sıcak ve güçlü
+    const { day, dusk } = skyAt(new Date());
+    if (day < 0.99) {
+      const sky = new THREE.Color('#1b2a5c').lerp(new THREE.Color('#bfe3ff'), day).lerp(new THREE.Color('#f6ae8f'), dusk * 0.7);
+      (this.scene.background as THREE.Color).copy(sky);
+      (this.scene.fog as THREE.Fog).color.copy(sky);
+      hemi.color.set('#9fb0ee').lerp(new THREE.Color('#ffffff'), day);
+      hemi.intensity = 0.85 + 0.4 * day;
+      this.sun.color.set('#b4c6ff').lerp(new THREE.Color('#fff3e2'), day);
+      this.sun.intensity = 0.5 + 1.1 * day;
+      this.warm.intensity = 1.1 + 1.2 * (1 - day);
+      this.warm.distance = 7 + 3 * (1 - day);
+    }
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.bias = -0.0012;
@@ -720,7 +735,9 @@ export class HomeScene {
           dur: 5, pose: 'idle',
           step: (t) => {
             this.lying = true;
-            this.pos.set(c.x, fy + 0.62, c.z);
+            // kök ayak ucunda: baş yastığa gelir, duvara taşmaz
+            const [bx, bz] = facing(p.r);
+            this.pos.set(c.x + bx * 0.3, fy + (p.id === 'ranza' ? 0.5 : 0.62), c.z + bz * 0.3);
             this.heading = -p.r * Math.PI / 2;
             if (tick(t, 1.1)) this.sparkles.burst(new THREE.Vector3(c.x, fy + 1.2, c.z), 2, '#b8b4e6');
           },
@@ -1058,6 +1075,9 @@ export class HomeScene {
   placeGhost() {
     const g = this.ghost;
     if (!g) return;
+    // duvara dönük konduysa odaya çevir
+    const turned = faceRoom(this.P, g.p);
+    if (turned.r !== g.p.r) g.p = turned;
     const err = canPlace(this.h, g.p, g.fromIndex ?? -1);
     if (err) {
       this.ev.onMessage(err);
@@ -1330,7 +1350,7 @@ export class HomeScene {
     this.avatar.root.position.copy(this.pos).setY(this.pos.y + this.jumpY);
     this.warm.position.set(this.pos.x, this.pos.y + 2.3, this.pos.z);
     this.avatar.root.rotation.y = this.heading;
-    this.avatar.root.rotation.x = this.lying ? -Math.PI / 2 : 0;
+    this.avatar.root.rotation.set(this.lying ? -Math.PI / 2 : 0, this.heading, 0, 'YXZ');
     this.avatar.update(dt, this.clock, pose, speed);
     // evcil hayvan: peşinden gelir (ya da yatağına gider)
     if (this.pet) {

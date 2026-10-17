@@ -24,13 +24,15 @@ import { blockById, buyBlueprint, placedBlocks, placeStruct, removeStruct, struc
 import { blueprint as blueprintParts } from './build';
 import type { Cell } from './build';
 import { car as carDef, carModel } from './cars';
+import { DayNight } from './daynight';
+import { buildSports } from './sports';
 import type { Live } from '../online/rt';
 
 /** İnşa aracı: blok, silgi ya da çiftlik yapısı. */
 export type Tool = { block: string } | { erase: true } | { struct: PlaceKind };
 
 /** Adadaki bir arkadaş (çok oyunculu). */
-interface Remote { av: Avatar3D; tag: THREE.Sprite; look: string; pos: THREE.Vector3; target: THREE.Vector3; h: number; th: number; pose: Pose; speed: number; seen: number; w: string; car: THREE.Object3D | null; carId: string }
+interface Remote { av: Avatar3D; tag: THREE.Sprite; look: string; pos: THREE.Vector3; target: THREE.Vector3; h: number; th: number; pose: Pose; speed: number; seen: number; w: string; car: THREE.Object3D | null; carId: string; net?: string; netSeen?: Record<string, string> }
 
 function nameTag(name: string) {
   const c = document.createElement('canvas');
@@ -109,6 +111,9 @@ export class Island {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(52, 1, 0.1, 1200);
   private sun: THREE.DirectionalLight;
+  private hemi: THREE.HemisphereLight;
+  /** Gece ve gündüz (cihazın saatine göre). */
+  sky!: DayNight;
   private grid = new BlockGrid();
   private wb: WorldBuilder;
   private home: Homestead;
@@ -198,7 +203,8 @@ export class Island {
     this.renderer.toneMappingExposure = 1.08;
     this.scene.background = SKY.clone();
     this.scene.fog = new THREE.Fog(SKY.clone(), 120, 300);
-    this.scene.add(new THREE.HemisphereLight('#fffaf2', '#b9d9a0', 1.2));
+    this.hemi = new THREE.HemisphereLight('#fffaf2', '#b9d9a0', 1.2);
+    this.scene.add(this.hemi);
     this.sun = new THREE.DirectionalLight('#fff4dc', 1.5);
     this.sun.castShadow = true;
     // telefonda gölge haritası daha küçük
@@ -237,6 +243,13 @@ export class Island {
     this.wb.enter = (id, back) => this.enterRealm(id, back);
     buildZones(this.wb, o.taken);
     buildPlaces(this.wb);
+    buildSports(this.wb);
+    this.wb.myName = o.doll.name?.trim() || 'Sen';
+    this.wb.peerPos = (pid) => {
+      const r = this.remotes.get(pid);
+      return r && r.w === (this.realm?.id ?? '') && r.av.root.visible ? r.pos : null;
+    };
+    this.wb.peerCount = () => [...this.remotes.values()].filter((r) => r.w === '').length;
     mark('bölgeler');
     buildMarket(this.wb);
     buildShops(this.wb);
@@ -249,6 +262,8 @@ export class Island {
     mark('bitki örtüsü');
     this.spots = this.wb.spots;
     this.buildStars();
+    this.sky = new DayNight(this.scene, this.hemi, this.sun, this.renderer, this.wb.lamps);
+    this.wb.night = () => this.sky.night;
 
     // Kahraman
     this.avatar = new Avatar3D(o.doll);
@@ -1294,9 +1309,13 @@ export class Island {
     // alçaktan bakınca biraz yukarı (gökyüzüne) bakar
     this.camera.lookAt(this.pos.x, this.pos.y + 1.8 + Math.max(0, -this.camPitch) * 9, this.pos.z);
     // güneş kahramanı izler (gölgeler hep yakında net)
-    const sun = this.realm?.sun ?? this.sun;
-    sun.position.set(this.pos.x - 30, this.pos.y + 60, this.pos.z + 26);
-    sun.target.position.set(this.pos.x, this.pos.y, this.pos.z);
+    if (this.realm) {
+      const sun = this.realm.sun;
+      sun.position.set(this.pos.x - 30, this.pos.y + 60, this.pos.z + 26);
+      sun.target.position.set(this.pos.x, this.pos.y, this.pos.z);
+    }
+    // adada güneş (ya da ay) gökte saate göre ilerler; gökyüzü, lambalar
+    this.sky.update(dt, this.pos, this.camera, !this.realm, this.underwater);
     this.realm?.beforeRender?.(this.camera, this.pos);
     this.renderer.render(this.stage, this.camera);
   }
@@ -1315,7 +1334,9 @@ export class Island {
   // ----------------------------------------------------------------------------------------------
   /** Gönderilecek kendi durumum (konum, yön, poz, hangi dünyada). */
   liveState(): Omit<Live, 'n'> {
-    return { x: this.pos.x, z: this.pos.z, y: this.pos.y, h: this.heading, p: this.lastPose, w: this.away ? 'home' : this.realm?.id ?? '', v: this.myCar && this.drive === this.myCar.spot.vehicle ? this.myCar.id : '' };
+    // paylaşılan top durumları: son bir dakikada değiştiyse gönderilir
+    const b = Date.now() - this.wb.netAt < 60_000 ? JSON.stringify(this.wb.netOut) : '';
+    return { x: this.pos.x, z: this.pos.z, y: this.pos.y, h: this.heading, p: this.lastPose, w: this.away ? 'home' : this.realm?.id ?? '', v: this.myCar && this.drive === this.myCar.spot.vehicle ? this.myCar.id : '', b };
   }
 
   /** Odadaki arkadaşların görünüşü ve canlı durumu (sunucudan geldikçe). */
@@ -1350,6 +1371,21 @@ export class Island {
       }
       const w = p.live.w ?? '';
       if (w !== r.w) r.pos.set(p.live.x, p.live.y, p.live.z);
+      // arkadaşın top hamleleri (futbol, basket): değişen her oyun durumu oyuna verilir
+      if (p.live.b && p.live.b !== r.net) {
+        r.net = p.live.b;
+        try {
+          const all = JSON.parse(p.live.b) as Record<string, Record<string, unknown>>;
+          for (const [k, d] of Object.entries(all)) {
+            const sig = `${k}:${d.s}`;
+            if (r.netSeen?.[k] === sig) continue;
+            (r.netSeen ??= {})[k] = sig;
+            if (w === '') (this.wb.netIn[k] as ((d: unknown, from: string) => void) | undefined)?.(d, pid);
+          }
+        } catch {
+          /* bozuk paket: yok say */
+        }
+      }
       r.w = w;
       r.target.set(p.live.x, p.live.y ?? this.wb.ground(p.live.x, p.live.z), p.live.z);
       r.th = p.live.h;
