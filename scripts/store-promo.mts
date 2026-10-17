@@ -89,53 +89,76 @@ const render = async (html: string, w: number, h: number, out: string) => {
   await p.screenshot({ path: out });
   await p.close();
 };
-// App Store kartları: Play kartlarıyla aynı tasarım, Apple'ın istediği piksel boyutlarında.
-// Dar olanlar (en/boy < 0,6) telefon görüntüsünü dikey çerçevede, geniş olanlar tablet
-// görüntüsünü yatay çerçevede gösterir. Boyutlar: App Store Connect "screenshot specifications".
+// App Store kartları: 8 görüntü tek bir geniş şeritten kesilir, böylece arka plan, lekeler ve
+// kesik çizgi bir görüntüden diğerine akar (mağazada yan yana "geçişli" görünür).
+// Boyutlar: App Store Connect "screenshot specifications".
 interface IosSize { id: string; w: number; h: number }
 const IOS_SIZES: IosSize[] = [
   { id: 'iphone-6-3', w: 1206, h: 2622 }, // Dynamic Island (medium) — zorunlu
   { id: 'iphone-6-9', w: 1290, h: 2796 }, // Dynamic Island (large)
-  { id: 'ipad-13', w: 2064, h: 2752 }, // 13" iPad — iPad'de çalışan uygulamalar için zorunlu
+  { id: 'ipad-13', w: 2064, h: 2752 }, // 13" iPad — iPad'de çalışıyorsa zorunlu
 ];
 
-function iosPhoneCard(s: Slide, i: number, W: number, H: number) {
-  const u = W / 1080; // tasarım genişliği 1080'e göre ölçek
-  const dw = 780 * u, dh = dw * (1500 / 780);
-  return `<div class="card" style="--a:${s.bg[0]};--b:${s.bg[1]};--ink:${s.ink}">
-    <div class="dots"></div><div class="blob" style="width:${700 * u}px;height:${700 * u}px;right:${-260 * u}px;top:${-300 * u}px"></div><div class="blob" style="width:${420 * u}px;height:${420 * u}px;left:${-180 * u}px;bottom:${0.09 * H}px"></div>
-    <div class="txt" style="left:${70 * u}px;right:${60 * u}px;top:${0.057 * H}px;gap:${22 * u}px"><h1 style="font-size:${104 * u}px">${s.title}</h1><p style="font-size:${40 * u}px;margin-left:${4 * u}px">${s.sub}</p></div>
-    <div class="dev" style="left:${(W - dw) / 2}px;top:${0.27 * H}px;width:${dw}px;height:${dh}px;border-radius:${46 * u}px;padding:${14 * u}px;transform:rotate(${i % 2 ? 3 : -3}deg)"><img src="${img(s.shot)}" style="border-radius:${34 * u}px"></div>
-    ${s.badge ? `<div class="badge" style="right:${56 * u}px;top:${0.235 * H}px;font-size:${40 * u}px;padding:${14 * u}px ${30 * u}px">${s.badge}</div>` : ''}
+/** Şeridin tamamı: genişlik = slayt sayısı × tek görüntü genişliği. */
+function serit(W: number, H: number) {
+  const dar = W / H < 0.6; // telefon mu tablet mi
+  const N = SLIDES.length;
+  const TW = W * N;
+  const u = W / (dar ? 1080 : 2064);
+  const duraklar = SLIDES.map((s, i) => `${s.bg[0]} ${(((i + 0.18) / N) * 100).toFixed(2)}%, ${s.bg[1]} ${(((i + 0.72) / N) * 100).toFixed(2)}%`).join(', ');
+  // kesik çizgi: şeridi baştan sona yumuşak bir dalga ile geçer
+  const dalga = SLIDES.map((_, i) => {
+    const x0 = i * W, y0 = (i % 2 ? 0.26 : 0.3) * H, y1 = (i % 2 ? 0.3 : 0.26) * H;
+    return `${i === 0 ? `M ${x0} ${y0}` : ''} C ${x0 + W * 0.3} ${y0 - H * 0.03}, ${x0 + W * 0.7} ${y1 + H * 0.03}, ${x0 + W} ${y1}`;
+  }).join(' ');
+  const lekeler = [0.13, 0.38, 0.63, 0.88].map((f, k) => {
+    const r = (k % 2 ? 0.9 : 1.25) * W;
+    return `<div class="blob" style="width:${r}px;height:${r}px;left:${TW * f - r / 2}px;top:${(k % 2 ? 0.52 : -0.18) * H}px"></div>`;
+  }).join('');
+  const kartlar = SLIDES.map((s, i) => {
+    const x = i * W;
+    const dw = dar ? 0.74 * W : 0.86 * W;
+    const dh = dar ? dw * (1500 / 780) : dw * (690 / 1060);
+    const kay = dar ? (i % 2 ? 0.05 : -0.05) * W : 0; // telefonlar sırayla sağa/sola kayar
+    const dx = x + (W - dw) / 2 + kay;
+    const dy = dar ? 0.285 * H : 0.42 * H;
+    const yazi = dar
+      ? `left:${x + 70 * u}px;width:${W - 130 * u}px;top:${0.055 * H}px;gap:${20 * u}px`
+      : `left:${x + 120 * u}px;width:${W - 240 * u}px;top:${0.085 * H}px;gap:${26 * u}px;align-items:center;text-align:center`;
+    return `<div class="txt" style="${yazi};--ink:${s.ink}">
+      <h1 style="font-size:${(dar ? 100 : 142) * u}px">${s.title}</h1>
+      <p style="font-size:${(dar ? 38 : 54) * u}px">${s.sub}</p>
+      ${s.badge ? `<div class="badge" style="font-size:${(dar ? 38 : 50) * u}px;padding:${14 * u}px ${32 * u}px;--ink:${s.ink}">${s.badge}</div>` : ''}
+    </div>
+    <div class="dev" style="left:${dx}px;top:${dy}px;width:${dw}px;height:${dh}px;border-radius:${(dar ? 46 : 54) * u}px;padding:${(dar ? 14 : 18) * u}px;transform:rotate(${i % 2 ? 2.5 : -2.5}deg)"><img src="${img(dar ? s.shot : s.tablet)}" style="border-radius:${(dar ? 34 : 38) * u}px"></div>`;
+  }).join('');
+  return `<div class="serit" style="width:${TW}px;height:${H}px;background:linear-gradient(100deg, ${duraklar})">
+    <div class="dots"></div>${lekeler}
+    <svg width="${TW}" height="${H}" style="position:absolute;inset:0"><path d="${dalga}" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="${7 * u}" stroke-linecap="round" stroke-dasharray="${26 * u} ${30 * u}"/></svg>
+    ${kartlar}
   </div>`;
 }
-
-function iosTabletCard(s: Slide, i: number, W: number, H: number) {
-  const u = W / 2064;
-  const dw = 0.88 * W, dh = dw * (690 / 1060);
-  return `<div class="card" style="--a:${s.bg[0]};--b:${s.bg[1]};--ink:${s.ink}">
-    <div class="dots"></div><div class="blob" style="width:${900 * u}px;height:${900 * u}px;left:${-340 * u}px;top:${-380 * u}px"></div><div class="blob" style="width:${560 * u}px;height:${560 * u}px;right:${-200 * u}px;bottom:${-220 * u}px"></div>
-    <div class="txt" style="left:${120 * u}px;right:${120 * u}px;top:${0.085 * H}px;gap:${28 * u}px;align-items:center;text-align:center"><h1 style="font-size:${148 * u}px">${s.title}</h1><p style="font-size:${56 * u}px">${s.sub}</p>${s.badge ? `<div class="badge" style="font-size:${52 * u}px;padding:${16 * u}px ${38 * u}px">${s.badge}</div>` : ''}</div>
-    <div class="dev" style="left:${(W - dw) / 2}px;top:${0.4 * H}px;width:${dw}px;height:${dh}px;border-radius:${54 * u}px;padding:${18 * u}px;transform:rotate(${i % 2 ? 2 : -2}deg)"><img src="${img(s.tablet)}" style="border-radius:${38 * u}px"></div>
-  </div>`;
-}
-
-for (const [i, s] of SLIDES.entries()) {
-  const n = String(i + 1).padStart(2, '0');
-  await render(phone(s, i), 1080, 1920, `${OUT}/phone-${n}.png`);
-  await render(tablet(s, i), 1920, 1200, `${OUT}/tablet-${n}.png`);
-}
-await render(feature(), 1024, 500, `${OUT}/feature-graphic.png`);
 
 const IOS_OUT = resolve('store/promo/ios');
 mkdirSync(IOS_OUT, { recursive: true });
-for (const size of IOS_SIZES) {
-  const dar = size.w / size.h < 0.6;
-  for (const [i, s] of SLIDES.entries()) {
-    const n = String(i + 1).padStart(2, '0');
-    const html = dar ? iosPhoneCard(s, i, size.w, size.h) : iosTabletCard(s, i, size.w, size.h);
-    await render(html, size.w, size.h, `${IOS_OUT}/${size.id}-${n}.png`);
+for (const boyut of IOS_SIZES) {
+  const { w: W, h: H } = boyut;
+  const sayfa = await (await b.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 })).newPage();
+  await sayfa.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${css}
+    body { width: ${W}px; height: ${H}px; overflow: hidden; }
+    .pencere { position: absolute; inset: 0; overflow: hidden; }
+    .serit { position: absolute; left: 0; top: 0; }
+    .txt { position: absolute; display: flex; flex-direction: column; align-items: flex-start; color: var(--ink); }
+    .txt h1, .txt p { color: var(--ink); }
+  </style></head><body><div class="pencere">${serit(W, H)}</div></body></html>`);
+  await sayfa.evaluate(() => document.fonts.ready);
+  await sayfa.waitForTimeout(600);
+  for (let i = 0; i < SLIDES.length; i++) {
+    await sayfa.evaluate((dx) => { (document.querySelector('.serit') as HTMLElement).style.transform = `translateX(${dx}px)`; }, -i * W);
+    await sayfa.waitForTimeout(150);
+    await sayfa.screenshot({ path: `${IOS_OUT}/${boyut.id}-${String(i + 1).padStart(2, '0')}.png` });
   }
+  await sayfa.close();
 }
 await b.close();
 console.log('hazır:', OUT, 've', IOS_OUT);
