@@ -1,9 +1,13 @@
 # Çizio iOS 1.5.0 (build 1): App Store'a gönderme adımları
 
-> **Durum (17 Ekim 2026):** Build 1.5.0 (1) yüklendi ve sürüme bağlandı. Mağaza sayfasının tamamı dolduruldu:
-> ad, alt başlık, açıklama, anahtar kelimeler, ekran görüntüleri, kategori (Eğitim + Eğlence), yaş
-> derecelendirmesi **4+**, Uygulama Gizliliği (yayında), fiyat **ücretsiz / 175 ülke**, inceleme notu ve
-> iletişim bilgileri. **Kalan tek adım: TestFlight'ta denemek ve "İncelemeye Gönder".**
+> **Durum (17 Ekim 2026):** **İncelemeye gönderildi — "Waiting for Review".** Gönderilen build: **1.5.0 (2)**
+> (iOS ses düzeltmesini içerir; TestFlight'ta denendi, sorun çıkmadı). Apple'ın incelemesi 48 saate kadar
+> sürebilir, sonuç e-postayla gelir. Onaylanırsa **otomatik yayınlanır** (App Store Version Release:
+> "Automatically release this version").
+>
+> Mağaza sayfası tamamlandı: ad, alt başlık, açıklama, anahtar kelimeler, ekran görüntüleri (geçişli),
+> kategori (Eğitim + Eğlence), yaş derecelendirmesi **4+**, Uygulama Gizliliği (yayında), fiyat
+> **ücretsiz / 175 ülke**, inceleme notu ve iletişim bilgileri.
 >
 > - Apple hesabı: **ABDURRAHMAN KAAN DIKEC (`AQ2Y664A4Z`)** — kullanıcının kendi hesabı ücretsiz *Personal Team*
 >   olduğu için App Store'a yükleme yapamıyor.
@@ -120,6 +124,10 @@ Başka hiçbir şey işaretlenmez (konum, kişiler, reklam, analiz, tanılama yo
   > bu özelliğin çalışması için hizmet sağlayıcıdır. Reklam, analiz, izleme ve uygulama içi satın alma yoktur.
 
 Sonra **İncelemeye Gönder**.
+
+**Not:** Sürüme hangi build'in bağlı olduğunu göndermeden önce kontrol et. Yeni build yüklenince sürüm
+kendiliğinden ona geçmiyor; eski build'i çöp kutusu simgesiyle kaldırıp **Add Build** ile yenisini seçmek
+gerekiyor.
 
 ### Çocuklar Kategorisi notu
 Apple'ın yeni yaş derecelendirme anketinde ayrı bir "Made for Kids / Kids" seçimi yok; kategori listesinde de
