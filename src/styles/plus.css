@@ -454,3 +454,6 @@
 @media (max-width: 560px) and (orientation: portrait) {
   .home-cam { top: calc(var(--safe-top) + 132px); }
 }
+
+/* Evim: ipucu üstte (altta joystick ve hareket düğmeleri var) */
+.home-ui .home-hint { bottom: auto; top: calc(var(--safe-top) + 72px); max-width: calc(100% - 150px); font-size: 14px; }

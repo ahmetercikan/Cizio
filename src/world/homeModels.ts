@@ -471,6 +471,79 @@ export function furniture(id: string, color: string, art?: HTMLCanvasElement): T
       }
       break;
     }
+    case 'somine': {
+      add(rbox(1.8, 1.2, 0.5, 0.05), color, 0, 0.6, -0.2);
+      add(rbox(1.95, 0.1, 0.6, 0.03), WHITE, 0, 1.23, -0.18);
+      add(rbox(1.0, 0.7, 0.1, 0.06), '#3a2b27', 0, 0.42, 0.06);
+      for (const [x, h, c] of [[-0.18, 0.42, '#ff8a3d'], [0.05, 0.55, '#ffb100'], [0.24, 0.38, '#ff6b2c']] as const) {
+        const f = add(new THREE.ConeGeometry(0.13, h, 8), soft(c, { emissive: '#aa4400' }), x, 0.2 + h / 2, 0.02, false);
+        f.name = 'flame';
+      }
+      add(rbox(0.7, 0.1, 0.18, 0.04), WOOD_D, 0, 0.13, 0.04);
+      add(rbox(0.3, 0.25, 0.08, 0.03), '#fff6e0', -0.6, 1.4, -0.3);
+      break;
+    }
+    case 'ranza': {
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(rbox(0.08, 1.9, 0.08, 0.02), WOOD, sx * 0.44, 0.95, sz * 0.92);
+      for (const y of [0.25, 1.15]) {
+        add(rbox(0.92, 0.1, 1.86, 0.03), WOOD, 0, y, 0);
+        add(rbox(0.84, 0.14, 1.78, 0.06), WHITE, 0, y + 0.12, 0);
+        add(rbox(0.86, 0.07, 1.1, 0.04), color, 0, y + 0.21, 0.3);
+        add(rbox(0.5, 0.12, 0.28, 0.06), '#ffffff', 0, y + 0.24, -0.62);
+      }
+      add(rbox(0.92, 0.25, 0.06, 0.03), WOOD, 0, 1.45, 0.92);
+      for (let i = 0; i < 4; i++) add(rbox(0.06, 0.05, 0.4, 0.02), WOOD_D, 0.47, 0.35 + i * 0.25, 0.6);
+      break;
+    }
+    case 'konsol': {
+      add(rbox(0.8, 0.45, 0.45, 0.05), WOOD, 0, 0.23, -0.15);
+      add(rbox(0.36, 0.08, 0.26, 0.04), color, 0, 0.5, -0.15);
+      for (const sx of [-0.18, 0.18]) {
+        const pad = add(rbox(0.2, 0.06, 0.13, 0.04), color === '#3a3f4a' ? '#ffffff' : '#3a3f4a', sx, 0.07, 0.25);
+        pad.rotation.y = sx * 1.5;
+      }
+      add(new THREE.SphereGeometry(0.03, 6, 4), soft('#4cd964', { emissive: '#1a6a2a' }), 0.12, 0.55, -0.03, false);
+      break;
+    }
+    case 'cadir': {
+      const t = add(new THREE.ConeGeometry(0.55, 1.3, 4, 1, true), new THREE.MeshStandardMaterial({ color, roughness: 0.9, side: THREE.DoubleSide }), 0, 0.65, 0);
+      t.rotation.y = Math.PI / 4;
+      add(new THREE.PlaneGeometry(0.4, 0.7), soft('#3a2b27'), 0, 0.35, 0.36, false);
+      add(new THREE.ConeGeometry(0.06, 0.18, 6), soft('#ffd43b'), 0, 1.36, 0);
+      break;
+    }
+    case 'mutfakada': {
+      add(rbox(1.8, 0.85, 0.8, 0.05), color, 0, 0.43, 0);
+      add(rbox(1.9, 0.07, 0.9, 0.03), WOOD, 0, 0.89, 0);
+      add(new THREE.SphereGeometry(0.12, 10, 8), soft('#ef6b6b'), -0.4, 1.0, 0, false);
+      add(new THREE.SphereGeometry(0.11, 10, 8), soft('#ffd43b'), -0.2, 0.99, 0.12, false);
+      add(rbox(0.32, 0.18, 0.24, 0.04), '#b7e3a0', 0.45, 1.01, 0, false);
+      for (const sx of [-0.55, 0.55]) add(rbox(0.32, 0.05, 0.32, 0.12), WOOD_D, sx, 0.62, 0.62);
+      break;
+    }
+    case 'dus': {
+      add(rbox(0.9, 0.1, 0.9, 0.04), WHITE, 0, 0.05, 0);
+      add(rbox(0.9, 1.9, 0.04, 0.02), soft(color, { opacity: 0.45, rough: 0.1 }), 0, 1.0, 0.43);
+      add(rbox(0.04, 1.9, 0.9, 0.02), soft(color, { opacity: 0.45, rough: 0.1 }), 0.43, 1.0, 0);
+      add(rbox(0.06, 1.7, 0.06, 0.02), '#c0c6cf', -0.3, 0.95, -0.38);
+      add(new THREE.CylinderGeometry(0.12, 0.12, 0.04, 14), soft('#c0c6cf'), -0.3, 1.82, -0.26, false);
+      break;
+    }
+    case 'kaktus': {
+      add(new THREE.CylinderGeometry(0.17, 0.13, 0.25, 12), soft(color), 0, 0.13, 0);
+      add(new THREE.CapsuleGeometry(0.1, 0.35, 4, 8), soft('#5cb85c'), 0, 0.48, 0);
+      const arm = add(new THREE.CapsuleGeometry(0.06, 0.14, 4, 8), soft('#5cb85c'), 0.13, 0.52, 0);
+      arm.rotation.z = -0.9;
+      add(new THREE.SphereGeometry(0.05, 6, 4), soft('#ff8fb1'), 0, 0.72, 0, false);
+      break;
+    }
+    case 'poster': {
+      add(rbox(0.6, 0.85, 0.03, 0.01), '#ffffff', 0, 1.5, -0.47);
+      add(new THREE.PlaneGeometry(0.54, 0.78), soft(color), 0, 1.5, -0.453, false);
+      add(new THREE.CircleGeometry(0.15, 5), soft('#ffffff'), 0, 1.6, -0.45, false);
+      add(new THREE.PlaneGeometry(0.4, 0.07), soft('#ffffff'), 0, 1.3, -0.45, false);
+      break;
+    }
     default:
       add(rbox(W * 0.9, 0.6, D * 0.9, 0.06), color, 0, 0.3, 0);
   }

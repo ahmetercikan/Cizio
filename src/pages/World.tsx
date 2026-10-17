@@ -572,7 +572,7 @@ function IslandPlay() {
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
     if (!d.moved && Math.hypot(dx, dy) > 10) d.moved = true;
     if (d.moved) {
-      if (home.current) home.current.rotate(dx);
+      if (home.current) home.current.rotate(dx, dy);
       else world.current?.rotateCamera(dx, dy);
       d.x = e.clientX;
       d.y = e.clientY;
@@ -694,8 +694,15 @@ function IslandPlay() {
         <div className="home-ui">
           <HomeTop mode={homeMode} coins={farm.coins} onMode={setHomeModeAll} onLeave={leaveHome} />
           <CamButtons home={home.current} />
-          {homeMode === 'live' && !homeBusy && <div className="home-hint">Joystick ile evinde gez. Bir eşyaya dokun, onunla oyna!</div>}
+          {homeMode === 'live' && !homeBusy && <div className="home-hint">Joystick ile gez, boş yere dokunup zıpla. Bir eşyaya dokun, onunla oyna!</div>}
           {!homeBusy && (homeMode === 'live' || ghost) && <Joystick onChange={(x, y) => home.current?.setJoystick(x, y)} />}
+          {!homeBusy && homeMode === 'live' && (
+            <div className="island__emotes">
+              <button className="game__btn" aria-label="El salla" onClick={() => home.current?.emote('wave')}><GameIcon name="el" size={34} /></button>
+              <button className="game__btn" aria-label="Dans et" onClick={() => home.current?.emote('dance')}><GameIcon name="nota" size={34} /></button>
+              <button className="game__btn" aria-label="Alkışla" onClick={() => home.current?.emote('clap')}><GameIcon name="alkis" size={34} /></button>
+            </div>
+          )}
           {homeMode === 'build' && (ghost ? <GhostCard g={ghost} home={home.current} /> : sel ? <SelCard s={sel} home={home.current} /> : <Catalog home={home.current} coins={farm.coins} onPick={pickHome} onHint={flash} />)}
         </div>
       )}

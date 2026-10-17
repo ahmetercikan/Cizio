@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canPlace, changePlan, footprint, lot, newHome, path, PLANS, plan, roomAt, useTile, wallAt, walls, ITEMS, item } from '../homeData';
+import { canPlace, changePlan, footprint, lot, newHome, normalizeHome, path, PLANS, plan, roomAt, useTile, wallAt, walls, ITEMS, item } from '../homeData';
 
 describe('ev planları', () => {
   it('her planda bütün odalara ön kapıdan yürünür', () => {
@@ -17,12 +17,12 @@ describe('ev planları', () => {
   it('odalar arasında duvar, kapıda boşluk, aynı adlı odalar arasında duvar yok', () => {
     const P = plan('a');
     const L = lot(P);
-    expect(wallAt(P, L.hx + 1, L.hz + 1, 's')).toBe(false); // mutfak-salon kapısı
-    expect(wallAt(P, L.hx + 1, L.hz + 2, 'n')).toBe(false); // aynı kapı karşıdan
-    expect(wallAt(P, L.hx + 0, L.hz + 1, 's')).toBe(true); // mutfak-salon duvarı
-    expect(wallAt(P, L.hx + 2, L.hz + 3, 'e')).toBe(false); // salon-hol (aynı oda)
+    expect(wallAt(P, L.hx + 2, L.hz + 3, 's')).toBe(false); // mutfak-salon kapısı
+    expect(wallAt(P, L.hx + 2, L.hz + 4, 'n')).toBe(false); // aynı kapı karşıdan
+    expect(wallAt(P, L.hx + 0, L.hz + 3, 's')).toBe(true); // mutfak-salon duvarı
+    expect(wallAt(P, L.hx + 4, L.hz + 6, 'e')).toBe(false); // salon-hol (aynı oda)
     expect(wallAt(P, L.hx + 0, L.hz + 0, 'w')).toBe(true); // dış duvar
-    expect(wallAt(P, L.hx + 1, L.hz + 5, 's')).toBe(false); // ön kapı
+    expect(wallAt(P, L.hx + 2, L.hz + 8, 's')).toBe(false); // ön kapı
     expect(walls(P).length).toBeGreaterThan(20);
   });
 });
@@ -36,11 +36,11 @@ describe('yerleştirme', () => {
     const h = newHome();
     const Y = 4;
     expect(canPlace(h, { id: 'koltuk', x: Y + 0, z: Y + 4, r: 0, c: 0 })).toMatch(/dolu/);
-    expect(canPlace(h, { id: 'koltuk', x: Y + 1, z: Y + 5, r: 0, c: 0 })).toMatch(/Kapının/);
+    expect(canPlace(h, { id: 'koltuk', x: Y + 2, z: Y + 8, r: 0, c: 0 })).toMatch(/Kapının/);
     expect(canPlace(h, { id: 'trambolin', x: Y + 1, z: Y + 2, r: 0, c: 0 })).toMatch(/bahçe/);
     expect(canPlace(h, { id: 'kanepe', x: 1, z: 1, r: 0, c: 0 })).toMatch(/içeriye/);
-    expect(canPlace(h, { id: 'kanepe', x: Y + 2, z: Y + 1, r: 0, c: 0 })).toMatch(/Duvarın|dolu/);
-    expect(canPlace(h, { id: 'tablo', x: Y + 1, z: Y + 4, r: 0, c: 0 })).toMatch(/duvar/i);
+    expect(canPlace(h, { id: 'kanepe', x: Y + 0, z: Y + 1, r: 0, c: 0 })).toMatch(/Duvarın|dolu/);
+    expect(canPlace(h, { id: 'tablo', x: Y + 2, z: Y + 6, r: 0, c: 0 })).toMatch(/duvar/i);
   });
   it('döndürünce ayak izi değişir', () => {
     expect(footprint({ id: 'kanepe', x: 0, z: 0, r: 0, c: 0 })).toEqual([[0, 0], [1, 0]]);
@@ -48,7 +48,7 @@ describe('yerleştirme', () => {
   });
   it('her eşyanın kullanma karosu bulunur (başlangıç evi)', () => {
     const h = newHome();
-    const from: [number, number] = [5, 11];
+    const from: [number, number] = [6, 13];
     h.items.forEach((p, i) => { if (item(p.id)?.use) expect(useTile(h, i, from), p.id).not.toBeNull(); });
   });
   it('büyük eve geçince eşyalar korunur ya da depoya gider', () => {
@@ -81,7 +81,7 @@ describe('plan bütünlüğü', () => {
 
 describe('plan değişimi', () => {
   it('eşyalar odalarıyla taşınır', () => {
-    for (const id of ['b', 'c', 'sato']) {
+    for (const id of ['b', 'c', 'villa', 'sato']) {
       const h = changePlan(newHome(), id);
       const P = plan(id);
       const where = (eid: string) => { const p = h.items.find((x) => x.id === eid); return p ? roomAt(P, p.x, p.z) : 'depo'; };
@@ -91,5 +91,31 @@ describe('plan değişimi', () => {
       expect(where('salincak'), id).toBe('');
       h.items.forEach((p, i) => expect(canPlace(h, p, i), `${id} ${p.id}`).toBeNull());
     }
+  });
+});
+
+describe('eski kayıt (küçük odalar)', () => {
+  it('1. sürüm evi yeni büyük plana taşınır, eşyalar kurallara uyar', () => {
+    const Y = 4;
+    // 1. sürümün başlangıç evinden bir parça (8×6 plan)
+    const old = {
+      plan: 'a', plans: ['a'], floor: {}, wall: {}, stored: [],
+      items: [
+        { id: 'kanepe', x: Y + 0, z: Y + 4, r: 3, c: 0 }, { id: 'buzdolabi', x: Y + 0, z: Y + 0, r: 0, c: 0 },
+        { id: 'ocak', x: Y + 1, z: Y + 0, r: 0, c: 0 }, { id: 'yatak', x: Y + 6, z: Y + 0, r: 0, c: 0 },
+        { id: 'kuvet', x: Y + 6, z: Y + 5, r: 2, c: 0 }, { id: 'salincak', x: 2, z: Y + 6, r: 0, c: 0 },
+      ],
+    };
+    const h = normalizeHome(old);
+    expect(h.v).toBe(2);
+    expect(h.items.length + h.stored.length).toBe(6);
+    const P = plan('a');
+    const where = (eid: string) => { const p = h.items.find((x) => x.id === eid); return p ? roomAt(P, p.x, p.z) : 'depo'; };
+    expect(where('ocak')).toBe('mutfak');
+    expect(where('yatak')).toBe('yatak');
+    expect(where('kuvet')).toMatch(/banyo|depo/);
+    h.items.forEach((p, i) => expect(canPlace(h, p, i), p.id).toBeNull());
+    // ikinci açılışta yeniden taşınmaz
+    expect(normalizeHome(h).items).toEqual(h.items);
   });
 });

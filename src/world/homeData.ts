@@ -18,7 +18,8 @@ export interface Plan { id: string; name: string; price: number; w: number; d: n
 /** Bahçe payı: evin çevresinde kaç karo. */
 export const YARD = 4;
 
-export const PLANS: Plan[] = [
+/** 1. sürümün küçük planları: eski kayıtlardaki eşyaları yeni (büyük) planlara taşımak için. */
+const OLD_PLANS: Plan[] = [
   {
     id: 'a', name: 'Sevimli ev', price: 0, w: 8, d: 6,
     rooms: [
@@ -70,6 +71,85 @@ export const PLANS: Plan[] = [
     ],
     doors: [{ x: 1, z: 2, side: 's' }, { x: 3, z: 4, side: 'e' }, { x: 5, z: 3, side: 's' }, { x: 9, z: 3, side: 's' }, { x: 3, z: 7, side: 'e' }],
     front: { x: 7, z: 9, side: 's' },
+  },
+];
+/**
+ * Ev planları (2. sürüm): PK XD gibi ferah odalar. Karakter ve eşyalar aynı boyda; odalar eskisinin ~2 katı.
+ * Aynı adlı odalar (Oturma odası) tek oda sayılır, aralarında duvar olmaz.
+ */
+export const PLANS: Plan[] = [
+  {
+    id: 'a', name: 'Sevimli ev', price: 0, w: 12, d: 9,
+    rooms: [
+      { id: 'mutfak', name: 'Mutfak', x: 0, z: 0, w: 5, d: 4 },
+      { id: 'yatak', name: 'Yatak odası', x: 5, z: 0, w: 7, d: 5 },
+      { id: 'salon', name: 'Oturma odası', x: 0, z: 4, w: 5, d: 5 },
+      { id: 'hol', name: 'Oturma odası', x: 5, z: 5, w: 3, d: 4 },
+      { id: 'banyo', name: 'Banyo', x: 8, z: 5, w: 4, d: 4 },
+    ],
+    doors: [{ x: 2, z: 3, side: 's' }, { x: 6, z: 4, side: 's' }, { x: 7, z: 6, side: 'e' }],
+    front: { x: 2, z: 8, side: 's' },
+  },
+  {
+    id: 'b', name: 'Bahçeli ev', price: 250, w: 15, d: 10,
+    rooms: [
+      { id: 'mutfak', name: 'Mutfak', x: 0, z: 0, w: 6, d: 4 },
+      { id: 'yatak', name: 'Yatak odası', x: 6, z: 0, w: 5, d: 5 },
+      { id: 'cocuk', name: 'Oyun odası', x: 11, z: 0, w: 4, d: 5 },
+      { id: 'salon', name: 'Oturma odası', x: 0, z: 4, w: 6, d: 6 },
+      { id: 'hol', name: 'Oturma odası', x: 6, z: 5, w: 4, d: 5 },
+      { id: 'banyo', name: 'Banyo', x: 10, z: 5, w: 5, d: 5 },
+    ],
+    doors: [{ x: 2, z: 3, side: 's' }, { x: 7, z: 4, side: 's' }, { x: 11, z: 2, side: 'w' }, { x: 9, z: 7, side: 'e' }],
+    front: { x: 2, z: 9, side: 's' },
+  },
+  {
+    id: 'c', name: 'Büyük ev', price: 600, w: 18, d: 13,
+    rooms: [
+      { id: 'mutfak', name: 'Mutfak', x: 0, z: 0, w: 7, d: 4 },
+      { id: 'yatak', name: 'Yatak odası', x: 7, z: 0, w: 6, d: 4 },
+      { id: 'cocuk', name: 'Oyun odası', x: 13, z: 0, w: 5, d: 7 },
+      { id: 'atolye', name: 'Resim atölyesi', x: 0, z: 4, w: 5, d: 5 },
+      { id: 'salon', name: 'Oturma odası', x: 5, z: 4, w: 8, d: 9 },
+      { id: 'hol', name: 'Oturma odası', x: 0, z: 9, w: 5, d: 4 },
+      { id: 'banyo', name: 'Banyo', x: 13, z: 7, w: 5, d: 6 },
+    ],
+    doors: [
+      { x: 2, z: 3, side: 's' }, { x: 6, z: 3, side: 's' }, { x: 9, z: 3, side: 's' }, { x: 13, z: 5, side: 'w' },
+      { x: 13, z: 9, side: 'w' }, { x: 4, z: 6, side: 'e' }, { x: 2, z: 8, side: 's' },
+    ],
+    front: { x: 8, z: 12, side: 's' },
+  },
+  {
+    id: 'villa', name: 'Havuzlu villa', price: 1200, w: 20, d: 14,
+    rooms: [
+      { id: 'mutfak', name: 'Mutfak', x: 0, z: 0, w: 7, d: 5 },
+      { id: 'yatak', name: 'Yatak odası', x: 7, z: 0, w: 6, d: 5 },
+      { id: 'cocuk', name: 'Oyun odası', x: 13, z: 0, w: 7, d: 5 },
+      { id: 'salon', name: 'Oturma odası', x: 0, z: 5, w: 9, d: 9 },
+      { id: 'atolye', name: 'Resim atölyesi', x: 9, z: 5, w: 5, d: 5 },
+      { id: 'misafir', name: 'Misafir odası', x: 14, z: 5, w: 6, d: 5 },
+      { id: 'banyo', name: 'Banyo', x: 9, z: 10, w: 5, d: 4 },
+      { id: 'hol', name: 'Oturma odası', x: 14, z: 10, w: 6, d: 4 },
+    ],
+    doors: [
+      { x: 3, z: 4, side: 's' }, { x: 8, z: 4, side: 's' }, { x: 16, z: 4, side: 's' }, { x: 9, z: 7, side: 'w' },
+      { x: 14, z: 7, side: 'w' }, { x: 9, z: 11, side: 'w' }, { x: 14, z: 11, side: 'w' }, { x: 17, z: 9, side: 's' },
+    ],
+    front: { x: 4, z: 13, side: 's' },
+  },
+  {
+    id: 'sato', name: 'Şato evi', price: 0, premium: 'sato', w: 18, d: 15,
+    rooms: [
+      { id: 'mutfak', name: 'Mutfak', x: 0, z: 0, w: 6, d: 4 },
+      { id: 'yatak', name: 'Yatak odası', x: 6, z: 0, w: 6, d: 6 },
+      { id: 'cocuk', name: 'Oyun odası', x: 12, z: 0, w: 6, d: 6 },
+      { id: 'atolye', name: 'Kütüphane', x: 0, z: 4, w: 6, d: 5 },
+      { id: 'salon', name: 'Taht salonu', x: 6, z: 6, w: 12, d: 9 },
+      { id: 'banyo', name: 'Banyo', x: 0, z: 9, w: 6, d: 6 },
+    ],
+    doors: [{ x: 2, z: 3, side: 's' }, { x: 5, z: 6, side: 'e' }, { x: 8, z: 5, side: 's' }, { x: 14, z: 5, side: 's' }, { x: 5, z: 11, side: 'e' }],
+    front: { x: 11, z: 14, side: 's' },
   },
 ];
 export const plan = (id: string) => PLANS.find((p) => p.id === id) ?? PLANS[0];
@@ -212,6 +292,15 @@ export const ITEMS: Item[] = [
   { id: 'raf', name: 'Raf', cat: 'duvar', price: 8, w: 1, d: 1, wall: true, colors: ['#d9b48a', '#ffffff'] },
   { id: 'saat', name: 'Saat', cat: 'duvar', price: 12, w: 1, d: 1, wall: true, colors: ['#ffffff', '#f6d68e', '#b8b4e6'] },
   { id: 'ayna', name: 'Ayna', cat: 'duvar', price: 15, w: 1, d: 1, wall: true, colors: ['#d9b48a', '#ffffff', '#f2b8a2'], use: { kind: 'look', msg: 'Bugün çok şıksın!' } },
+  // yeni eşyalar (geliştirme)
+  { id: 'somine', name: 'Şömine', cat: 'oturma', price: 70, w: 2, d: 1, colors: ['#c98a6b', '#e9e4dc', '#b8b4e6'], use: { kind: 'look', msg: 'Çıtır çıtır sıcacık ateş!' } },
+  { id: 'ranza', name: 'Ranza', cat: 'yatak', price: 60, w: 1, d: 2, colors: ['#9ad0f5', '#f5a3c7', '#b7e3a0'], use: { kind: 'sleep', msg: 'Ranzada mışıl mışıl uyudun!' } },
+  { id: 'konsol', name: 'Oyun konsolu', cat: 'oyun', price: 55, w: 1, d: 1, colors: ['#3a3f4a', '#ffffff', '#ff6b8a'], use: { kind: 'play', msg: 'Rekor kırdın, şampiyon!' } },
+  { id: 'cadir', name: 'Oyun çadırı', cat: 'oyun', price: 30, w: 1, d: 1, colors: ['#ffcf6b', '#9ad0f5', '#f5a3c7'], use: { kind: 'play', msg: 'Çadırda saklambaç oynadın!' } },
+  { id: 'mutfakada', name: 'Mutfak adası', cat: 'mutfak', price: 45, w: 2, d: 1, colors: ['#ffffff', '#d9b48a', '#a8d8c8'] },
+  { id: 'dus', name: 'Duşakabin', cat: 'banyo', price: 40, w: 1, d: 1, colors: ['#cfe8ff', '#ffffff'], use: { kind: 'wash', msg: 'Mis gibi bir duş aldın!' } },
+  { id: 'kaktus', name: 'Kaktüs', cat: 'sus', price: 6, w: 1, d: 1, colors: ['#ffd1dc', '#ffe9a8', '#cfe8ff'] },
+  { id: 'poster', name: 'Poster', cat: 'duvar', price: 8, w: 1, d: 1, wall: true, colors: ['#ff8fb1', '#4dabf7', '#ffd43b'], use: { kind: 'look', msg: 'En sevdiğin poster!' } },
   // özel paketler
   { id: 'uzayyatak', name: 'Uzay yatağı', cat: 'yatak', price: 0, premium: 'sihir', w: 1, d: 2, colors: ['#5b4bb7', '#2d1b69'], use: { kind: 'sleep', msg: 'Yıldızların arasında uyudun!' } },
   { id: 'dondurma', name: 'Dondurma makinesi', cat: 'mutfak', price: 0, premium: 'sihir', w: 1, d: 1, colors: ['#ffd1e8', '#cfe8ff'], use: { kind: 'snack', msg: 'Çilekli dondurma, mmm!' } },
@@ -260,32 +349,45 @@ export interface HomeState {
   wall: Record<string, number>;
   /** Plan değişince sığmayan eşyalar (bedava yeniden konur). */
   stored: string[];
+  /** Kayıt sürümü (2: büyük odalı planlar). */
+  v?: number;
 }
 
 /** Başlangıç evi: boş değil, sıcak bir yuva (arsa koordinatları). */
 export function newHome(): HomeState {
   const Y = YARD;
   return {
-    plan: 'a', plans: ['a'],
+    plan: 'a', plans: ['a'], v: 2,
     items: [
-      { id: 'kanepe', x: Y + 0, z: Y + 4, r: 3, c: 0 },
-      { id: 'hali', x: Y + 1, z: Y + 3, r: 0, c: 0 },
-      { id: 'tv', x: Y + 2, z: Y + 4, r: 1, c: 0 },
-      { id: 'saksi', x: Y + 0, z: Y + 2, r: 0, c: 0 },
+      // mutfak
       { id: 'buzdolabi', x: Y + 0, z: Y + 0, r: 0, c: 0 },
       { id: 'ocak', x: Y + 1, z: Y + 0, r: 0, c: 0 },
-      { id: 'masa', x: Y + 2, z: Y + 0, r: 1, c: 0 },
-      { id: 'yatak', x: Y + 6, z: Y + 0, r: 0, c: 0 },
-      { id: 'komodin', x: Y + 7, z: Y + 0, r: 0, c: 0 },
-      { id: 'gardirop', x: Y + 3, z: Y + 0, r: 0, c: 0 },
-      { id: 'sovale', x: Y + 4, z: Y + 2, r: 0, c: 0 },
-      { id: 'kuvet', x: Y + 6, z: Y + 5, r: 2, c: 0 },
-      { id: 'lavabo', x: Y + 7, z: Y + 3, r: 3, c: 0 },
-      { id: 'tablo', x: Y + 0, z: Y + 3, r: 0, c: 0 },
+      { id: 'tezgah', x: Y + 2, z: Y + 0, r: 0, c: 0 },
+      { id: 'evye', x: Y + 3, z: Y + 0, r: 0, c: 0 },
+      { id: 'masa', x: Y + 1, z: Y + 2, r: 0, c: 0 },
+      { id: 'sandalye', x: Y + 1, z: Y + 1, r: 0, c: 0 },
+      // oturma odası
+      { id: 'kanepe', x: Y + 0, z: Y + 6, r: 3, c: 0 },
+      { id: 'hali', x: Y + 1, z: Y + 5, r: 0, c: 0 },
+      { id: 'tv', x: Y + 4, z: Y + 5, r: 1, c: 0 },
+      { id: 'saksi', x: Y + 0, z: Y + 4, r: 0, c: 0 },
+      { id: 'bitki', x: Y + 4, z: Y + 8, r: 0, c: 0 },
+      { id: 'tablo', x: Y + 0, z: Y + 5, r: 1, c: 0 },
+      // yatak odası
+      { id: 'yatak', x: Y + 10, z: Y + 0, r: 0, c: 0 },
+      { id: 'komodin', x: Y + 11, z: Y + 0, r: 0, c: 0 },
+      { id: 'gardirop', x: Y + 5, z: Y + 0, r: 0, c: 0 },
+      { id: 'calisma', x: Y + 8, z: Y + 0, r: 0, c: 0 },
+      { id: 'sovale', x: Y + 5, z: Y + 3, r: 0, c: 0 },
+      { id: 'oyuncak', x: Y + 11, z: Y + 3, r: 3, c: 0 },
+      // banyo
+      { id: 'kuvet', x: Y + 10, z: Y + 8, r: 2, c: 0 },
+      { id: 'lavabo', x: Y + 11, z: Y + 5, r: 3, c: 0 },
+      // bahçe
       { id: 'agac', x: 1, z: 2, r: 0, c: 0 },
-      { id: 'agac', x: Y + 9, z: 3, r: 0, c: 1 },
-      { id: 'cicek', x: Y + 3, z: Y + 7, r: 0, c: 0 },
-      { id: 'salincak', x: 2, z: Y + 6, r: 0, c: 0 },
+      { id: 'agac', x: Y + 13, z: 2, r: 0, c: 1 },
+      { id: 'cicek', x: Y + 5, z: Y + 10, r: 0, c: 0 },
+      { id: 'salincak', x: 1, z: Y + 7, r: 0, c: 0 },
     ],
     floor: { mutfak: 2, yatak: 3, salon: 0, hol: 0, banyo: 2 },
     wall: { mutfak: 4, yatak: 2, salon: 0, hol: 0, banyo: 5 },
@@ -296,7 +398,13 @@ export function newHome(): HomeState {
 export function normalizeHome(h: Partial<HomeState> | undefined): HomeState {
   const n = newHome();
   if (!h?.items) return n;
-  return { ...n, ...h, plans: h.plans?.length ? h.plans : ['a'], floor: { ...n.floor, ...h.floor }, wall: { ...n.wall, ...h.wall }, stored: h.stored ?? [] };
+  const out: HomeState = { ...n, ...h, plans: h.plans?.length ? h.plans : ['a'], floor: { ...n.floor, ...h.floor }, wall: { ...n.wall, ...h.wall }, stored: h.stored ?? [] };
+  if ((h.v ?? 1) < 2) {
+    // 1. sürüm (küçük odalar): eşyalar odalarıyla yeni büyük plana taşınır
+    const A = OLD_PLANS.find((p) => p.id === out.plan) ?? OLD_PLANS[0];
+    return { ...movePlan(out, A, plan(out.plan)), v: 2 };
+  }
+  return out;
 }
 
 /** Döndürülmüş ayak izi (karolar). */
@@ -471,7 +579,12 @@ export const sellPrice = (id: string) => Math.floor((item(id)?.price ?? 0) * SEL
  * Sığmayanlar depoya gider (bedava yeniden konur).
  */
 export function changePlan(h: HomeState, id: string): HomeState {
-  const A = plan(h.plan), B = plan(id);
+  return movePlan(h, plan(h.plan), plan(id));
+}
+
+/** Eşyaları A planından B planına taşır (odası odasına, odanın içinde orantılı yere; bahçedekiler aynı yana). */
+function movePlan(h: HomeState, A: Plan, B: Plan): HomeState {
+  const id = B.id;
   const LA = lot(A), LB = lot(B);
   const next: HomeState = { ...h, plan: id, plans: h.plans.includes(id) ? h.plans : [...h.plans, id], items: [], stored: [...h.stored] };
   const roomOf = (P: Plan, rid: string) => P.rooms.find((r) => r.id === rid) ?? P.rooms.find((r) => r.name === A.rooms.find((x) => x.id === rid)?.name);
@@ -492,7 +605,10 @@ export function changePlan(h: HomeState, id: string): HomeState {
         const dx = p.x - LA.hx - ra.x, dz = p.z - LA.hz - ra.z;
         const fw = p.r % 2 ? it.d : it.w, fd = p.r % 2 ? it.w : it.d;
         const bx = LB.hx + rb.x, bz = LB.hz + rb.z;
-        const x0 = bx + Math.min(dx, Math.max(0, rb.w - fw)), z0 = bz + Math.min(dz, Math.max(0, rb.d - fd));
+        // odanın içinde aynı oranda yer (büyük odada eşyalar köşeye yığılmasın); duvar eşyaları duvarda kalsın
+        const sx = it.wall ? dx : Math.round((dx / Math.max(1, ra.w - 1)) * Math.max(0, rb.w - 1));
+        const sz = it.wall ? dz : Math.round((dz / Math.max(1, ra.d - 1)) * Math.max(0, rb.d - 1));
+        const x0 = bx + Math.min(sx, Math.max(0, rb.w - fw)), z0 = bz + Math.min(sz, Math.max(0, rb.d - fd));
         cands.push({ ...p, x: x0, z: z0 });
         // odanın içinde yakından uzağa diğer yerler ve yönler
         const more: [number, Placed][] = [];
