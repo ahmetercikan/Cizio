@@ -5,8 +5,15 @@
 
 /** Kara yarıçapı (kıyı çizgisi bu değer etrafında dalgalanır). Eski adanın ~30 katı alan. */
 export const LAND_R = 328;
+/**
+ * Kuzeydoğudaki yeni kara: Şehir Merkezi'nin (gökdelenler) kurulduğu büyük yarımada.
+ * Ada yalnızca bu yönde büyüdü; plaj, deniz feneri ve öbür kıyı yerleri yerinde kaldı.
+ */
+const CAPE = { ang: 0.9, half: 0.85, size: 150 };
+/** Kıyının ulaşabildiği en uzak yarıçap (arazi ağı ve bitkiler bunu kullanır). */
+export const COAST_MAX = LAND_R + CAPE.size + 18;
 /** Yürünebilir / yüzülebilir sınır. */
-export const WORLD_R = 410;
+export const WORLD_R = 505;
 
 export interface Zone {
   id: string;
@@ -39,6 +46,7 @@ export const ZONES: Zone[] = [
   { id: 'zoo', name: 'Hayvanat Bahçesi', x: 80, z: -178, color: '#f08c3a', spawn: [66, -147] },
   { id: 'airport', name: 'Havalimanı', x: 272, z: -30, color: '#8d99ae', spawn: [238, -26] },
   { id: 'picnic', name: 'Piknik Tepesi', x: -238, z: -80, color: '#ff8fb1', spawn: [-206, -69] },
+  { id: 'downtown', name: 'Şehir Merkezi', x: 228, z: 288, color: '#6c7bff', spawn: [191, 241] },
 ];
 /** Çiftliğim: arsanın düzlüğü daha geniş (tarla, ahır ve inşa alanı). */
 export const HOME = zone_('home');
@@ -72,6 +80,7 @@ export const ROADS: [number, number][][] = [
   [[0, 0], [45, 150], [175, 115]],
   [[0, 0], [88, 44]],
   [[0, 0], [238, -26]],
+  [[175, 115], [198, 180], [191, 241]],
 ];
 /** Kasaba meydanının içinde yol çizilmez. */
 export const ROAD_START = 26;
@@ -92,7 +101,9 @@ export function roadDist(x: number, z: number) {
 
 /** Kıyı çizgisinin yarıçapı (açıya göre girintili çıkıntılı). */
 export function coastAt(ang: number) {
-  return LAND_R + 9 * Math.sin(ang * 3 + 0.4) + 6 * Math.sin(ang * 7 + 1.3) + 3 * Math.sin(ang * 13);
+  let d = Math.abs(((ang - CAPE.ang + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI);
+  const cape = d < CAPE.half ? CAPE.size * (0.5 + 0.5 * Math.cos((Math.PI * d) / CAPE.half)) : 0;
+  return LAND_R + cape + 9 * Math.sin(ang * 3 + 0.4) + 6 * Math.sin(ang * 7 + 1.3) + 3 * Math.sin(ang * 13);
 }
 
 /** Bölgelerin dışında kalan ama düz olması gereken yerler (futbol ve basket sahaları). */
@@ -104,7 +115,7 @@ function flatMask(x: number, z: number) {
   for (const f of FLAT_SPOTS) m = Math.max(m, 1 - smooth(f.a, f.b, Math.hypot(x - f.x, z - f.z)));
   for (const zn of ZONES) {
     if (zn.id === 'snow' || zn.id === 'dino') continue;
-    const [a, b] = zn.id === 'home' ? [50, 72] : zn.id === 'airport' ? [44, 66] : [34, 58];
+    const [a, b] = zn.id === 'home' ? [50, 72] : zn.id === 'downtown' ? [58, 84] : zn.id === 'airport' ? [44, 66] : [34, 58];
     m = Math.max(m, 1 - smooth(a, b, Math.hypot(x - zn.x, z - zn.z)));
   }
   return m;
@@ -142,7 +153,8 @@ export const isWater = (x: number, z: number) => heightAt(x, z) < -0.25;
 export function groundKind(x: number, z: number): 'sand' | 'snow' | 'grass' | 'dirt' {
   const h = heightAt(x, z);
   if (h > 15) return 'snow';
-  if (h < 1.0) return 'sand';
+  // kıyı boyunca geniş kumsal (şemsiyeler ve havlular çimene değil kuma kurulsun) ve göl kenarı
+  if (h < 1.0 || Math.hypot(x, z) > coastAt(Math.atan2(z, x)) - 22) return 'sand';
   if (Math.hypot(x - zone('dino').x, z - zone('dino').z) < 52) return 'dirt';
   return 'grass';
 }

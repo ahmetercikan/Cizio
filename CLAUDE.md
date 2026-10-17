@@ -20,7 +20,10 @@
 - **Commit:** Türkçe mesaj, `main`'e gönderilir; GitHub Pages'e (https://ahmetercikan.github.io/Cizio/) otomatik yayınlanır.
 - **Ada ve dünyalar:**
   - `src/world/island.ts`: motor
+  - `layout.ts`: haritanın verisi (kıyı, bölgeler, yollar). Ada kuzeydoğuda bir yarımadayla büyüdü
+    (`CAPE`, `COAST_MAX`); plaj, deniz feneri gibi eski kıyı yerleri yerinde kaldı.
   - `zones.ts` / `places.ts`: bölgeler
+  - `city.ts`: Şehir Merkezi (gökdelenler, dönel kavşak, AVM, sinema, otel, taksi) ve ortak `tower()` modeli
   - `interiors.ts`: binaların içi
   - `mars.ts`: Mars
   - `home.ts`: Evim

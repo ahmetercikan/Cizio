@@ -382,7 +382,8 @@ export class Island {
     if (s.body) {
       const dx = this.pos.x - s.body.x, dz = this.pos.z - s.body.z, l = Math.hypot(dx, dz) || 1;
       this.target = new THREE.Vector3(s.body.x + (dx / l) * (s.body.r + 1.1), 0, s.body.z + (dz / l) * (s.body.r + 1.1));
-    } else this.target = new THREE.Vector3(s.x, 0, s.z);
+    } else if (s.vehicle) this.target = new THREE.Vector3(s.vehicle.pos.x, 0, s.vehicle.pos.z);
+    else this.target = new THREE.Vector3(s.x, 0, s.z);
     this.pending = s.id;
   }
   /**
@@ -470,6 +471,12 @@ export class Island {
     if (s.vehicle) return this.mount(s);
     if (s.act) this.startAct(s, s.act);
   }
+  /** Sürmekte olan etkinliği (salıncak, dönme dolap, balon...) hemen bitir: çocuk hiç beklemede kalmasın. */
+  endAct() {
+    if (!this.act) return;
+    this.act.t = Math.max(this.act.t, this.act.def.dur);
+  }
+
   private startAct(s: SpotDef, def: Activity) {
     this.act = { spot: s, def, t: 0 };
     this.vel.set(0, 0, 0);
@@ -490,15 +497,40 @@ export class Island {
     this.setNear(null);
     this.ev.sound.pop();
   }
+  /**
+   * Suyun üstündeki en yakın kara parçası (dışa doğru halka halka arar). Uçak denizin üstünde inmek isteyince
+   * kullanılır: çocuk hiçbir zaman gökyüzünde kilitli kalmaz.
+   */
+  private nearestLand(x: number, z: number): [number, number] | null {
+    for (let r = 6; r <= WORLD_R * 2; r += 10) {
+      let best: [number, number] | null = null, bg = 0.6;
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 24) {
+        const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+        if (Math.hypot(px, pz) > WORLD_R) continue;
+        const g = this.groundAt(px, pz);
+        if (g > bg) [best, bg] = [[px, pz], g];
+      }
+      if (best) return best;
+    }
+    return null;
+  }
+
   /** Araçtan in: en yakın karaya ya da aracın yanına (suya). */
   dismount() {
     if (!this.drive) return;
     const v = this.drive;
     if (v.alt && v.alt > 5) {
-      // uçak: yalnızca karada iner, tekerlekleri yere oturur
+      // uçak: tekerlekleri yere oturur. Denizin üstündeyse kendiliğinden en yakın karaya iner
+      // (küçük oyuncu "İn"e basınca her zaman inebilmeli).
       if (this.groundAt(v.pos.x, v.pos.z) < 0.3) {
-        this.ev.onMessage('Önce karaya uç, sonra in!');
-        return;
+        const land = this.nearestLand(v.pos.x, v.pos.z);
+        if (!land) {
+          this.ev.onMessage('Önce karaya uç, sonra in!');
+          return;
+        }
+        v.pos.x = land[0];
+        v.pos.z = land[1];
+        this.ev.onMessage('Uçak karaya indi!');
       }
       v.pos.y = this.groundAt(v.pos.x, v.pos.z) + (v.park ?? 0);
       v.model.position.copy(v.pos);

@@ -4,7 +4,7 @@
  */
 import * as THREE from 'three';
 import { canvasTexture, flowers, toon } from '../play3d/kit';
-import { groundKind, heightAt, isWater, LAND_R, roadDist, WORLD_R, ZONES } from './layout';
+import { COAST_MAX, coastAt, groundKind, heightAt, isWater, roadDist, WORLD_R, ZONES } from './layout';
 
 export interface Blocker { x: number; z: number; r: number }
 
@@ -59,7 +59,8 @@ const COL = {
 
 /** Ana kara ağı: yükseklik ve renk köşe başına. */
 export function buildTerrain(scene: THREE.Scene) {
-  const size = (LAND_R + 40) * 2, seg = 200;
+  // ada kuzeydoğuya doğru büyüdü: ağ en uzak kıyıyı da kapsar
+  const size = (COAST_MAX + 40) * 2, seg = 240;
   const geo = new THREE.PlaneGeometry(size, size, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -120,7 +121,7 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const forest = ZONES.find((z) => z.id === 'forest')!;
   const okSpot = (x: number, z: number, r: number) =>
-    !isWater(x, z) && heightAt(x, z) > 0.8 && Math.hypot(x, z) < LAND_R - 10 && grid.free(x, z, r + 1.2) && roadDist(x, z) > r + 3.5 &&
+    !isWater(x, z) && heightAt(x, z) > 0.8 && Math.hypot(x, z) < coastAt(Math.atan2(z, x)) - 10 && grid.free(x, z, r + 1.2) && roadDist(x, z) > r + 3.5 &&
     keepOut.every((k) => Math.hypot(k.x - x, k.z - z) > k.r + r);
 
   const trees: { x: number; z: number; s: number; kind: 0 | 1 | 2 }[] = [];
@@ -131,8 +132,8 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
     trees.push({ x, z, s: 0.9 + rnd() * 0.9, kind });
     grid.add({ x, z, r: 0.9 });
   };
-  for (let i = 0; i < 4000 && trees.length < 940; i++) {
-    const a = rnd() * Math.PI * 2, r = 20 + Math.sqrt(rnd()) * (LAND_R - 30);
+  for (let i = 0; i < 5200 && trees.length < 1080; i++) {
+    const a = rnd() * Math.PI * 2, r = 20 + Math.sqrt(rnd()) * (coastAt(a) - 30);
     tryTree(Math.cos(a) * r, Math.sin(a) * r);
   }
   // sık orman
@@ -180,8 +181,8 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
   // çiçek öbekleri (yürünebilir, gölge yok): saplı, yapraklı gerçek çiçekler
   const cols = ['#ff6b8a', '#ffc83d', '#ffffff', '#b98cff', '#ff8a65'];
   const fl: { x: number; y: number; z: number; s: number }[] = [];
-  for (let k = 0; k < 170; k++) {
-    const a = rnd() * Math.PI * 2, r = 20 + Math.sqrt(rnd()) * (LAND_R - 34);
+  for (let k = 0; k < 200; k++) {
+    const a = rnd() * Math.PI * 2, r = 20 + Math.sqrt(rnd()) * (coastAt(a) - 34);
     const cx = Math.cos(a) * r, cz = Math.sin(a) * r;
     if (nearZone(cx, cz, 30) || roadDist(cx, cz) < 4) continue;
     const n = 4 + Math.floor(rnd() * 6);
@@ -195,8 +196,8 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
   scene.add(flowers(fl, cols));
   // kayalar
   const rocks: { x: number; y: number; z: number; s: number; sy: number }[] = [];
-  for (let i = 0; i < 620 && rocks.length < 170; i++) {
-    const a = rnd() * Math.PI * 2, r = 30 + rnd() * (LAND_R - 25);
+  for (let i = 0; i < 760 && rocks.length < 195; i++) {
+    const a = rnd() * Math.PI * 2, r = 30 + rnd() * (coastAt(a) - 25);
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (!okSpot(x, z, 1)) continue;
     const s = 0.6 + rnd() * 1.2;

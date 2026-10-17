@@ -385,6 +385,32 @@ export function carModel(id: string): VehicleModel {
   return { model: k.done(), seat };
 }
 
+
+/** Şehir taksisi: sarı sedan, tepesinde ışıklı TAKSİ levhası, damalı şerit. */
+export function taxiModel(): VehicleModel {
+  const k = new Kit();
+  const c = '#ffc83d';
+  k.box(2.5, 0.9, 4.8, c, 0, 0.85, 0, 0.32);
+  k.box(2.34, 0.34, 1.6, c, 0, 1.4, 1.4, 0.16);
+  k.box(2.34, 0.3, 1.1, c, 0, 1.36, -1.8, 0.14);
+  // damalı şerit
+  for (let i = 0; i < 8; i++) for (const s of [-1, 1]) k.box(0.06, 0.22, 0.56, i % 2 ? '#ffffff' : '#2b2d33', s * 1.26, 1.06 + (i % 2) * 0.24, -2.1 + i * 0.58, 0.02, false);
+  k.windshield(2.2, 0.8, 1.8, 0.55);
+  k.seat(-0.55, 0.98, -0.4, '#3a3f4a', 0.85);
+  k.seat(0.55, 0.98, -0.4, '#3a3f4a', 0.85);
+  k.steering(-0.55, 1.6, 0.25);
+  // tepe levhası
+  k.box(1.3, 0.42, 0.42, '#ffffff', 0, 1.82, 0.5, 0.1);
+  const sign = mesh(new THREE.BoxGeometry(1.0, 0.26, 0.05), toon('#2b2d33', { emissive: '#111111' }), false);
+  k.add(sign, 0, 1.82, 0.72);
+  k.lights(2.4, -2.4, 1.0, 0.82);
+  k.bumpers(2.44, -2.44, 0.52, 2.4);
+  k.mirrors(0.6, 1.6, 1.32, c);
+  k.plate(-2.6, 0.62);
+  for (const s of [-1, 1]) for (const z of [-1.55, 1.55]) k.wheel(s * 1.2, 0.56, z, 0.56);
+  return { model: k.done(), seat: seatPos(-0.55, 0.98, -0.4) };
+}
+
 // ================================================================================================
 // Şehir araçları
 // ================================================================================================

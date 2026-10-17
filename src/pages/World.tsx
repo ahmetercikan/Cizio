@@ -358,6 +358,8 @@ function IslandPlay() {
           onRealmFinish: (id, bonus, text) => finishRef.current(id, bonus, text),
           sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick(), whoosh: () => sfx.whoosh(), fx: (n, i) => rideSound(n, i), engine: (l, k) => engineSound(l, k) },
         });
+        // geliştirirken tarayıcı konsolundan dünyaya erişim (yayına girmez)
+        if (import.meta.env.DEV) (window as unknown as { w?: unknown }).w = world.current;
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
         // gerçek ses kayıtlarını arka planda hazırla (hazır olana dek sentez sesler çalar)
         preloadSfx(['tap', 'pop', 'coin', 'reward', 'win', 'chest', 'horn', 'door', 'engine-car', 'siren', 'engine-plane']);
@@ -837,6 +839,11 @@ function IslandPlay() {
             <span className="island__act island__drive rise">
               <button className="pill pill--yellow" onClick={() => world.current?.dismount()}>İn</button>
               <button className="pill" onClick={() => world.current?.honk()}><GameIcon name="korna" size={26} /> Korna</button>
+            </span>
+          )}
+          {busy && (
+            <span className="island__act island__drive rise">
+              <button className="pill pill--yellow" onClick={() => { sfx.pop(); world.current?.endAct(); }}>Bitir</button>
             </span>
           )}
           {!guest && !driving && !busy && !building && !realm && (

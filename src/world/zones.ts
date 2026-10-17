@@ -212,7 +212,7 @@ export class WorldBuilder {
   }
   /** Bir açıdaki kıyı noktası (kara ile suyun buluştuğu yarıçap). */
   shore(ang: number) {
-    let lo = 200, hi = 400;
+    let lo = 200, hi = 520;
     for (let i = 0; i < 30; i++) {
       const m = (lo + hi) / 2;
       if (heightAt(Math.cos(ang) * m, Math.sin(ang) * m) > 0) lo = m;
@@ -1830,7 +1830,8 @@ function buildLake(b: WorldBuilder, taken: string[]) {
 function buildBeach(b: WorldBuilder, taken: string[]) {
   const A = Math.PI / 2; // güney kıyısı (+z)
   const sr = b.shore(A);
-  const sand = (da: number, d: number): [number, number] => b.polar(A + da, sr - d);
+  // kumsal kıyıyı her açıda ayrı ayrı izler (kıyı çizgisi düz değil: şemsiyeler çimene taşmasın)
+  const sand = (da: number, d: number): [number, number] => b.polar(A + da, b.shore(A + da) - d);
   // şemsiyeler ve havlular
   const ucols = ['#ff6b4a', '#14a89a', '#ffc83d', '#e9487d', '#5b8def'];
   for (let i = 0; i < 10; i++) {

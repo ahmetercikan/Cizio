@@ -6,7 +6,8 @@ export type QuestId =
   | 'balloon' | 'fish' | 'icecream' | 'flowers' | 'lighthouse' | 'treasure' | 'goal' | 'music'
   | 'coaster' | 'waterslide' | 'swan' | 'swim' | 'jetski' | 'surf' | 'snorkel' | 'sandcastle' | 'lifeguard'
   | 'campfire' | 'tent' | 'treehouse' | 'harvest' | 'tractor' | 'snowman' | 'sled' | 'fossil' | 'egg' | 'castle' | 'rocket'
-  | 'farm' | 'sell' | 'build' | 'maze' | 'sky' | 'candy' | 'decorate';
+  | 'farm' | 'sell' | 'build' | 'maze' | 'sky' | 'candy' | 'decorate'
+  | 'tower' | 'mall' | 'cinema' | 'taxi';
 
 export const STARS_GOAL = 5;
 /** Yıldız avı dışında her gün kaç görev. */
@@ -58,6 +59,10 @@ export const QUESTS: Record<QuestId, string> = {
   sky: 'Gökyüzü Parkuru’nu bitir',
   candy: 'Şeker Diyarı’nda şeker topla',
   decorate: 'Evine yeni bir eşya koy',
+  tower: 'Şehir Merkezi’nde Çizio Kulesi’nin tepesine çık',
+  mall: 'Şehir Merkezi’ndeki AVM’de alışveriş yap',
+  cinema: 'Şehir Merkezi’ndeki sinemada film izle',
+  taxi: 'Şehir Merkezi’nde taksi sür',
 };
 
 /** Bugünün görevleri: yıldız avı hep var, diğer üçü güne göre değişir. */
