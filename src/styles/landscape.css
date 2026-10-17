@@ -191,3 +191,17 @@
   .home-finish { max-height: 30vh; }
   .home-ghost, .home-sel { left: auto; right: calc(var(--safe-right) + 10px); transform: none; width: min(380px, calc(100% - 150px)); bottom: calc(var(--safe-bottom) + 8px); padding: 10px 12px; gap: 6px; }
 }
+
+/* Oyun Çadırı ve yeni mini oyunlar: yatay telefonda daha sıkışık */
+@media (orientation: landscape) and (max-height: 500px) {
+  .arcade__grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .arcade__card { padding: 8px 6px; border-radius: 16px; }
+  .arcade__card small { min-height: 0; font-size: 11px; }
+  .arcade__top { padding: 6px 10px; }
+  .mg-count, .mg-fish__pond { height: calc(100dvh - 240px); }
+  .mg-rhythm__field { height: calc(100dvh - 210px); }
+  .mg-maze, .mg-snake { width: min(42vw, 280px); }
+  .mg-pad { width: 150px; }
+  .mg-pad__b { width: 46px; height: 46px; }
+  .badges { grid-template-columns: repeat(4, 1fr); }
+}

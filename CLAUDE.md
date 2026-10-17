@@ -13,6 +13,9 @@
   - iOS: `npm run ios:sync`
 - **Sürüm:** `package.json` → `version`. Android: `android/app/build.gradle` (versionCode/versionName). iOS: Xcode
   Version/Build. Mağaza notları ve adımlar: `store/`.
+- **Sesler:** `public/sfx/*.mp3` ElevenLabs ses efekti kütüphanesinden indirilmiş gerçek kayıtlardır
+  (ücretli planda telifsiz, ticari kullanıma açık, atıf gerekmez). Dosya yüklenemezse `src/lib/sfx.ts`
+  aynı sesi sentezleyerek çalar; yani ses hiçbir zaman kesilmez.
 - **Güvenlik:** anahtar, keystore, sertifika ve `.env*` dosyaları asla commit edilmez. Firebase web ayarı gizli değildir.
 - **Commit:** Türkçe mesaj, `main`'e gönderilir; GitHub Pages'e (https://ahmetercikan.github.io/Cizio/) otomatik yayınlanır.
 - **Ada ve dünyalar:**
@@ -21,5 +24,7 @@
   - `interiors.ts`: binaların içi
   - `mars.ts`: Mars
   - `home.ts`: Evim
-  - `MiniGames.tsx`: mini oyunlar
+  - `MiniGames.tsx` / `ArcadeGames.tsx`: Oyun Çadırı'nın 14 mini oyunu (lobi: `Shops.tsx` GamesPanel)
+  - `Rewards.tsx`: hazine sandıkları, günlük hediye serisi, koleksiyon rozetleri (hesap: `economy.ts`)
+  - `carsData.ts` / `vehicles.ts`: araçlar (seviyeyle açılır, altınla alınır)
 - **Yatay telefon düzeni:** `src/styles/landscape.css` (yalnızca yatay ve kısa ekranlarda devreye girer).

@@ -30,8 +30,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Ses dosyaları (public/voice) kuruluma dahil edilmez; çalındıkça önbelleğe alınır.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Seslendirme dosyaları (public/voice) kuruluma dahil edilmez; çalındıkça önbelleğe alınır.
+        // Efektler (public/sfx, ~800 KB) ise dahildir: oyunun sesi çevrimdışı da tam çalışsın.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}', 'sfx/*.mp3'],
         // Çevrimiçi istemci (Firebase, ~650 KB) yalnızca çevrimiçi özelliği açanlara, ilk kullanımda iner.
         globIgnores: ['**/node_modules/**/*', 'voice/**/*', 'assets/client-*.js'],
         runtimeCaching: [

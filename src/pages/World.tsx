@@ -14,17 +14,20 @@ import { Modal } from '../components/ui';
 import { normalizeDoll, PRESETS } from '../dressup/catalog';
 import { Doll } from '../dressup/Doll';
 import { listArtworks, type Artwork } from '../lib/gallery';
-import { engineSound, rideSound, sfx } from '../lib/sfx';
+import { engineSound, preloadSfx, rideSound, sfx } from '../lib/sfx';
 import { music } from '../lib/music';
 import { speak } from '../lib/speech';
-import { dayKey, hashStr } from '../lib/util';
+import { addDays, dayKey, hashStr } from '../lib/util';
 import { ISLAND_REWARD, useApp, useProfile, useProfileData } from '../store/useApp';
 import type { Island, RealmInfo, Spot } from '../world/island';
 import { coastAt, LAKE, SNOW_PEAK, WORLD_R, ZONES, type Zone } from '../world/layout';
 import { buyPlus, canBuy, managePlus, PLUS_ENABLED, restorePlus, usePlus } from '../world/plus';
 import { ISLAND_LINES, QUESTS, STARS_GOAL, todayQuests, type QuestId } from '../world/quests';
 import { Gate } from './Parent';
-import { advanceJourney, CROPS, ANIMALS, STRUCTS, fillOrders, type PlaceKind, miniReward, MINI_ITEMS_PER_DAY, type MiniPrize, newFarm, normalizeFarm, realmReward, unlocksAt, type FarmState, type Result } from '../world/economy';
+import {
+  advanceJourney, CROPS, ANIMALS, STRUCTS, fillOrders, type PlaceKind, miniWin, type MiniGameId, type MiniPrize, newFarm, normalizeFarm,
+  realmReward, unlocksAt, claimBadges, dailyGift, openChest, type ChestDef, type DailyGift, type FarmState, type Result,
+} from '../world/economy';
 import { ownedCars, CoinChip, JourneyNote, PlayerBadge, BlueprintPanel, BuildBar, JournalPanel, KitchenPanel, LevelUp, MarketPanel, OrdersPanel, RealmDone, RealmHud, SeedPanel, type Apply } from '../world/FarmPanels';
 import { realmName, type FarmBridge, type RealmId } from '../world/homestead';
 import type { GhostInfo, HomeScene, SelInfo } from '../world/home';
@@ -34,6 +37,8 @@ import { usePremium } from '../world/premium';
 import { GameIcon } from '../world/GameIcon';
 import { BalloonGame, BoutiquePanel, GamesPanel, MemoryGame, PrizeModal } from '../world/Shops';
 import { CatchGame, MathGame, MoleGame, PuzzleGame, ShadowGame, SimonGame } from '../world/MiniGames';
+import { CountGame, FishGame, MazeGame, PatternGame, RhythmGame, SnakeGame } from '../world/ArcadeGames';
+import { BadgeModal, ChestModal, DailyGiftModal, RewardsPanel } from '../world/Rewards';
 import { RARE, rareKey } from '../lib/rewards';
 import { ISLAND_ONLINE } from '../online/config';
 import { useOnlineView } from '../online/OnlineHost';
@@ -122,6 +127,27 @@ function IslandArt() {
 /** Adada dolaşan kâğıt kartların ders çizimleri. */
 const CARD_IDS = ['ayi', 'tilki', 'tavsan', 'baykus', 'kedi', 'kopek', 'penguen', 'trex', 'triceratops', 'uzun-boyun', 'stegozor', 'ucan-dinozor', 'dino-yumurta', 'prenses', 'sovalye', 'balik', 'denizyildizi', 'ahtapot', 'denizati', 'yengec', 'aslan', 'fil', 'zurafa', 'panda', 'kaplumbaga', 'kelebek'];
 
+/** Oyun Çadırı'ndaki mini oyunu çizer (MiniGames.tsx ve ArcadeGames.tsx). */
+function MiniGameView({ id, onEnd, onClose }: { id: MiniGameId; onEnd: (won: boolean, score?: number) => void; onClose: () => void }) {
+  const p = { onEnd, onClose };
+  switch (id) {
+    case 'memory': return <MemoryGame onWin={() => onEnd(true, 1)} onClose={onClose} />;
+    case 'balloon': return <BalloonGame {...p} />;
+    case 'catch': return <CatchGame {...p} />;
+    case 'mole': return <MoleGame {...p} />;
+    case 'simon': return <SimonGame {...p} />;
+    case 'puzzle': return <PuzzleGame {...p} />;
+    case 'math': return <MathGame {...p} />;
+    case 'shadow': return <ShadowGame {...p} />;
+    case 'count': return <CountGame {...p} />;
+    case 'pattern': return <PatternGame {...p} />;
+    case 'fish': return <FishGame {...p} />;
+    case 'maze': return <MazeGame {...p} />;
+    case 'rhythm': return <RhythmGame {...p} />;
+    case 'snake': return <SnakeGame {...p} />;
+  }
+}
+
 function IslandPlay() {
   const nav = useNavigate();
   const profile = useProfile()!;
@@ -135,15 +161,22 @@ function IslandPlay() {
   const [near, setNear] = useState<Spot | null>(null);
   const [busy, setBusy] = useState(false);
   const [driving, setDriving] = useState(false);
-  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | 'boutique' | 'games' | 'memory' | 'balloon' | 'catch' | 'mole' | 'simon' | 'puzzle' | 'math' | 'shadow' | null>(null);
-  const [prize, setPrize] = useState<{ prize: MiniPrize; coins: number } | null>(null);
+  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | 'boutique' | 'games' | 'rewards' | null>(null);
+  /** Şu an oynanan mini oyun (Oyun Çadırı). */
+  const [playing, setPlaying] = useState<MiniGameId | null>(null);
+  const [prize, setPrize] = useState<{ prize: MiniPrize; coins: number; text: string } | null>(null);
+  const [gift, setGift] = useState<DailyGift | null>(null);
+  const [chest, setChest] = useState<{ name: string; prizes: MiniPrize[] } | null>(null);
+  const [badges, setBadges] = useState<string[] | null>(null);
   /** Mini oyun bitti: kazandıysa ödül, değilse tekrar dene. */
-  const miniEnd = (won: boolean) => {
-    if (won) return miniWonRef.current();
+  const miniEnd = (won: boolean, score = 0) => {
+    const g = playing;
+    setPlaying(null);
+    if (won && g) return miniWonRef.current(g, score);
     flash('Az kaldı! Bir daha dene.');
     setPanel('games');
   };
-  const miniWonRef = useRef<() => void>(() => {});
+  const miniWonRef = useRef<(g: MiniGameId, score: number) => void>(() => {});
   // sıradaki hedef notu (kapatılırsa hatırlanır)
   const [noteOpen, setNoteOpen] = useState(() => {
     try {
@@ -244,7 +277,12 @@ function IslandPlay() {
       flash(`Defter tamam: ${t}`);
       sfx.success();
     }, 1400 * (i + 1)));
-    const lv = j.levelUp ?? r.levelUp;
+    const b = st.farmApply(claimBadges);
+    if (b.got.length) {
+      setBadges(b.got.map((x) => x.name));
+      sfx.fanfare();
+    }
+    const lv = b.levelUp ?? j.levelUp ?? r.levelUp;
     if (lv) {
       setLevelUp(lv);
       sfx.fanfare();
@@ -321,6 +359,8 @@ function IslandPlay() {
           sound: { star: (i) => sfx.star(i % 6), pop: () => sfx.pop(), note: (i) => sfx.note(i), kick: () => sfx.kick(), whoosh: () => sfx.whoosh(), fx: (n, i) => rideSound(n, i), engine: (l, k) => engineSound(l, k) },
         });
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
+        // gerçek ses kayıtlarını arka planda hazırla (hazır olana dek sentez sesler çalar)
+        preloadSfx(['tap', 'pop', 'coin', 'reward', 'win', 'chest', 'horn', 'door', 'engine-car', 'siren', 'engine-plane']);
         setReady(true);
         // evdeki bir eşyadan (gardırop, şövale…) başka sayfaya gidip dönünce eve geri gel
         let backHome = false;
@@ -653,25 +693,61 @@ function IslandPlay() {
       sfx.success();
     }
   };
-  /** Mini oyun bitti: altın, bazen bir eşya ya da kıyafet. */
-  const miniWon = () => {
+  /** Mini oyun kazanıldı: altın (günün ilk kazanışı tam), bazen bir eşya ya da kıyafet, turnuva ödülü. */
+  const miniWon = (game: MiniGameId, score: number) => {
     const owned = useApp.getState().data[profile.id]?.owned ?? [];
     const clothes = RARE.map(rareKey).filter((k) => !owned.includes(k));
-    const before = bridge.current.get().coins;
-    const r = applyQuiet((x) => miniReward(x, day, clothes, Math.random()));
+    const r = applyQuiet((x) => miniWin(x, { day, game, score, clothes, rnd: Math.random(), premiumItems: premium }));
     if (r.prize.kind === 'cloth') useApp.getState().grantOwned(r.prize.key);
-    sfx.fanfare();
+    sfx.reward(Math.round(r.coins / 4));
     setPanel(null);
-    setPrize({ prize: r.prize, coins: bridge.current.get().coins - before });
+    setPrize({
+      prize: r.prize,
+      coins: r.coins,
+      text: r.tourney
+        ? 'Çadır turnuvasını kazandın: bir sandık anahtarı senin!'
+        : r.first ? 'Bu oyunun bugünkü ilk ödülü senin!' : 'Bu oyunu bugün yine kazandın: küçük ödül.',
+    });
   };
   miniWonRef.current = miniWon;
 
-  const miniLeft = Math.max(0, MINI_ITEMS_PER_DAY - (farm.miniDay?.day === day ? farm.miniDay.n : 0));
+  /** Sandığı aç: anahtarlar harcanır, içinden altın ve bir hediye çıkar. */
+  const open = (c: ChestDef) => {
+    const owned = useApp.getState().data[profile.id]?.owned ?? [];
+    const clothes = RARE.map(rareKey).filter((k) => !owned.includes(k));
+    const r = applyQuiet((x) => openChest(x, c.id, clothes, Math.random(), premium));
+    if (r.err) {
+      flash(r.err);
+      return;
+    }
+    const cloth = r.prizes.find((p) => p.kind === 'cloth');
+    if (cloth?.kind === 'cloth') useApp.getState().grantOwned(cloth.key);
+    sfx.chest();
+    setPanel(null);
+    setChest({ name: c.name, prizes: r.prizes });
+  };
 
   const sold = () => {
     sfx.success();
     markDone('sell');
   };
+
+  // günlük hediye: her gün adaya ilk girişte, seri büyüdükçe artar
+  useEffect(() => {
+    if (!ready) return;
+    const prev = dayKey(addDays(new Date(), -1));
+    let got: DailyGift | null = null;
+    applyQuiet((x) => {
+      const g = dailyGift(x, day, prev);
+      if (!g) return { s: x };
+      got = g;
+      return g;
+    });
+    if (got) {
+      sfx.reward(Math.round((got as DailyGift).coins / 8));
+      setGift(got);
+    }
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const travel = (z: Zone) => {
     sfx.pop();
@@ -734,6 +810,10 @@ function IslandPlay() {
           <button className="hud-side__btn" aria-label="Bugünün görevleri" onClick={() => setPanel('quests')}>
             <GameIcon name="yildiz" size={30} />
             <small>{quests.filter(questDone).length}/{quests.length}</small>
+          </button>
+          <button className="hud-side__btn" aria-label="Ödüller" onClick={() => { sfx.pop(); setPanel('rewards'); }}>
+            <GameIcon name="sandik" size={30} />
+            <small>{farm.keys ?? 0} <GameIcon name="anahtar" size={11} /></small>
           </button>
           <JourneyNote s={farm} open={noteOpen} onToggle={toggleNote} onOpen={() => setPanel('journal')} />
           {settings.sfx && (
@@ -854,19 +934,19 @@ function IslandPlay() {
       {panel === 'boutique' && (
         <BoutiquePanel coins={farm.coins} owned={data.owned ?? []} onBuy={buyCloth} onClose={() => setPanel(null)} onHint={flash} onWear={() => nav('/giydir')} />
       )}
-      {panel === 'games' && <GamesPanel left={miniLeft} onPlay={(g) => setPanel(g)} onClose={() => setPanel(null)} />}
-      {panel === 'memory' && <MemoryGame onWin={miniWon} onClose={() => setPanel('games')} />}
-      {panel === 'balloon' && <BalloonGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
-      {panel === 'catch' && <CatchGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
-      {panel === 'mole' && <MoleGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
-      {panel === 'simon' && <SimonGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
-      {panel === 'puzzle' && <PuzzleGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
-      {panel === 'math' && <MathGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
-      {panel === 'shadow' && <ShadowGame onEnd={miniEnd} onClose={() => setPanel('games')} />}
+      {panel === 'games' && !playing && <GamesPanel s={farm} day={day} onPlay={(g) => { sfx.pop(); setPlaying(g); }} onClose={() => setPanel(null)} />}
+      {panel === 'rewards' && <RewardsPanel s={farm} day={day} onOpen={open} onClose={() => setPanel(null)} />}
+      {playing && <MiniGameView id={playing} onEnd={miniEnd} onClose={() => { setPlaying(null); setPanel('games'); }} />}
       {prize && (
-        <PrizeModal prize={prize.prize} coins={prize.coins} onClose={() => setPrize(null)}
+        <PrizeModal prize={prize.prize} coins={prize.coins} text={prize.text} onClose={() => setPrize(null)}
           onGo={(w) => { setPrize(null); if (w === 'home') void enterHome(); else nav('/giydir'); }} />
       )}
+      {gift && <DailyGiftModal gift={gift} onClose={() => setGift(null)} />}
+      {chest && (
+        <ChestModal name={chest.name} prizes={chest.prizes} onClose={() => setChest(null)}
+          onGo={(w) => { setChest(null); if (w === 'home') void enterHome(); else nav('/giydir'); }} />
+      )}
+      {badges && <BadgeModal names={badges} onClose={() => setBadges(null)} />}
       {levelUp && <LevelUp level={levelUp} unlocks={unlocksAt(levelUp)} onClose={() => setLevelUp(null)} />}
       {realmDone && (
         <RealmDone name={realmDone.name} text={realmDone.text} coins={realmDone.coins}

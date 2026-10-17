@@ -12,6 +12,11 @@ import { blockByCh, blockById, BLOCKS, type BlockDef } from './economy';
 import { HOME } from './layout';
 
 export const CELL = 1.5;
+/** Kahramanın çarpışma gövdesi: yarıçap ve boy (boy iki bloktan kısa olmalı: kapıdan geçsin). */
+export const BODY_R = 0.45;
+export const BODY_H = 2 * 1.5 - 0.15;
+/** Kapı bu kadar yaklaşınca açılır. */
+const DOOR_NEAR = 2.3;
 /** Bir sütunda en çok kaç blok. */
 export const NY = 24;
 /** Adada en çok kaç blok. */
@@ -136,9 +141,26 @@ function model(b: BlockDef, rotY: number, link: { x: boolean; z: boolean }): THR
   const add = (o: THREE.Object3D, x: number, y: number, z: number) => { o.position.set(x, y, z); g.add(o); return o; };
   switch (b.id) {
     case 'kapi': {
-      add(outline(mesh(new THREE.BoxGeometry(S, 2 * S - 0.1, 0.18), toon(b.color)), 1.04), 0, S - 0.05, 0);
-      for (const y of [0.6, 1.5, 2.4]) add(mesh(new THREE.BoxGeometry(S * 0.8, 0.08, 0.2), toon('#8a5a35'), false), 0, y, 0);
-      add(mesh(new THREE.SphereGeometry(0.1, 8, 6), toon('#ffc83d')), S * 0.32, 1.45, 0.14);
+      // kasa (yan direkler ve üst kiriş): boşluğu çerçeveler, geçişi kapatmaz
+      const DH = 2 * S;
+      for (const sx of [-1, 1]) add(mesh(new THREE.BoxGeometry(0.16, DH, 0.3), toon('#8a5a35')), sx * (S / 2 - 0.08), DH / 2, 0);
+      add(mesh(new THREE.BoxGeometry(S, 0.18, 0.3), toon('#8a5a35')), 0, DH - 0.09, 0);
+      // kanat: menteşesi solda, yaklaşınca açılır (WorldBlocks.stepDoors)
+      const leaf = new THREE.Group();
+      leaf.name = 'leaf';
+      const w = S - 0.24, h = DH - 0.24;
+      const panel = outline(mesh(new THREE.BoxGeometry(w, h, 0.14), toon(b.color)), 1.03);
+      panel.position.set(w / 2, h / 2, 0);
+      leaf.add(panel);
+      for (const y of [0.55, 1.45, 2.35]) {
+        const r = mesh(new THREE.BoxGeometry(w * 0.74, 0.08, 0.18), toon('#8a5a35'), false);
+        r.position.set(w / 2, y, 0);
+        leaf.add(r);
+      }
+      const knob = mesh(new THREE.SphereGeometry(0.1, 8, 6), toon('#ffc83d'));
+      knob.position.set(w - 0.16, 1.45, 0.13);
+      leaf.add(knob);
+      add(leaf, -w / 2, 0.12, 0);
       break;
     }
     case 'cicek': {
@@ -231,6 +253,10 @@ export class WorldBlocks {
   private pickables: THREE.Object3D[] = [];
   private ghost: THREE.Mesh;
   private ghostT: ReturnType<typeof setTimeout> | undefined;
+  /** Açılır kapılar (stepDoors). */
+  private doors: { leaf: THREE.Object3D; x: number; z: number; at: number; goal: number }[] = [];
+  /** Bir kapı açılırken çalınacak ses (ada bağlar). */
+  onDoor?: (x: number, z: number) => void;
 
   constructor(private scene: THREE.Scene, private ground: (x: number, z: number) => number, private canBuild: (x: number, z: number) => string | null) {
     scene.add(this.group);
@@ -385,17 +411,34 @@ export class WorldBlocks {
     }
     return best;
   }
-  /** Kahramanın gövdesi (y'den 3,1 birim yukarı, 0,45 yarıçap) bir bloğa çarpıyor mu? */
+  /**
+   * Kahramanın gövdesi (ayaktan BODY_H yukarı, BODY_R yarıçap) bir bloğa çarpıyor mu?
+   * BODY_H iki bloktan (2 × CELL) kısadır: kapının iki bloklu boşluğundan geçilebilsin.
+   */
   blocked(x: number, z: number, y: number) {
-    for (const [dx, dz] of [[0, 0], [0.45, 0], [-0.45, 0], [0, 0.45], [0, -0.45]]) {
+    for (const [dx, dz] of [[0, 0], [BODY_R, 0], [-BODY_R, 0], [0, BODY_R], [0, -BODY_R]]) {
       const [cx, cz] = this.toCell(x + dx, z + dz);
       const set = this.cols.get(colKey(cx, cz));
       if (!set?.size) continue;
       const b = this.base(cx, cz);
-      const lo = Math.floor((y + 0.36 - b) / CELL), hi = Math.floor((y + 3.1 - b) / CELL);
+      const lo = Math.floor((y + 0.36 - b) / CELL), hi = Math.floor((y + BODY_H - b) / CELL);
       for (const l of set) if (l >= lo && l <= hi) return true;
     }
     return false;
+  }
+
+  /** Kapılar: kahraman yaklaşınca açılır, uzaklaşınca kapanır (gerçek bir kapı gibi). */
+  stepDoors(x: number, z: number, dt: number) {
+    for (const d of this.doors) {
+      const open = Math.abs(x - d.x) < DOOR_NEAR && Math.abs(z - d.z) < DOOR_NEAR ? 1 : 0;
+      if (open !== d.goal) {
+        d.goal = open;
+        if (open) this.onDoor?.(d.x, d.z);
+      }
+      if (Math.abs(d.at - d.goal) < 0.002) continue;
+      d.at += (d.goal - d.at) * Math.min(1, dt * 7);
+      d.leaf.rotation.y = -d.at * 1.9;
+    }
   }
   /** Kahramanın kapladığı hücreler (blok konmasın). */
   bodyCells(x: number, z: number, y: number) {
@@ -466,6 +509,7 @@ export class WorldBlocks {
     }
     this.meshes = [];
     this.pickables = [];
+    this.doors = [];
     const groups = new Map<string, number[]>();
     for (const [i, b] of this.blocks) {
       if (b.kind === 'model') continue;
@@ -514,6 +558,8 @@ export class WorldBlocks {
       const o = model(b, rot, link);
       const c = this.cellCenter([x, y, z]);
       o.position.set(c.x, c.y - CELL / 2, c.z);
+      const leaf = b.id === 'kapi' ? o.getObjectByName('leaf') : null;
+      if (leaf) this.doors.push({ leaf, x: c.x, z: c.z, at: 0, goal: 0 });
       o.userData.cell = i;
       this.group.add(o);
       this.meshes.push(o);

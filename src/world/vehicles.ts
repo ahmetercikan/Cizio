@@ -133,6 +133,9 @@ const seatPos = (x: number, top: number, z: number, scale = 1): [number, number,
 // Arabalar
 // ================================================================================================
 export function carModel(id: string): VehicleModel {
+  // traktör ve uçak: çiftlikte/pistte duran modellerin aynısı
+  if (id === 'traktor') return tractorModel();
+  if (id === 'ucak') return planeModel();
   const k = new Kit();
   let seat: [number, number, number] = seatPos(-0.5, 0.95, -0.3);
   switch (id) {
@@ -239,6 +242,90 @@ export function carModel(id: string): VehicleModel {
       k.bumpers(2.55, -2.55, 0.38, 2.4);
       for (const s of [-1, 1]) for (const z of [-1.6, 1.6]) k.wheel(s * 1.2, 0.5, z, 0.5, 0.45, '#ffd43b');
       seat = seatPos(-0.55, 0.75, -0.5);
+      break;
+    }
+    case 'skuter': {
+      // skuter: basamaklı gövde, ön panel, gidon, arkada sepet
+      const c = '#ff8fb1';
+      for (const z of [-0.95, 0.95]) k.wheel(0, 0.44, z, 0.44, 0.26, '#e9ecef');
+      k.box(0.78, 0.4, 2.1, c, 0, 0.74, -0.1, 0.18);
+      k.box(0.8, 1.15, 0.55, c, 0, 1.3, 1.0, 0.22);
+      k.box(0.6, 0.12, 0.44, GLASS(), 0, 1.78, 1.18, 0.05, false);
+      k.box(0.66, 0.24, 1.0, DARK, 0, 1.06, -0.6, 0.11, false);
+      k.box(0.66, 0.5, 0.18, DARK, 0, 1.4, -1.12, 0.08, false);
+      k.box(1.1, 0.1, 0.1, DARK, 0, 1.86, 1.0, 0.05, false);
+      for (const s of [-1, 1]) k.box(0.14, 0.12, 0.3, '#3a3f4a', s * 0.52, 1.86, 0.88, 0.05, false);
+      const lamp = mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.1, 14), toon('#fff6c9', { emissive: '#a08a20' }), false);
+      lamp.rotation.x = Math.PI / 2;
+      k.add(lamp, 0, 1.5, 1.3);
+      k.box(0.5, 0.36, 0.42, '#ffd43b', 0, 1.3, -1.35, 0.1);
+      seat = seatPos(0, 1.06, -0.6);
+      break;
+    }
+    case 'kamyonet': {
+      // kamyonet: kabin önde, arkası açık kasa
+      const c = '#4dabf7';
+      k.box(2.6, 1.0, 5.6, c, 0, 1.1, 0, 0.26);
+      k.box(2.44, 0.9, 2.2, c, 0, 2.05, 1.35, 0.22);
+      k.windshield(2.4, 0.85, 2.3, 2.4, -0.2);
+      for (const s of [-1, 1]) k.box(0.06, 0.7, 1.2, GLASS(), s * 1.24, 2.15, 1.25, 0.03, false);
+      k.box(2.46, 0.14, 2.24, shade(c, 0.9), 0, 2.56, 1.35, 0.07, false);
+      k.box(2.3, 0.1, 3.0, '#6b7280', 0, 1.63, -1.2, 0.04, false);
+      for (const s of [-1, 1]) k.box(0.12, 0.55, 3.0, shade(c, 0.85), s * 1.22, 1.9, -1.2, 0.06);
+      k.box(2.5, 0.55, 0.12, shade(c, 0.85), 0, 1.9, -2.72, 0.06);
+      k.seat(-0.6, 1.6, 1.0, '#3a3f4a', 0.9);
+      k.seat(0.6, 1.6, 1.0, '#3a3f4a', 0.9);
+      k.steering(-0.6, 2.2, 1.7);
+      k.lights(2.82, -2.82, 1.25, 0.9);
+      k.bumpers(2.88, -2.88, 0.7, 2.7);
+      k.mirrors(2.0, 2.3, 1.38, c);
+      k.plate(-2.95, 0.75);
+      for (const s of [-1, 1]) for (const z of [-1.7, 1.75]) k.wheel(s * 1.28, 0.7, z, 0.7, 0.5, DARK);
+      seat = seatPos(-0.6, 1.6, 1.0);
+      break;
+    }
+    case 'otobus': {
+      // okul otobüsü: uzun sarı gövde, sıra sıra camlar, DUR tabelası
+      const c = '#ffc83d';
+      k.box(2.9, 2.5, 8.6, c, 0, 1.85, 0, 0.3);
+      k.box(2.92, 0.3, 8.62, '#3a3f4a', 0, 1.1, 0, 0.1, false);
+      k.box(2.7, 0.16, 8.3, shade(c, 0.9), 0, 3.14, 0, 0.07, false);
+      k.windshield(2.6, 1.1, 2.5, 4.28, -0.12);
+      for (const s of [-1, 1]) for (let i = 0; i < 5; i++) k.box(0.06, 0.95, 1.25, GLASS(), s * 1.44, 2.5, 2.6 - i * 1.5, 0.05, false);
+      k.box(0.08, 1.6, 1.0, GLASS(), 1.45, 1.9, 3.3, 0.05, false);
+      k.box(2.2, 0.5, 0.08, '#3a3f4a', 0, 3.0, 4.34, 0.04, false);
+      k.box(0.1, 0.72, 0.72, '#ef4b4b', -1.5, 1.9, 1.8, 0.06, false);
+      k.seat(-0.75, 2.05, 3.2, '#3a3f4a', 0.95);
+      k.steering(-0.75, 2.65, 3.9);
+      for (let i = 0; i < 3; i++) for (const s of [-0.75, 0.75]) k.box(0.9, 0.22, 0.8, '#c98a4b', s, 2.05, 1.2 - i * 1.5, 0.08, false);
+      k.lights(4.36, -4.36, 1.5, 1.05);
+      k.bumpers(4.44, -4.44, 0.9, 3.0);
+      k.mirrors(4.1, 2.8, 1.6, c);
+      k.plate(-4.5, 0.95);
+      for (const s of [-1, 1]) for (const z of [-2.6, 2.8]) k.wheel(s * 1.42, 0.78, z, 0.78, 0.56, DARK);
+      seat = seatPos(-0.75, 2.05, 3.2);
+      break;
+    }
+    case 'yaris': {
+      // yarış arabası: yere yakın, geniş, kocaman arka kanat ve yan kutular
+      const c = '#ef4b4b';
+      k.box(2.0, 0.5, 5.6, c, 0, 0.5, 0, 0.22);
+      k.box(1.5, 0.45, 1.6, c, 0, 0.9, -0.2, 0.2);
+      k.box(1.1, 0.3, 1.1, '#ffffff', 0, 0.78, 1.5, 0.12, false);
+      for (const s of [-1, 1]) k.box(0.55, 0.42, 2.2, shade(c, 0.85), s * 1.12, 0.6, -0.1, 0.14);
+      k.box(1.9, 0.14, 1.1, DARK, 0, 0.3, 2.75, 0.05);
+      k.windshield(1.4, 0.4, 1.2, 0.5, -0.75);
+      k.seat(0, 0.72, -0.5, DARK, 0.8);
+      k.steering(0, 1.14, 0.0);
+      k.box(2.5, 0.12, 0.8, '#3a3f4a', 0, 1.5, -2.5, 0.05);
+      for (const s of [-0.95, 0.95]) k.box(0.12, 0.7, 0.5, '#3a3f4a', s, 1.15, -2.5, 0.04, false);
+      k.box(0.5, 0.3, 0.5, '#ffffff', 0, 1.2, -1.5, 0.08, false);
+      k.lights(2.78, -2.78, 0.55, 0.7);
+      for (const s of [-1, 1]) {
+        k.wheel(s * 1.18, 0.52, 1.75, 0.52, 0.52, '#ffd43b');
+        k.wheel(s * 1.22, 0.58, -1.75, 0.58, 0.62, '#ffd43b');
+      }
+      seat = seatPos(0, 0.72, -0.5);
       break;
     }
     case 'unicorn': {

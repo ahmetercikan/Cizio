@@ -544,6 +544,94 @@ export function furniture(id: string, color: string, art?: HTMLCanvasElement): T
       add(new THREE.PlaneGeometry(0.4, 0.07), soft('#ffffff'), 0, 1.3, -0.45, false);
       break;
     }
+    case 'blokmasa': {
+      add(rbox(1.7, 0.08, 0.8, 0.03), color, 0, 0.5, 0);
+      legs(1.7, 0.8, 0.5);
+      const cols = ['#ef6b6b', '#4dabf7', '#ffd43b', '#69db7c', '#9775fa'];
+      cols.forEach((c, i) => add(rbox(0.16, 0.16, 0.16, 0.03), c, -0.6 + i * 0.3, 0.62, i % 2 ? 0.14 : -0.1));
+      add(rbox(0.16, 0.16, 0.16, 0.03), '#ff8fb1', -0.3, 0.78, -0.1);
+      add(rbox(0.3, 0.06, 0.3, 0.02), WHITE, 0.6, 0.57, 0.1, false);
+      break;
+    }
+    case 'yolhali': {
+      add(new THREE.PlaneGeometry(W * 0.96, D * 0.96), soft(color), 0, 0.012, 0, false).rotation.x = -Math.PI / 2;
+      // yol: gri şerit ve beyaz çizgiler
+      const road = add(new THREE.PlaneGeometry(W * 0.34, D * 0.92), soft('#8d939e'), 0, 0.016, 0, false);
+      road.rotation.x = -Math.PI / 2;
+      for (let i = 0; i < 4; i++) {
+        const l = add(new THREE.PlaneGeometry(0.05, 0.2), soft(WHITE), 0, 0.02, -D * 0.34 + i * (D * 0.23), false);
+        l.rotation.x = -Math.PI / 2;
+      }
+      const cross = add(new THREE.PlaneGeometry(W * 0.9, 0.3), soft('#8d939e'), 0, 0.016, D * 0.22, false);
+      cross.rotation.x = -Math.PI / 2;
+      break;
+    }
+    case 'davul': {
+      add(new THREE.CylinderGeometry(0.3, 0.3, 0.34, 18), soft(color), 0, 0.5, 0);
+      for (const y of [0.34, 0.66]) add(new THREE.CylinderGeometry(0.31, 0.31, 0.04, 18), soft(WHITE), 0, y, 0, false);
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const z = add(rbox(0.03, 0.3, 0.03, 0.01), '#ffd43b', Math.cos(a) * 0.3, 0.5, Math.sin(a) * 0.3, false);
+        z.rotation.y = -a;
+      }
+      legs(0.44, 0.44, 0.33, '#c0c6cf', 0.04);
+      for (const sx of [-1, 1]) {
+        const st = add(new THREE.CylinderGeometry(0.02, 0.025, 0.4, 6), soft(WOOD), sx * 0.12, 0.74, 0.1, false);
+        st.rotation.set(0.4, 0, sx * 0.35);
+      }
+      break;
+    }
+    case 'terarium': {
+      add(new THREE.CylinderGeometry(0.2, 0.22, 0.1, 14), soft(WOOD_D), 0, 0.05, 0);
+      add(rbox(0.3, 0.06, 0.3, 0.03), '#7a5c3a', 0, 0.13, 0, false);
+      add(new THREE.SphereGeometry(0.21, 16, 12), soft('#cfeaff', { opacity: 0.4, rough: 0.05 }), 0, 0.32, 0, false);
+      add(new THREE.ConeGeometry(0.07, 0.18, 8), soft('#5cb85c'), -0.05, 0.25, 0.02, false);
+      add(new THREE.SphereGeometry(0.06, 8, 6), soft(color), 0.07, 0.24, -0.02, false);
+      break;
+    }
+    case 'kuskafesi': {
+      add(rbox(0.36, 0.06, 0.36, 0.02), WOOD, 0, 1.52, -0.3, false);
+      add(rbox(0.3, 0.34, 0.3, 0.04), color, 0, 1.73, -0.3);
+      const roof = add(new THREE.ConeGeometry(0.3, 0.22, 4), soft('#ef6b6b'), 0, 2.0, -0.3, false);
+      roof.rotation.y = Math.PI / 4;
+      add(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 12), soft('#3a2b27'), 0, 1.75, -0.14, false).rotation.x = Math.PI / 2;
+      add(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 6), soft(WOOD_D), 0, 1.66, -0.08, false).rotation.z = Math.PI / 2;
+      add(new THREE.SphereGeometry(0.07, 10, 8), soft('#ffd43b'), 0.0, 1.72, -0.06, false);
+      break;
+    }
+    case 'basket': {
+      add(new THREE.CylinderGeometry(0.26, 0.3, 0.12, 14), soft('#3a3f4a'), 0, 0.06, -0.2);
+      add(new THREE.CylinderGeometry(0.06, 0.06, 2.1, 10), soft('#c0c6cf'), 0, 1.1, -0.2);
+      add(rbox(0.9, 0.6, 0.07, 0.04), WHITE, 0, 2.1, -0.12);
+      add(rbox(0.4, 0.3, 0.03, 0.02), color, 0, 2.0, -0.07, false);
+      const ring = add(new THREE.TorusGeometry(0.2, 0.03, 8, 18), soft('#ef4b4b'), 0, 1.85, 0.1, false);
+      ring.rotation.x = Math.PI / 2;
+      add(new THREE.CylinderGeometry(0.2, 0.13, 0.26, 12, 1, true), new THREE.MeshStandardMaterial({ color: WHITE, roughness: 0.9, side: THREE.DoubleSide }), 0, 1.72, 0.1, false);
+      break;
+    }
+    case 'hamak': {
+      for (const sz of [-1, 1]) {
+        const pole = add(new THREE.CylinderGeometry(0.06, 0.08, 1.3, 10), soft(WOOD_D), 0, 0.65, sz * 0.85);
+        pole.rotation.x = sz * 0.18;
+      }
+      add(rbox(0.06, 0.06, 1.9, 0.02), WOOD_D, 0, 0.1, 0, false);
+      const cloth = add(new THREE.CylinderGeometry(0.34, 0.34, 1.5, 14, 1, true, 0, Math.PI), new THREE.MeshStandardMaterial({ color, roughness: 0.9, side: THREE.DoubleSide }), 0, 0.82, 0);
+      cloth.rotation.z = Math.PI / 2;
+      for (const sz of [-1, 1]) add(rbox(0.02, 0.02, 0.5, 0.01), '#e9e4dc', 0, 1.0, sz * 0.9, false).rotation.x = sz * 0.9;
+      break;
+    }
+    case 'sepetsalincak': {
+      for (const sx of [-1, 1]) {
+        const p1 = add(new THREE.CylinderGeometry(0.05, 0.07, 2.2, 10), soft('#c0c6cf'), sx * 0.5, 1.1, 0);
+        p1.rotation.z = sx * 0.22;
+      }
+      add(rbox(1.2, 0.08, 0.08, 0.03), '#c0c6cf', 0, 2.16, 0, false);
+      for (const sx of [-1, 1]) add(rbox(0.03, 1.0, 0.03, 0.01), '#8d939e', sx * 0.3, 1.6, 0, false);
+      const seat = add(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 18), soft(color), 0, 1.08, 0);
+      seat.rotation.x = Math.PI / 2;
+      add(new THREE.TorusGeometry(0.42, 0.04, 8, 20), soft(WOOD_D), 0, 1.08, 0, false).rotation.x = Math.PI / 2;
+      break;
+    }
     default:
       add(rbox(W * 0.9, 0.6, D * 0.9, 0.06), color, 0, 0.3, 0);
   }

@@ -1,14 +1,19 @@
 /**
- * Kasabadaki Butik (nadir kıyafetler ada altınıyla) ve Oyun Çadırı (8 mini oyun; yenileri src/world/MiniGames.tsx).
- * Mini oyunu bitiren altın kazanır; günde 3 kez de evine bir eşya ya da üstüne bir kıyafet (economy.ts miniReward).
+ * Kasabadaki Butik (nadir kıyafetler ada altınıyla) ve Oyun Çadırı'nın lobisi (14 mini oyun:
+ * MiniGames.tsx ve ArcadeGames.tsx). Oyunu kazanan altın kazanır; günde 3 kez de evine bir eşya ya
+ * da üstüne bir kıyafet çıkar (economy.ts miniWin).
  */
-import { PartyPopper, Shirt, Trophy, X } from 'lucide-react';
+import { Check, PartyPopper, Shirt, Trophy, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Modal } from '../components/ui';
 import { RARE, rareKey, type RareItem } from '../lib/rewards';
 import { sfx } from '../lib/sfx';
 import { PREMIUM_HINT, usePremium } from './premium';
-import type { MiniPrize } from './economy';
+import {
+  levelOf, MINI_CATS, MINI_GAMES, MINI_ITEMS_PER_DAY, TOURNEY_GOAL, TOURNEY_COINS,
+  type FarmState, type MiniGameDef, type MiniGameId, type MiniPrize,
+} from './economy';
+export type { MiniGameId };
 import { GameIcon } from './GameIcon';
 
 const SLOT_PRICE: Record<RareItem['slot'], number> = { back: 260, pet: 220, dress: 200, hat: 160, shoes: 140, bg: 120 };
@@ -58,31 +63,62 @@ export function BoutiquePanel({ coins, owned, onBuy, onClose, onHint, onWear }: 
 }
 
 // ------------------------------------------------------------------------------------------------
-// Oyun Çadırı
+// Oyun Çadırı: oyunların seçildiği lobi
+//
+// Oyunlar seviyeyle açılır, zorlukları yıldızla gösterilir ve her oyunun günün ilk kazanışı tam
+// altın verir (aynı gün tekrarı üçte biri). Üç ayrı oyunu kazanmak turnuva ödülünü getirir.
 // ------------------------------------------------------------------------------------------------
-export type MiniGameId = 'memory' | 'balloon' | 'catch' | 'mole' | 'simon' | 'puzzle' | 'math' | 'shadow';
-const GAMES: { id: MiniGameId; icon: string; name: string; hint: string }[] = [
-  { id: 'memory', icon: 'kartlar', name: 'Hafıza kartları', hint: 'Eşleri bul' },
-  { id: 'balloon', icon: 'balon', name: 'Balon patlat', hint: 'Doğru renkleri patlat' },
-  { id: 'catch', icon: 'cilek', name: 'Meyve Yakala', hint: 'Sepetle topla' },
-  { id: 'mole', icon: 'tarla', name: 'Köstebek Vur', hint: 'Çıkanlara dokun' },
-  { id: 'simon', icon: 'nota', name: 'Renk Dizisi', hint: 'Sırayı hatırla' },
-  { id: 'puzzle', icon: 'kutu', name: 'Kayan Yapboz', hint: '1-8 sırala' },
-  { id: 'math', icon: 'yildiz', name: 'Toplama Balonları', hint: 'Doğru sonucu bul' },
-  { id: 'shadow', icon: 'ampul', name: 'Gölgeyi Bul', hint: 'Resmin gölgesi' },
-];
-
-export function GamesPanel({ left, onPlay, onClose }: { left: number; onPlay: (g: MiniGameId) => void; onClose: () => void }) {
+export function GamesPanel({ s, day, onPlay, onClose }: { s: FarmState; day: string; onPlay: (g: MiniGameId) => void; onClose: () => void }) {
+  const [cat, setCat] = useState<'hepsi' | MiniGameDef['cat']>('hepsi');
+  const lv = levelOf(s.xp);
+  const today = s.miniDay?.day === day ? s.miniDay : null;
+  const won = today?.won ?? [];
+  const itemsLeft = Math.max(0, MINI_ITEMS_PER_DAY - (today?.n ?? 0));
+  const need = Math.max(0, TOURNEY_GOAL - won.length);
+  const list = MINI_GAMES.filter((g) => cat === 'hepsi' || g.cat === cat);
+  const openCount = MINI_GAMES.filter((g) => g.level <= lv).length;
   return (
     <Panel title="Oyun Çadırı" icon={<PartyPopper size={24} style={{ verticalAlign: '-4px' }} />} onClose={onClose}>
-      <p className="sub" style={{ marginTop: 0 }}>
-        Oyunu bitir, altın kazan! {left > 0 ? `Bugün ${left} kez de evine bir eşya ya da sana yeni bir kıyafet çıkabilir.` : 'Bugünkü eşya ödülleri bitti; yarın yine gel. Altın kazanmaya devam!'}
-      </p>
-      <div className="mini-pick">
-        {GAMES.map((g) => (
-          <button key={g.id} onClick={() => onPlay(g.id)}><GameIcon name={g.icon} size={52} /><b>{g.name}</b><small>{g.hint}</small></button>
-        ))}
+      <div className="arcade__top">
+        <GameIcon name="kupa" size={40} className="arcade__cup" />
+        <div className="arcade__quest">
+          <b>Çadır turnuvası</b>
+          <small>{need ? `Bugün ${need} ayrı oyun daha kazan: +${TOURNEY_COINS} altın ve bir sandık anahtarı!` : 'Turnuvayı kazandın! Anahtarın Ödüller\'de seni bekliyor.'}</small>
+          <span className="arcade__dots">{Array.from({ length: TOURNEY_GOAL }, (_, i) => <i key={i} className={i < won.length ? 'on' : ''} />)}</span>
+        </div>
+        <span className="farm-coin"><GameIcon name="altin" size={22} /> {s.coins}</span>
       </div>
+      <div className="farm-tabs">
+        <button className={cat === 'hepsi' ? 'on' : ''} onClick={() => setCat('hepsi')}>Hepsi</button>
+        {MINI_CATS.map((c) => <button key={c.id} className={cat === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.name}</button>)}
+        <small className="arcade__count">{openCount}/{MINI_GAMES.length} oyun açık</small>
+      </div>
+      <div className="arcade__grid">
+        {list.map((g) => {
+          const locked = lv < g.level, again = won.includes(g.id), rec = s.games?.[g.id];
+          return (
+            <button key={g.id} className={`arcade__card ${locked ? 'locked' : ''} ${again ? 'again' : ''}`} disabled={locked} onClick={() => onPlay(g.id)}>
+              <span className="arcade__icon">
+                <GameIcon name={g.icon} size={46} />
+                {locked && <i className="arcade__lock"><GameIcon name="kilit" size={20} /></i>}
+                {again && <i className="arcade__tick"><Check size={16} strokeWidth={3.4} /></i>}
+              </span>
+              <b>{g.name}</b>
+              <small>{locked ? `${g.level}. seviyede açılır` : g.hint}</small>
+              <span className="arcade__meta">
+                <i className="arcade__hard" aria-label={`Zorluk ${g.hard}`}>{'★★★'.slice(0, g.hard)}<em>{'★★★'.slice(g.hard)}</em></i>
+                <i className="arcade__coin"><GameIcon name="altin" size={16} /> {again ? Math.max(3, Math.round(g.coins / 3)) : g.coins}</i>
+              </span>
+              {!locked && rec && rec.w > 0 && <span className="arcade__best">En iyi {rec.best} · {rec.w} kez kazandın</span>}
+            </button>
+          );
+        })}
+      </div>
+      <p className="sub arcade__note">
+        {itemsLeft > 0
+          ? `Bugün ${itemsLeft} oyunda ayrıca evine bir eşya ya da sana bir kıyafet hediye çıkabilir.`
+          : 'Bugünkü hediyeler bitti; yarın yeniden gel. Altın kazanmaya devam!'}
+      </p>
     </Panel>
   );
 }
@@ -205,7 +241,7 @@ export function BalloonGame({ onEnd, onClose }: { onEnd: (won: boolean) => void;
   );
 }
 
-export function PrizeModal({ prize, coins, onClose, onGo }: { prize: MiniPrize; coins: number; onClose: () => void; onGo: (where: 'home' | 'dress') => void }) {
+export function PrizeModal({ prize, coins, text, onClose, onGo }: { prize: MiniPrize; coins: number; text?: string; onClose: () => void; onGo: (where: 'home' | 'dress') => void }) {
   const cloth = prize.kind === 'cloth' ? RARE.find((r) => rareKey(r) === prize.key) : null;
   return (
     <Modal onClose={onClose}>
@@ -213,6 +249,7 @@ export function PrizeModal({ prize, coins, onClose, onGo }: { prize: MiniPrize; 
         <Trophy size={60} color="#ffc83d" fill="#ffe8a3" />
         <h2 className="title-lg">Aferin!</h2>
         <span className="farm-coin big"><GameIcon name="altin" size={27} /> +{coins}</span>
+        {text && <p className="sub">{text}</p>}
         {prize.kind === 'item' && <p className="sub">Hediye: <b>{prize.name}</b>! Evindeki depoda seni bekliyor.</p>}
         {cloth && <p className="sub">Hediye: <b>{cloth.title}</b>! Giydir'de giyebilirsin.</p>}
         <div className="farm-order__btns">

@@ -301,6 +301,15 @@ export const ITEMS: Item[] = [
   { id: 'dus', name: 'Duşakabin', cat: 'banyo', price: 40, w: 1, d: 1, colors: ['#cfe8ff', '#ffffff'], use: { kind: 'wash', msg: 'Mis gibi bir duş aldın!' } },
   { id: 'kaktus', name: 'Kaktüs', cat: 'sus', price: 6, w: 1, d: 1, colors: ['#ffd1dc', '#ffe9a8', '#cfe8ff'] },
   { id: 'poster', name: 'Poster', cat: 'duvar', price: 8, w: 1, d: 1, wall: true, colors: ['#ff8fb1', '#4dabf7', '#ffd43b'], use: { kind: 'look', msg: 'En sevdiğin poster!' } },
+  // yeni oyun ve bahçe eşyaları
+  { id: 'blokmasa', name: 'Blok masası', cat: 'oyun', price: 40, w: 2, d: 1, colors: ['#ffd43b', '#9ad0f5', '#b7e3a0'], use: { kind: 'play', msg: 'Bloklarla kocaman bir kule yaptın!' } },
+  { id: 'yolhali', name: 'Araba halısı', cat: 'oyun', price: 24, w: 2, d: 2, flat: true, colors: ['#a8d8c8', '#9ad0f5', '#f6e3b4'], use: { kind: 'play', msg: 'Arabaları yolda yarıştırdın!' } },
+  { id: 'davul', name: 'Oyuncak davul', cat: 'oyun', price: 28, w: 1, d: 1, colors: ['#ef6b6b', '#4dabf7', '#ffd43b'], use: { kind: 'piano', msg: 'Dum tek tek! Ne güzel çaldın.' } },
+  { id: 'terarium', name: 'Cam fanus bahçe', cat: 'sus', price: 18, w: 1, d: 1, colors: ['#b7e3a0', '#f5a3c7', '#ffe9a8'], use: { kind: 'look', msg: 'Minik bahçende her şey yolunda!' } },
+  { id: 'kuskafesi', name: 'Kuş yuvası', cat: 'sus', price: 22, w: 1, d: 1, colors: ['#ffcf6b', '#9ad0f5', '#f2b8a2'], use: { kind: 'pet', msg: 'Kuşcuk sana şarkı söyledi!' } },
+  { id: 'basket', name: 'Basket potası', cat: 'bahce', price: 50, w: 1, d: 1, out: true, colors: ['#ef6b6b', '#4dabf7', '#3a3f4a'], use: { kind: 'play', msg: 'Smaç! Sayı senin.' } },
+  { id: 'hamak', name: 'Hamak', cat: 'bahce', price: 40, w: 2, d: 1, out: true, colors: ['#f5a3c7', '#9ad0f5', '#ffcf6b'], use: { kind: 'sleep', msg: 'Hamakta sallana sallana uyudun.' } },
+  { id: 'sepetsalincak', name: 'Sepet salıncak', cat: 'bahce', price: 60, w: 1, d: 1, out: true, colors: ['#ffcf6b', '#b8b4e6', '#a8d8c8'], use: { kind: 'swing', msg: 'Sepette dönerek sallandın!' } },
   // özel paketler
   { id: 'uzayyatak', name: 'Uzay yatağı', cat: 'yatak', price: 0, premium: 'sihir', w: 1, d: 2, colors: ['#5b4bb7', '#2d1b69'], use: { kind: 'sleep', msg: 'Yıldızların arasında uyudun!' } },
   { id: 'dondurma', name: 'Dondurma makinesi', cat: 'mutfak', price: 0, premium: 'sihir', w: 1, d: 1, colors: ['#ffd1e8', '#cfe8ff'], use: { kind: 'snack', msg: 'Çilekli dondurma, mmm!' } },

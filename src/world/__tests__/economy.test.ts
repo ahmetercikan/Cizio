@@ -182,11 +182,12 @@ describe('toplu işler', () => {
 describe('arabalar', () => {
   it('altınla alınır, seçilir; özel araba altınla alınmaz', async () => {
     const { buyCar, xpFor: xf } = await import('../economy');
+    const { car: carDef } = await import('../carsData');
     let s = { ...newFarm(), coins: 1000, xp: xf(3) };
     let r = buyCar(s, 'jip');
     expect(r.s.cars).toEqual(['jip']);
     expect(r.s.car).toBe('jip');
-    expect(r.s.coins).toBe(1000 - 320);
+    expect(r.s.coins).toBe(1000 - carDef('jip')!.price);
     s = r.s;
     expect(buyCar(s, 'spor').err).toMatch(/seviyede/);
     expect(buyCar(s, 'unicorn').err).toMatch(/ebeveyn/);
@@ -195,20 +196,86 @@ describe('arabalar', () => {
   });
 });
 
-describe('mini oyun ödülü', () => {
-  it('günde 3 eşya, sonra yalnızca altın; eşya evin deposuna gider', async () => {
-    const { miniReward } = await import('../economy');
+describe('oyun çadırı', () => {
+  it('günün ilk kazanışı tam ödül, tekrarı küçük; 3 ayrı oyun turnuva anahtarı verir', async () => {
+    const { miniWin, miniGame, TOURNEY_COINS } = await import('../economy');
+    // seviye atlama armağanı araya girmesin diye seviyenin ortasından başlanır
+    let s = { ...newFarm(), xp: 500 };
+    const full = miniGame('balloon')!.coins;
+    let r = miniWin(s, { day: 'g1', game: 'balloon', score: 7 });
+    expect(r.first).toBe(true);
+    expect(r.coins).toBe(full);
+    expect(r.s.games!.balloon).toEqual({ w: 1, best: 7 });
+    s = r.s;
+    // aynı oyun aynı gün: üçte bir, rekor korunur
+    r = miniWin(s, { day: 'g1', game: 'balloon', score: 3 });
+    expect(r.first).toBe(false);
+    expect(r.coins).toBe(Math.round(full / 3));
+    expect(r.s.games!.balloon).toEqual({ w: 2, best: 7 });
+    s = r.s;
+    s = miniWin(s, { day: 'g1', game: 'memory' }).s;
+    r = miniWin(s, { day: 'g1', game: 'count' });
+    expect(r.tourney).toBe(true);
+    expect(r.coins).toBe(miniGame('count')!.coins + TOURNEY_COINS);
+    expect(r.s.keys).toBe(1);
+    // ertesi gün her oyun yeniden tam ödül verir
+    expect(miniWin(r.s, { day: 'g2', game: 'balloon' }).first).toBe(true);
+  });
+
+  it('günde en çok 3 hediye, sonrası yalnızca altın; eşya evin deposuna gider', async () => {
+    const { miniWin, MINI_GAMES } = await import('../economy');
     let s = newFarm();
-    const prizes: string[] = [];
-    for (let i = 0; i < 5; i++) {
-      const r = miniReward(s, '2026-10-12', ['hat:yildiztac'], 0.9);
-      prizes.push(r.prize.kind);
+    const kinds: string[] = [];
+    for (const g of MINI_GAMES.slice(0, 5)) {
+      const r = miniWin(s, { day: 'g1', game: g.id, clothes: [], rnd: 0.9 });
+      kinds.push(r.prize.kind);
       s = r.s;
     }
-    expect(prizes).toEqual(['item', 'item', 'item', 'coins', 'coins']);
+    expect(kinds).toEqual(['item', 'item', 'item', 'coins', 'coins']);
     expect(s.home?.stored.length).toBe(3);
-    expect(s.coins).toBeGreaterThan(START_COINS + 70);
-    expect(miniReward(newFarm(), 'g', ['hat:yildiztac'], 0.1).prize).toEqual({ kind: 'cloth', key: 'hat:yildiztac' });
-    expect(miniReward(s, '2026-10-13', [], 0.9).prize.kind).toBe('item');
+    expect(miniWin(newFarm(), { day: 'g', game: 'memory', clothes: ['hat:yildiztac'], rnd: 0.1 }).prize).toEqual({ kind: 'cloth', key: 'hat:yildiztac' });
+  });
+});
+
+describe('sandıklar, günlük hediye ve rozetler', () => {
+  it('sandık anahtar ister, açınca altın ve hediye verir', async () => {
+    const { openChest, CHESTS } = await import('../economy');
+    const c = CHESTS[0];
+    expect(openChest(newFarm(), c.id, [], 0.5).err).toMatch(/anahtar/);
+    const s = { ...newFarm(), keys: 4 };
+    const r = openChest(s, c.id, [], 0.9);
+    expect(r.s.keys).toBe(4 - c.keys);
+    expect(r.s.stats.chests).toBe(1);
+    expect(r.prizes[0]).toEqual({ kind: 'coins', n: r.s.coins - s.coins });
+    expect(r.prizes[1].kind).toBe('item');
+    expect(openChest({ ...newFarm(), keys: 9 }, CHESTS[1].id, ['hat:yildiztac'], 0.1).prizes[1]).toEqual({ kind: 'cloth', key: 'hat:yildiztac' });
+  });
+
+  it('günlük hediye günde bir kez; seri dün gelindiyse büyür, kaçırılırsa başa döner', async () => {
+    const { dailyGift, STREAK_GIFTS, STREAK_KEY_DAY } = await import('../economy');
+    let s = newFarm();
+    const g1 = dailyGift(s, '2026-10-16', '2026-10-15')!;
+    expect(g1.n).toBe(1);
+    expect(g1.coins).toBe(STREAK_GIFTS[0]);
+    s = g1.s;
+    expect(dailyGift(s, '2026-10-16', '2026-10-15')).toBeNull();
+    const g2 = dailyGift(s, '2026-10-17', '2026-10-16')!;
+    expect(g2.n).toBe(2);
+    // bir gün kaçırıldı: seri baştan
+    expect(dailyGift(g2.s, '2026-10-20', '2026-10-19')!.n).toBe(1);
+    // 7. günde anahtar
+    let cur = { ...newFarm(), streak: { day: '2026-10-16', n: STREAK_KEY_DAY - 1 } };
+    const g7 = dailyGift(cur, '2026-10-17', '2026-10-16')!;
+    expect(g7.key).toBe(true);
+    expect(g7.s.keys).toBe(1);
+  });
+
+  it('rozet hedefi tamamlanınca bir kez verilir', async () => {
+    const { claimBadges } = await import('../economy');
+    const s = { ...newFarm(), stats: { ...newFarm().stats, harvested: 30 } };
+    const r = claimBadges(s);
+    expect(r.got.map((b) => b.id)).toContain('hasat1');
+    expect(r.s.coins).toBeGreaterThan(s.coins);
+    expect(claimBadges(r.s).got).toEqual([]);
   });
 });

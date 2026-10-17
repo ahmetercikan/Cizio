@@ -1269,10 +1269,9 @@ function buildAirport(b: WorldBuilder) {
   // kullanıcı uçurur: joystick yönü, uçak yükselir, "İn" ile karada iner
   const pv: Vehicle = {
     model: plane, pos: pts[0].clone(), heading: F.head(Math.PI / 2), speed: 32, water: false, seatY: 0.4, fly: true,
-    alt: 26, park: 1.85, bank: true, seat: pseat, cam: [26, 10], engine: 'fly',
-    update: (dt, mag) => {
+    alt: 26, park: 1.85, bank: true, seat: pseat, cam: [26, 10], engine: 'plane',
+    update: (_dt, mag) => {
       propSpeed = 18 + mag * 22;
-      if (Math.random() < dt * 4) b.sound.fx?.('engine');
     },
     onLeave: () => {
       propSpeed = 0;

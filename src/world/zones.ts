@@ -371,14 +371,9 @@ function buildTown(b: WorldBuilder) {
   b.tick((_dt, t) => {
     if (Math.floor(t * 4) !== Math.floor((t - 0.016) * 4)) b.sparkles.burst(new THREE.Vector3(0, b.h(0, 0) + 3, 0), 2, '#7ee0ff');
   });
-  // evler: halka şeklinde
+  // Kasabada yalnızca girilebilen yapılar var: süs evleri meydanı kalabalık ettiği için kaldırıldı,
+  // boşalan yer çocuğun blokla inşa etmesine kalsın (köydeki evler yerinde duruyor).
   const homeAt: [number, number] = [-28, -22];
-  const cols = ['#9be7de', '#ffb3c7', '#b39ddb', '#ffd166', '#c5e1a5', '#ffcc80'];
-  const ring: [number, number][] = [[-38, 4], [-14, -40], [16, -42], [40, -6], [-34, 30], [30, 34]];
-  for (const [i, [x, z]] of ring.entries()) {
-    b.place(house(cols[i % cols.length], 1.15), x, z, b.facing(x, z, 0, 0));
-    b.block(x, z, 5.2);
-  }
   b.place(house('#ffd166', 1.35), ...homeAt, b.facing(...homeAt, 0, 0));
   b.block(...homeAt, 5.8);
   {
@@ -424,7 +419,7 @@ function buildTown(b: WorldBuilder) {
   b.block(6, 6, 0.9);
   b.tick((_dt, t) => (npc.position.y = b.h(6, 6) + Math.sin(t * 2) * 0.12));
   b.spot({ id: 'cizio', x: 6, z: 6, r: 3.2, label: 'Çizio ile konuş', page: true });
-  // dondurma arabası
+  // dondurma arabası: servis penceresi çocuğun geldiği yüze bakar (+z), tekerlekler iki yanda
   const ix = 13, iz = 15;
   const truck = new THREE.Group();
   const body = outline(mesh(new THREE.BoxGeometry(3.6, 2.2, 2), toon('#9be7de')), 1.03);
@@ -433,15 +428,28 @@ function buildTown(b: WorldBuilder) {
   roof.position.y = 3.6;
   const cone = coneModel(1.6);
   cone.position.y = 4.3;
-  truck.add(body, roof, cone);
-  for (const wx of [-1.1, 1.1]) {
+  // şoför kabini ve camı (aracın önü)
+  const cab = outline(mesh(new THREE.BoxGeometry(1.4, 1.6, 1.9), toon('#7fd6cb')), 1.03);
+  cab.position.set(2.4, 1.3, 0);
+  const windshield = mesh(new THREE.BoxGeometry(0.12, 0.8, 1.5), toon('#bfe6ff', { emissive: '#1a3040' }), false);
+  windshield.position.set(3.08, 1.7, 0);
+  // servis penceresi, tezgâh ve tente
+  const win = mesh(new THREE.BoxGeometry(2.2, 1.1, 0.12), toon('#2b2d33'), false);
+  win.position.set(-0.3, 2.0, 1.02);
+  const counter = outline(mesh(new THREE.BoxGeometry(2.6, 0.18, 0.55), toon('#ffffff')), 1.03);
+  counter.position.set(-0.3, 1.38, 1.22);
+  const awning = outline(mesh(new THREE.BoxGeometry(2.9, 0.14, 1.0), toon('#ff8fb1')), 1.03);
+  awning.position.set(-0.3, 2.85, 1.5);
+  awning.rotation.x = -0.3;
+  truck.add(body, roof, cone, cab, windshield, win, counter, awning);
+  for (const wx of [-1.2, 1.5]) for (const wz of [-1.05, 1.05]) {
     const w = mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.25, 12), toon('#3a2b27'));
     w.rotation.x = Math.PI / 2;
-    w.position.set(wx, 0.42, 1.05);
+    w.position.set(wx, 0.42, wz);
     truck.add(w);
   }
   b.place(truck, ix, iz, b.facing(ix, iz, 0, 0));
-  b.block(ix, iz, 2.4);
+  b.block(ix, iz, 2.8);
   b.spot({
     id: 'icecream', x: 10.6, z: 12.4, r: 2.4, label: 'Dondurma al',
     act: { dur: 1.4, pose: 'hold', step() {}, end: (a) => { const c = coneModel(1); c.position.set(0, -0.05, 0.12); c.name = 'held'; a.hand.add(c); return 'Afiyet olsun!'; } },

@@ -8,21 +8,22 @@ import { sfx } from '../lib/sfx';
 import { GameIcon } from './GameIcon';
 import { Panel } from './Shops';
 
-type End = (won: boolean) => void;
+/** Oyun bitti: kazandı mı ve (rekor defteri için) puanı. */
+export type End = (won: boolean, score?: number) => void;
 
 /** Oyun sonu bir kez çağrılır. */
-function useEnd(onEnd: End) {
+export function useEnd(onEnd: End) {
   const done = useRef(false);
-  return (won: boolean) => {
+  return (won: boolean, score = 0) => {
     if (done.current) return;
     done.current = true;
     if (won) sfx.success();
-    setTimeout(() => onEnd(won), 700);
+    setTimeout(() => onEnd(won, score), 700);
   };
 }
 
 /** Geri sayım (saniye). */
-function useClock(total: number, running: boolean, onOver: () => void) {
+export function useClock(total: number, running: boolean, onOver: () => void) {
   const [left, setLeft] = useState(total);
   const over = useRef(onOver);
   over.current = onOver;
@@ -56,7 +57,7 @@ export function CatchGame({ onEnd, onClose }: { onEnd: End; onClose: () => void 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const st = useRef({ score: 0, lives: 3, over: false });
-  const left = useClock(45, true, () => end(st.current.score >= GOAL));
+  const left = useClock(45, true, () => end(st.current.score >= GOAL, st.current.score));
   useEffect(() => {
     let raf = 0, last = performance.now(), spawn = 0, seq = 0;
     const loop = (now: number) => {
@@ -83,7 +84,7 @@ export function CatchGame({ onEnd, onClose }: { onEnd: End; onClose: () => void 
               setScore(st.current.score);
               if (st.current.score >= GOAL) {
                 st.current.over = true;
-                end(true);
+                end(true, st.current.score);
               }
             }
             continue;
@@ -153,7 +154,7 @@ export function MoleGame({ onEnd, onClose }: { onEnd: End; onClose: () => void }
   const [up, setUp] = useState<{ hole: number; flower: boolean; hit: boolean } | null>(null);
   const [score, setScore] = useState(0);
   const sc = useRef(0);
-  const left = useClock(35, true, () => end(sc.current >= GOAL));
+  const left = useClock(35, true, () => end(sc.current >= GOAL, sc.current));
   useEffect(() => {
     let alive = true;
     const next = () => {
@@ -186,7 +187,7 @@ export function MoleGame({ onEnd, onClose }: { onEnd: End; onClose: () => void }
     sc.current++;
     setScore(sc.current);
     setUp({ ...up, hit: true });
-    if (sc.current >= GOAL) end(true);
+    if (sc.current >= GOAL) end(true, sc.current);
   };
   return (
     <Panel title="Köstebek Vur" icon={<GameIcon name="tarla" size={26} />} onClose={onClose}>
@@ -245,11 +246,11 @@ export function SimonGame({ onEnd, onClose }: { onEnd: End; onClose: () => void 
     setTimeout(() => setLit(-1), 200);
     if (seq[pos] !== k) {
       sfx.kick();
-      end(false);
+      end(false, seq.length - 1);
       return;
     }
     if (pos + 1 === seq.length) {
-      if (seq.length >= GOAL) return end(true);
+      if (seq.length >= GOAL) return end(true, seq.length);
       setTurn('show');
       setSeq([...seq, Math.floor(Math.random() * 4)]);
     } else setPos(pos + 1);
@@ -286,7 +287,7 @@ export function PuzzleGame({ onEnd, onClose }: { onEnd: End; onClose: () => void
     return t;
   });
   const [moves, setMoves] = useState(0);
-  const left = useClock(90, true, () => end(false));
+  const left = useClock(90, true, () => end(false, 0));
   const tap = (i: number) => {
     const e = tiles.indexOf(0);
     const adj = (Math.abs(i - e) === 3) || (Math.abs(i - e) === 1 && Math.floor(i / 3) === Math.floor(e / 3));
@@ -296,7 +297,7 @@ export function PuzzleGame({ onEnd, onClose }: { onEnd: End; onClose: () => void
     [t[e], t[i]] = [t[i], t[e]];
     setTiles(t);
     setMoves(moves + 1);
-    if (t.every((v, k) => v === (k + 1) % 9)) end(true);
+    if (t.every((v, k) => v === (k + 1) % 9)) end(true, Math.max(1, 200 - moves));
   };
   return (
     <Panel title="Kayan Yapboz" icon={<GameIcon name="kutu" size={26} />} onClose={onClose}>
@@ -334,13 +335,13 @@ export function MathGame({ onEnd, onClose }: { onEnd: End; onClose: () => void }
   const [score, setScore] = useState(0);
   const [wrong, setWrong] = useState(-1);
   const sc = useRef(0);
-  const left = useClock(60, true, () => end(sc.current >= GOAL));
+  const left = useClock(60, true, () => end(sc.current >= GOAL, sc.current));
   const pick = (v: number) => {
     if (v === q.ans) {
       sfx.star(sc.current % 6);
       sc.current++;
       setScore(sc.current);
-      if (sc.current >= GOAL) return end(true);
+      if (sc.current >= GOAL) return end(true, sc.current);
       setQ(make());
       setWrong(-1);
     } else {
@@ -391,14 +392,14 @@ export function ShadowGame({ onEnd, onClose }: { onEnd: End; onClose: () => void
       const s = score + 1;
       setScore(s);
       setBad('');
-      if (s >= GOAL) return end(true);
+      if (s >= GOAL) return end(true, s);
       setQ(make());
     } else {
       sfx.kick();
       setBad(id);
       const m = miss + 1;
       setMiss(m);
-      if (m >= 4) end(false);
+      if (m >= 4) end(false, score);
     }
   };
   const hearts = useMemo(() => '♥'.repeat(Math.max(0, 4 - miss)), [miss]);

@@ -7,7 +7,7 @@
  */
 import { hashStr } from '../lib/util';
 import { ITEMS as HOME_ITEMS, normalizeHome, type HomeState } from './homeData';
-import { car as carDef } from './carsData';
+import { car as carDef, CARS } from './carsData';
 import { HOME } from './layout';
 
 // ================================================================================================
@@ -174,7 +174,7 @@ export interface AnimalState {
 }
 export interface Order { id: number; needs: Partial<Record<ItemId, number>>; coins: number; xp: number; who: string }
 
-export interface FarmStats { harvested: number; planted: number; watered: number; sold: number; orders: number; blocks: number; fed: number; collected: number; crafted: number; realms: number }
+export interface FarmStats { harvested: number; planted: number; watered: number; sold: number; orders: number; blocks: number; fed: number; collected: number; crafted: number; realms: number; games: number; chests: number }
 
 export interface FarmState {
   coins: number;
@@ -198,8 +198,18 @@ export interface FarmState {
   /** Altınla alınan arabalar ve seçili olan (cars.ts). */
   cars?: string[];
   car?: string;
-  /** Mini oyunların günlük eşya ödülü sayısı. */
-  miniDay?: { day: string; n: number };
+  /** Mini oyunların günlük eşya ödülü sayısı ve bugün ilk kez kazanılan oyunlar. */
+  miniDay?: { day: string; n: number; won?: string[] };
+  /** Oyun Çadırı: oyun başına kazanma sayısı ve en iyi puan. */
+  games?: Record<string, { w: number; best: number }>;
+  /** Hazine sandığı anahtarı (zor kazanılır, sandık açar). */
+  keys?: number;
+  /** Bugüne dek kazanılan toplam altın (koleksiyon rozetleri buna bakar). */
+  earned?: number;
+  /** Kazanılan koleksiyon rozetleri. */
+  badges?: string[];
+  /** Günlük hediye serisi: son alınan gün ve kaçıncı gün olduğu. */
+  streak?: { day: string; n: number };
   /** Adaya kurulan çiftlik yapıları (tarla, kümes, ahır…); tarlalar sırayla `fields` ile eşleşir. */
   places: Place[];
 }
@@ -229,7 +239,8 @@ export function newFarm(): FarmState {
   return {
     coins: START_COINS, xp: 0, inv: {}, fields: [], places: [], animals: [], packs: ['temel'], build: '',
     orders: [], orderSeq: 0, journey: 0,
-    stats: { harvested: 0, planted: 0, watered: 0, sold: 0, orders: 0, blocks: 0, fed: 0, collected: 0, crafted: 0, realms: 0 },
+    stats: { harvested: 0, planted: 0, watered: 0, sold: 0, orders: 0, blocks: 0, fed: 0, collected: 0, crafted: 0, realms: 0, games: 0, chests: 0 },
+    keys: 0, earned: 0, games: {}, badges: [],
   };
 }
 
@@ -280,6 +291,8 @@ export function unlocksAt(level: number): { icon: string; name: string }[] {
     ...ANIMALS.filter((a) => a.level === level),
     ...RECIPES.filter((r) => r.level === level),
     ...PACKS.filter((p) => p.level === level && p.price > 0),
+    ...CARS.filter((c) => c.level === level && !c.premium),
+    ...MINI_GAMES.filter((g) => g.level === level),
   ].map((x) => ({ icon: x.icon, name: x.name }));
 }
 
@@ -295,9 +308,12 @@ export interface Result {
 
 function gain(s: FarmState, coins: number, xp: number): Result {
   const before = levelOf(s.xp);
-  const next = { ...s, coins: s.coins + coins, xp: s.xp + xp };
+  const next = { ...s, coins: s.coins + coins, xp: s.xp + xp, earned: (s.earned ?? 0) + Math.max(0, coins) };
   const after = levelOf(next.xp);
-  return after > before ? { s: { ...next, coins: next.coins + 10 * (after - 1) }, levelUp: after } : { s: next };
+  if (after <= before) return { s: next };
+  // seviye atlama armağanı: altın ve bir sandık anahtarı
+  const bonus = 10 * (after - 1);
+  return { s: { ...next, coins: next.coins + bonus, earned: next.earned + bonus, keys: (next.keys ?? 0) + 1 }, levelUp: after };
 }
 const merge = (r: Result, msg?: string): Result => ({ ...r, msg: msg ?? r.msg });
 const add = (inv: FarmState['inv'], id: ItemId, n: number) => ({ ...inv, [id]: Math.max(0, (inv[id] ?? 0) + n) });
@@ -630,6 +646,21 @@ export const JOURNEY: Step[] = [
   { text: '5. seviyeye ulaş', done: (s) => levelOf(s.xp) >= 5, coins: 30 },
   { text: 'Arı kovanı kur ve bal topla', done: (s) => s.animals.some((a) => a.k === 'ari') && (s.inv.bal ?? 0) + s.stats.sold > 0 && s.stats.collected >= 4, coins: 30 },
   { text: 'Çilekli pasta yap', done: (s) => (s.inv.pasta ?? 0) > 0 || s.stats.crafted >= 4, coins: 40 },
+  // buradan sonrası uzun yol: çadır, sandıklar, garaj
+  { text: 'Oyun Çadırı\'nda bir oyun kazan', done: (s) => s.stats.games >= 1, coins: 20 },
+  { text: 'Bir günde 3 ayrı oyunu kazan (çadır turnuvası)', done: (s) => s.stats.games >= 3 && (s.miniDay?.won?.length ?? 0) >= TOURNEY_GOAL, coins: 40 },
+  { text: 'Kendine bir araç al (Pazar > Arabalar)', done: (s) => (s.cars ?? []).length >= 1, coins: 30 },
+  { text: 'İlk hazine sandığını aç', done: (s) => s.stats.chests >= 1, coins: 45 },
+  { text: '3 koleksiyon rozeti kazan', done: (s) => (s.badges ?? []).length >= 3, coins: 50 },
+  { text: '7. seviyeye ulaş', done: (s) => levelOf(s.xp) >= 7, coins: 60 },
+  { text: 'Çadırda 25 oyun kazan', done: (s) => s.stats.games >= 25, coins: 70 },
+  { text: '15 sipariş tamamla', done: (s) => s.stats.orders >= 15, coins: 70 },
+  { text: 'Garajında 4 araç olsun', done: (s) => (s.cars ?? []).length >= 4, coins: 90 },
+  { text: 'Bir gümüş sandık aç', done: (s) => s.stats.chests >= 3, coins: 90 },
+  { text: '10. seviyeye ulaş', done: (s) => levelOf(s.xp) >= 10, coins: 120 },
+  { text: 'Toplam 2500 altın kazan', done: (s) => (s.earned ?? 0) >= 2500, coins: 130 },
+  { text: '8 koleksiyon rozeti kazan', done: (s) => (s.badges ?? []).length >= 8, coins: 150 },
+  { text: 'Kendi uçağını al ve adanın üstünde uç', done: (s) => (s.cars ?? []).includes('ucak'), coins: 250 },
 ];
 
 /** Defterdeki biten adımları ödüllendirir; biten adımların metinleri döner. */
@@ -662,26 +693,238 @@ export function buyCar(s: FarmState, id: string): Result {
 }
 
 // ================================================================================================
-// Mini oyun ödülleri: bazen eve bir eşya, bazen üstüne bir kıyafet (günde en çok 3 eşya), her zaman biraz altın
+// Oyun Çadırı
+//
+// Çocuk her gün çadıra uğrasın diye ödül şöyle kurgulandı: her oyunun günün ilk kazanışı tam altın
+// verir, aynı oyunu tekrar kazanmak üçte biri. Üç ayrı oyunu kazanınca "çadır turnuvası" ödülü ve
+// bir sandık anahtarı çıkar. Oyunlar seviyeyle açılır: hepsi ilk gün açık değildir.
 // ================================================================================================
+export type MiniGameId =
+  | 'memory' | 'balloon' | 'catch' | 'mole' | 'simon' | 'puzzle' | 'math' | 'shadow'
+  | 'count' | 'pattern' | 'fish' | 'maze' | 'rhythm' | 'snake';
+
+export interface MiniGameDef {
+  id: MiniGameId;
+  name: string;
+  /** Kartın altındaki kısa anlatım. */
+  hint: string;
+  icon: string;
+  /** Hangi seviyede açılır. */
+  level: number;
+  /** Zorluk (1–3 yıldız). */
+  hard: number;
+  /** Günün ilk kazanışının altını (sonraki kazanışlar üçte biri). */
+  coins: number;
+  cat: 'beceri' | 'zeka' | 'ogren';
+}
+
+export const MINI_CATS: { id: MiniGameDef['cat']; name: string }[] = [
+  { id: 'beceri', name: 'Beceri' },
+  { id: 'zeka', name: 'Zekâ' },
+  { id: 'ogren', name: 'Öğren' },
+];
+
+export const MINI_GAMES: MiniGameDef[] = [
+  // ilk gün açık olanlar
+  { id: 'balloon', name: 'Balon Patlat', hint: 'Doğru renkleri patlat', icon: 'balon', level: 1, hard: 1, coins: 12, cat: 'beceri' },
+  { id: 'memory', name: 'Hafıza Kartları', hint: 'Eşleri bul', icon: 'kartlar', level: 1, hard: 1, coins: 12, cat: 'zeka' },
+  { id: 'count', name: 'Kaç Tane?', hint: 'Say ve doğru sayıya dokun', icon: 'sayi', level: 1, hard: 1, coins: 12, cat: 'ogren' },
+  { id: 'shadow', name: 'Gölgeyi Bul', hint: 'Resmin gölgesi hangisi?', icon: 'ampul', level: 1, hard: 1, coins: 14, cat: 'zeka' },
+  { id: 'catch', name: 'Meyve Yakala', hint: 'Sepetle topla, tuğlalardan kaç', icon: 'cilek', level: 1, hard: 2, coins: 18, cat: 'beceri' },
+  // seviyeyle açılanlar: her yeni seviye yeni bir oyun getirir
+  { id: 'mole', name: 'Köstebek Vur', hint: 'Çıkanlara çabuk dokun', icon: 'tarla', level: 2, hard: 2, coins: 18, cat: 'beceri' },
+  { id: 'math', name: 'Toplama Balonları', hint: 'Doğru sonucu patlat', icon: 'yildiz', level: 2, hard: 2, coins: 18, cat: 'ogren' },
+  { id: 'puzzle', name: 'Kayan Yapboz', hint: '1\u2019den 8\u2019e sırala', icon: 'kutu', level: 2, hard: 3, coins: 25, cat: 'zeka' },
+  { id: 'pattern', name: 'Deseni Tamamla', hint: 'Sırada hangisi var?', icon: 'desen', level: 3, hard: 2, coins: 20, cat: 'zeka' },
+  { id: 'fish', name: 'Balık Tut', hint: 'Tam zamanında dur', icon: 'balik', level: 3, hard: 2, coins: 22, cat: 'beceri' },
+  { id: 'simon', name: 'Renk Dizisi', hint: 'Sırayı hatırla', icon: 'nota', level: 4, hard: 3, coins: 25, cat: 'zeka' },
+  { id: 'maze', name: 'Labirent', hint: 'Hazineye giden yolu bul', icon: 'labirent', level: 5, hard: 2, coins: 24, cat: 'zeka' },
+  { id: 'rhythm', name: 'Ritim Tut', hint: 'Notalara tam vuruşunda bas', icon: 'alkis', level: 6, hard: 3, coins: 28, cat: 'beceri' },
+  { id: 'snake', name: 'Yılan', hint: 'Meyveleri topla, kuyruğuna çarpma', icon: 'yilan', level: 7, hard: 3, coins: 32, cat: 'beceri' },
+];
+
+export const miniGame = (id: string) => MINI_GAMES.find((g) => g.id === id);
+/** Turnuva: bir günde kaç ayrı oyun kazanılınca ödül var. */
+export const TOURNEY_GOAL = 3;
+export const TOURNEY_COINS = 50;
+
+/** Oyun Çadırı ödülleri: günde en çok bu kadar eşya/kıyafet hediyesi çıkar. */
 export const MINI_ITEMS_PER_DAY = 3;
 export type MiniPrize = { kind: 'item'; id: string; name: string } | { kind: 'cloth'; key: string } | { kind: 'coins'; n: number };
 
+export interface MiniWin extends Result {
+  prize: MiniPrize;
+  /** Bu oyun bugün ilk kez mi kazanıldı (tam ödül)? */
+  first: boolean;
+  /** Turnuva ödülü de kazanıldı mı? */
+  tourney: boolean;
+  /** Toplam kazanılan altın. */
+  coins: number;
+}
+
 /**
- * `clothes`: henüz sahip olunmayan nadir kıyafetlerin anahtarları ("slot:id"); `rnd` 0..1.
- * Eşya ödülü evin deposuna gider (Evim'de bedava yerleştirilir).
+ * Bir mini oyun kazanıldı. `clothes` henüz sahip olunmayan nadir kıyafet anahtarları ("slot:id"),
+ * `rnd` 0..1 arası bir sayı, `score` oyunun puanı (rekor için).
  */
-export function miniReward(s: FarmState, day: string, clothes: string[], rnd: number, premiumItems: string[] = []): Result & { prize: MiniPrize } {
-  const md = s.miniDay?.day === day ? s.miniDay : { day, n: 0 };
-  const base = gain(s, 15, 6);
-  if (md.n >= MINI_ITEMS_PER_DAY) return { ...base, s: { ...base.s, miniDay: md }, prize: { kind: 'coins', n: 15 } };
-  const next = { ...base.s, miniDay: { day, n: md.n + 1 } };
-  if (clothes.length && rnd < 0.35) {
-    const key = clothes[Math.floor((rnd / 0.35) * clothes.length) % clothes.length];
-    return { ...base, s: next, prize: { kind: 'cloth', key } };
-  }
-  const pool = HOME_ITEMS.filter((i) => i.price > 0 && i.price <= 50 && !i.premium && !premiumItems.includes(i.id));
-  const it = pool[Math.floor(rnd * 9973) % pool.length];
+export function miniWin(
+  s: FarmState,
+  o: { day: string; game: MiniGameId; score?: number; clothes?: string[]; rnd?: number; premiumItems?: string[] },
+): MiniWin {
+  const def = miniGame(o.game);
+  const rnd = o.rnd ?? 0.5;
+  const md = s.miniDay?.day === o.day ? { ...s.miniDay, won: s.miniDay.won ?? [] } : { day: o.day, n: 0, won: [] as string[] };
+  const first = !md.won.includes(o.game);
+  const base = def?.coins ?? 15;
+  const coins = first ? base : Math.max(3, Math.round(base / 3));
+  const before = s.coins;
+  // rekor defteri
+  const prev = s.games?.[o.game] ?? { w: 0, best: 0 };
+  const games = { ...(s.games ?? {}), [o.game]: { w: prev.w + 1, best: Math.max(prev.best, o.score ?? 0) } };
+  const won = first ? [...md.won, o.game] : md.won;
+  const tourney = first && won.length === TOURNEY_GOAL;
+  let r = gain(stat({ ...s, games }, 'games'), coins + (tourney ? TOURNEY_COINS : 0), first ? 3 + (def?.hard ?? 2) * 3 : 2);
+  if (tourney) r = { ...r, s: { ...r.s, keys: (r.s.keys ?? 0) + 1 } };
+  // eşya/kıyafet hediyesi: yalnızca günün ilk kazanışlarında, günde en çok 3 kez
+  const giftable = first && md.n < MINI_ITEMS_PER_DAY;
+  const next = { ...r.s, miniDay: { day: o.day, n: md.n + (giftable ? 1 : 0), won } };
+  const done = (s2: FarmState, prize: MiniPrize): MiniWin => ({ ...r, s: s2, prize, first, tourney, coins: s2.coins - before });
+  if (!giftable) return done(next, { kind: 'coins', n: next.coins - before });
+  const clothes = o.clothes ?? [];
+  if (clothes.length && rnd < 0.35) return done(next, { kind: 'cloth', key: clothes[Math.floor((rnd / 0.35) * clothes.length) % clothes.length] });
+  const it = itemPool(o.premiumItems ?? [], 60)[Math.floor(rnd * 9973) % itemPool(o.premiumItems ?? [], 60).length];
   const home = normalizeHome(next.home);
-  return { ...base, s: { ...next, home: { ...home, stored: [...home.stored, it.id] } }, prize: { kind: 'item', id: it.id, name: it.name } };
+  return done({ ...next, home: { ...home, stored: [...home.stored, it.id] } }, { kind: 'item', id: it.id, name: it.name });
+}
+
+/** Hediye olarak çıkabilecek ev eşyaları (özel paketler ve zaten açık olanlar hariç). */
+function itemPool(premiumItems: string[], max: number) {
+  const pool = HOME_ITEMS.filter((i) => i.price > 0 && i.price <= max && !i.premium && !premiumItems.includes(i.id));
+  return pool.length ? pool : HOME_ITEMS.filter((i) => i.price > 0 && !i.premium);
+}
+
+// ================================================================================================
+// Hazine sandıkları: anahtarla açılır
+//
+// Anahtar kolay bulunmaz (seviye atlama, çadır turnuvası, 7 günlük seri) — sandık da bu yüzden
+// heyecanlıdır. Büyük sandık daha çok anahtar ister ama içinden daha güzel şeyler çıkar.
+// ================================================================================================
+export interface ChestDef {
+  id: string;
+  name: string;
+  icon: string;
+  /** Açmak için gereken anahtar. */
+  keys: number;
+  /** Altın aralığı. */
+  coins: [number, number];
+  /** Kıyafet çıkma olasılığı (kalanı ev eşyası). */
+  cloth: number;
+  /** Eşyanın en çok kaç altınlık olabileceği. */
+  item: number;
+}
+
+export const CHESTS: ChestDef[] = [
+  { id: 'tahta', name: 'Tahta sandık', icon: 'sandik', keys: 3, coins: [30, 60], cloth: 0.2, item: 30 },
+  { id: 'gumus', name: 'Gümüş sandık', icon: 'sandik', keys: 6, coins: [80, 140], cloth: 0.45, item: 55 },
+  { id: 'altin', name: 'Altın sandık', icon: 'sandik', keys: 10, coins: [180, 300], cloth: 0.7, item: 95 },
+];
+export const chest = (id: string) => CHESTS.find((c) => c.id === id);
+
+export interface ChestOpen extends Result {
+  /** Çıkanlar: altın her zaman, yanında bir eşya ya da kıyafet. */
+  prizes: MiniPrize[];
+}
+
+/** Sandığı aç: anahtarlar harcanır, içinden altın ve bir hediye çıkar. */
+export function openChest(s: FarmState, id: string, clothes: string[], rnd: number, premiumItems: string[] = []): ChestOpen {
+  const c = chest(id);
+  if (!c) return { s, prizes: [] };
+  if ((s.keys ?? 0) < c.keys) return { s, err: `${c.name} için ${c.keys} anahtar gerekiyor.`, prizes: [] };
+  const coins = c.coins[0] + Math.floor(rnd * (c.coins[1] - c.coins[0] + 1));
+  const r = gain(stat({ ...s, keys: (s.keys ?? 0) - c.keys }, 'chests'), coins, 10);
+  const prizes: MiniPrize[] = [{ kind: 'coins', n: coins }];
+  if (clothes.length && rnd < c.cloth) {
+    const key = clothes[Math.floor((rnd / Math.max(c.cloth, 1e-6)) * clothes.length) % clothes.length];
+    return { ...r, prizes: [...prizes, { kind: 'cloth', key }], msg: `${c.name} açıldı!` };
+  }
+  const pool = itemPool(premiumItems, c.item);
+  const it = pool[Math.floor(rnd * 7919) % pool.length];
+  const home = normalizeHome(r.s.home);
+  return { ...r, s: { ...r.s, home: { ...home, stored: [...home.stored, it.id] } }, prizes: [...prizes, { kind: 'item', id: it.id, name: it.name }], msg: `${c.name} açıldı!` };
+}
+
+// ================================================================================================
+// Günlük hediye: üst üste gelen çocuk her gün daha çok kazanır
+// ================================================================================================
+export const STREAK_GIFTS = [10, 15, 25, 35, 50, 70, 100];
+/** 7. günün hediyesinde ayrıca bir sandık anahtarı var. */
+export const STREAK_KEY_DAY = 7;
+
+export interface DailyGift extends Result {
+  /** Serinin kaçıncı günü (1–7). */
+  n: number;
+  coins: number;
+  key: boolean;
+}
+
+/**
+ * Bugünün hediyesi (bir kez alınır). `day` bugün, `prev` dün ("2026-10-16" gibi): dün de
+ * gelinmişse seri büyür, bir gün kaçırılırsa baştan başlar.
+ */
+export function dailyGift(s: FarmState, day: string, prev: string): DailyGift | null {
+  if (s.streak?.day === day) return null;
+  const n = s.streak?.day === prev ? (s.streak.n % STREAK_GIFTS.length) + 1 : 1;
+  const coins = STREAK_GIFTS[n - 1];
+  const key = n === STREAK_KEY_DAY;
+  const r = gain({ ...s, streak: { day, n } }, coins, 5);
+  return { ...r, s: { ...r.s, keys: (r.s.keys ?? 0) + (key ? 1 : 0) }, n, coins, key, msg: `Günlük hediye: +${coins} altın` };
+}
+
+// ================================================================================================
+// Koleksiyon rozetleri: uzun soluklu hedefler
+// ================================================================================================
+export interface BadgeDef {
+  id: string;
+  name: string;
+  icon: string;
+  hint: string;
+  goal: number;
+  coins: number;
+  /** Şu ana kadarki ilerleme. */
+  of: (s: FarmState) => number;
+}
+
+export const BADGES: BadgeDef[] = [
+  { id: 'hasat1', name: 'Çaylak Çiftçi', icon: 'havuc', hint: '25 ürün topla', goal: 25, coins: 25, of: (s) => s.stats.harvested },
+  { id: 'hasat2', name: 'Usta Çiftçi', icon: 'bugday', hint: '150 ürün topla', goal: 150, coins: 80, of: (s) => s.stats.harvested },
+  { id: 'satis1', name: 'Küçük Tüccar', icon: 'altin', hint: 'Pazarda 30 ürün sat', goal: 30, coins: 25, of: (s) => s.stats.sold },
+  { id: 'satis2', name: 'Pazarın Yıldızı', icon: 'mucevher', hint: 'Pazarda 150 ürün sat', goal: 150, coins: 90, of: (s) => s.stats.sold },
+  { id: 'siparis', name: 'Sözünün Eri', icon: 'kutu', hint: '25 sipariş tamamla', goal: 25, coins: 70, of: (s) => s.stats.orders },
+  { id: 'oyun1', name: 'Çadır Çırağı', icon: 'balon', hint: 'Çadırda 10 oyun kazan', goal: 10, coins: 30, of: (s) => s.stats.games },
+  { id: 'oyun2', name: 'Oyun Ustası', icon: 'kupa', hint: 'Çadırda 60 oyun kazan', goal: 60, coins: 110, of: (s) => s.stats.games },
+  { id: 'insa1', name: 'Küçük Mimar', icon: 'cekic', hint: '150 blok koy', goal: 150, coins: 40, of: (s) => s.stats.blocks },
+  { id: 'insa2', name: 'Ada Mimarı', icon: 'ev', hint: '600 blok koy', goal: 600, coins: 120, of: (s) => s.stats.blocks },
+  { id: 'altin1', name: 'Kumbara', icon: 'altin', hint: 'Toplam 500 altın kazan', goal: 500, coins: 40, of: (s) => s.earned ?? 0 },
+  { id: 'altin2', name: 'Hazine Avcısı', icon: 'sandik', hint: 'Toplam 2500 altın kazan', goal: 2500, coins: 120, of: (s) => s.earned ?? 0 },
+  { id: 'altin3', name: 'Ada Zengini', icon: 'mucevher', hint: 'Toplam 10000 altın kazan', goal: 10000, coins: 300, of: (s) => s.earned ?? 0 },
+  { id: 'araba1', name: 'Garaj Sahibi', icon: 'mini', hint: '3 araç topla', goal: 3, coins: 50, of: (s) => (s.cars ?? []).length },
+  { id: 'araba2', name: 'Koleksiyoncu', icon: 'yaris', hint: '7 araç topla', goal: 7, coins: 180, of: (s) => (s.cars ?? []).length },
+  { id: 'hayvan', name: 'Hayvan Dostu', icon: 'inek', hint: '8 hayvan bak', goal: 8, coins: 60, of: (s) => s.animals.length },
+  { id: 'mutfak', name: 'Küçük Aşçı', icon: 'pasta', hint: 'Mutfakta 25 şey yap', goal: 25, coins: 60, of: (s) => s.stats.crafted },
+  { id: 'macera', name: 'Kaşif', icon: 'kapi', hint: '10 macera kapısı bitir', goal: 10, coins: 70, of: (s) => s.stats.realms },
+  { id: 'sandik', name: 'Sandık Kâşifi', icon: 'anahtar', hint: '5 sandık aç', goal: 5, coins: 100, of: (s) => s.stats.chests },
+];
+
+export const badgeDone = (s: FarmState, b: BadgeDef) => b.of(s) >= b.goal;
+
+/** Biten rozetleri verir (altın ve deneyim); kazanılanların tanımları döner. */
+export function claimBadges(s: FarmState): Result & { got: BadgeDef[] } {
+  const have = s.badges ?? [];
+  const got = BADGES.filter((b) => !have.includes(b.id) && badgeDone(s, b));
+  if (!got.length) return { s, got: [] };
+  let cur: Result = { s: { ...s, badges: [...have, ...got.map((b) => b.id)] } };
+  for (const b of got) {
+    const r = gain(cur.s, b.coins, 8);
+    cur = { s: r.s, levelUp: r.levelUp ?? cur.levelUp };
+  }
+  return { ...cur, got };
 }

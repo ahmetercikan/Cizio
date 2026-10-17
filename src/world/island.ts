@@ -256,6 +256,8 @@ export class Island {
     buildPortals(this.wb, (id) => this.enterRealm(id));
     this.chunkStatics();
     this.home = new Homestead(this.wb, o.farm, (x, z) => this.canBuildAt(x, z));
+    // kapı açılırken tahta kapı sesi
+    this.home.build.onDoor = () => this.ev.sound.fx?.('dooropen');
     mark('çiftlik+pazar+kapılar');
     this.wb.autoBodies();
     buildVegetation(this.scene, this.grid, this.wb.keepOut);
@@ -555,7 +557,20 @@ export class Island {
     if (!this.myCar) {
       const model = carModel(id);
       this.scene.add(model);
-      const v = { model, pos: new THREE.Vector3(), heading: this.heading, speed: def.speed, water: false, seatY: def.seatY, land: !def.fly, fly: def.fly, seat: model.userData.seat as [number, number, number] };
+      const prop = model.userData.prop as THREE.Object3D | undefined;
+      let propSpeed = 0;
+      const v: Vehicle = {
+        model, pos: new THREE.Vector3(), heading: this.heading, speed: def.speed, water: false, seatY: def.seatY,
+        land: !def.fly, fly: def.fly, alt: def.alt, park: def.park, bank: def.bank, cam: def.cam,
+        seat: model.userData.seat as [number, number, number],
+        update: prop
+          ? (dt, mag) => {
+            propSpeed += ((12 + mag * 26) - propSpeed) * Math.min(1, dt * 2);
+            prop.rotation.z += dt * propSpeed;
+          }
+          : undefined,
+        onLeave: prop ? () => (propSpeed = 0) : undefined,
+      };
       const spot: SpotDef = { id: 'car', x: 0, z: 0, r: 4, label: `${def.name} ile gez`, vehicle: v };
       this.spots.push(spot);
       this.myCar = { id, spot };
@@ -575,17 +590,20 @@ export class Island {
     return this.myCar?.id ?? null;
   }
   /** Korna. */
-  /** Aracın türü: korna ve motor sesi için. */
+  /** Aracın türü: korna ve motor sesi için ('' motor sesi yok). */
   private vehicleKind(): { horn: number; engine: string } {
     const v = this.drive;
     if (!v) return { horn: 0, engine: '' };
     const car = this.myCar && this.myCar.spot.vehicle === v ? this.myCar.id : '';
-    if (car === 'bisiklet') return { horn: 3, engine: '' };
+    if (car === 'bisiklet') return { horn: 3, engine: 'bike' };
+    if (car === 'skuter') return { horn: 5, engine: 'scooter' };
+    if (car === 'yaris') return { horn: 0, engine: 'race' };
     if (car === 'unicorn' || car === 'limuzin') return { horn: 4, engine: 'car' };
-    if (v.fly) return { horn: 4, engine: 'fly' };
+    if (car === 'ucan') return { horn: 4, engine: 'hover' };
+    if (v.fly) return { horn: 4, engine: 'plane' };
     if (v.engine) return { horn: v.fly ? 4 : 1, engine: v.engine };
     if (!v.land) return { horn: 2, engine: 'boat' };
-    if (car === 'jip' || car === 'karavan') return { horn: 1, engine: 'truck' };
+    if (car === 'jip' || car === 'karavan' || car === 'traktor' || car === 'kamyonet' || car === 'otobus') return { horn: 1, engine: 'truck' };
     return { horn: 0, engine: 'car' };
   }
   honk() {
@@ -915,7 +933,11 @@ export class Island {
     if (this.realm) {
       const out = this.realm.update(dt, this.clock, this.hero);
       if (out) this.leaveRealm();
-    } else this.stepWorld(dt);
+    } else {
+      this.stepWorld(dt);
+      // bloklardan yapılan kapılar: yaklaşınca açılır
+      this.home.build.stepDoors(this.pos.x, this.pos.z, dt);
+    }
     this.draw(dt);
     this.raf = requestAnimationFrame(this.frame);
   };
