@@ -46,6 +46,24 @@ export interface Vehicle {
   land?: boolean;
   /** Uçan araba: her yerin üstünden geçer. */
   fly?: boolean;
+  /** Uçuş yüksekliği (yerden; uçak yüksekten uçar). Yoksa 2,2. */
+  alt?: number;
+  /** İnince (uçak) yerden yükseklik: tekerlekler yere değsin. */
+  park?: number;
+  /** Sürerken kamera: [uzaklık, yükseklik]. */
+  cam?: [number, number];
+  /** Sürücünün yeri (aracın kendi ekseninde x, y, z); yoksa ortası ve seatY. */
+  seat?: [number, number, number];
+  /** Dönerken yana yatar (uçak). */
+  bank?: boolean;
+  /** Korna yerine çalan ses (ambulans ve itfaiye: siren). */
+  hornFx?: string;
+  /** Motor sesi türü ('car' | 'truck' | 'boat' | 'fly'). */
+  engine?: string;
+  /** Sürerken her kare (ışıklar, pervane). */
+  update?(dt: number, mag: number, t: number): void;
+  /** İnince (ışıkları söndür). */
+  onLeave?(): void;
 }
 
 export interface SpotDef {
@@ -348,16 +366,20 @@ function buildTown(b: WorldBuilder) {
     if (Math.floor(t * 4) !== Math.floor((t - 0.016) * 4)) b.sparkles.burst(new THREE.Vector3(0, b.h(0, 0) + 3, 0), 2, '#7ee0ff');
   });
   // evler: halka şeklinde
-  const homeAt: [number, number] = [-26, -20];
+  const homeAt: [number, number] = [-28, -22];
   const cols = ['#9be7de', '#ffb3c7', '#b39ddb', '#ffd166', '#c5e1a5', '#ffcc80'];
   const ring: [number, number][] = [[-38, 4], [-14, -40], [16, -42], [40, -6], [-34, 30], [30, 34]];
   for (const [i, [x, z]] of ring.entries()) {
-    b.place(house(cols[i % cols.length], 0.85), x, z, b.facing(x, z, 0, 0));
-    b.block(x, z, 4);
+    b.place(house(cols[i % cols.length], 1.15), x, z, b.facing(x, z, 0, 0));
+    b.block(x, z, 5.2);
   }
-  b.place(house('#ffd166'), ...homeAt, b.facing(...homeAt, 0, 0));
-  b.block(...homeAt, 4.6);
-  b.spot({ id: 'home', x: -21.8, z: -16.8, r: 3.2, label: 'Evime gir', page: true });
+  b.place(house('#ffd166', 1.35), ...homeAt, b.facing(...homeAt, 0, 0));
+  b.block(...homeAt, 5.8);
+  {
+    // kapının önü (evin kasabaya bakan yüzü)
+    const l = Math.hypot(...homeAt), dx = -homeAt[0] / l, dz = -homeAt[1] / l;
+    b.spot({ id: 'home', x: homeAt[0] + dx * 6.4, z: homeAt[1] + dz * 6.4, r: 3.2, label: 'Evime gir', page: true });
+  }
   b.place(sign('Evim', '#fff1c7'), -20, -14, b.facing(-20, -14, 0, 0));
   // sanat galerisi
   const gx = 26, gz = -20;
@@ -2250,39 +2272,37 @@ function buildFarm(b: WorldBuilder) {
       },
     },
   });
-  // traktör turu
+  // traktör: kullanıcı sürer (üstü açık sürücü yeri)
   {
     const tr = new THREE.Group();
     const tb = outline(mesh(new THREE.BoxGeometry(1.6, 1.2, 2.6), toon('#2bb673')), 1.03);
     tb.position.y = 1.1;
-    const cab = outline(mesh(new THREE.BoxGeometry(1.4, 1.2, 1.2), toon('#2bb673')), 1.03);
-    cab.position.set(0, 2.2, -0.5);
-    tr.add(tb, cab);
+    const seatBox = mesh(new THREE.BoxGeometry(0.9, 0.3, 0.8), toon('#3a2b27'));
+    seatBox.position.set(0, 1.85, -0.6);
+    const roof = outline(mesh(new THREE.BoxGeometry(1.6, 0.15, 1.5), toon('#ffd43b')), 1.03);
+    roof.position.set(0, 3.5, -0.5);
+    tr.add(tb, seatBox, roof);
+    for (const [px, pz] of [[-0.7, -1.15], [0.7, -1.15], [-0.7, 0.15], [0.7, 0.15]]) {
+      const post = mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.8, 6), toon('#3a2b27'), false);
+      post.position.set(px, 2.6, pz);
+      tr.add(post);
+    }
+    const pipe = mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.2, 8), toon('#5b5f6b'), false);
+    pipe.position.set(0.5, 2.2, 0.9);
+    tr.add(pipe);
     for (const [wx, wz, r] of [[-0.95, -0.7, 0.9], [0.95, -0.7, 0.9], [-0.85, 1, 0.5], [0.85, 1, 0.5]] as const) {
       const w = mesh(new THREE.CylinderGeometry(r, r, 0.35, 14), toon('#3a2b27'));
       w.rotation.z = Math.PI / 2;
       w.position.set(wx, r, wz);
+      w.name = 'wheel';
       tr.add(w);
     }
     const x0 = F.x + 2, z0 = F.z - 14;
-    b.place(tr, x0, z0, Math.PI / 2);
-    b.block(x0, z0, 1.6);
-    b.spot({
-      id: 'tractor', x: x0, z: z0 - 2.6, r: 2.6, label: 'Traktöre bin',
-      act: {
-        dur: 14, pose: 'drive', cam: [14, 7],
-        step(t, u, a) {
-          const ang = u * Math.PI * 2;
-          const x = fx + Math.cos(ang) * 12, z = fz + Math.sin(ang) * 9;
-          tr.position.set(x, b.h(x, z), z);
-          tr.rotation.y = -ang;
-          a.pos.set(x, b.h(x, z) + 1.6, z);
-          a.heading = -ang;
-          tr.position.y += Math.abs(Math.sin(t * 8)) * 0.05;
-        },
-        end: () => void (tr.position.set(x0, b.h(x0, z0), z0), (tr.rotation.y = Math.PI / 2)),
-      },
-    });
+    const tv: Vehicle = { model: tr, pos: new THREE.Vector3(x0, b.h(x0, z0), z0), heading: Math.PI / 2, speed: 11, water: false, seatY: 1.4, land: true, seat: [0, 1.15, -0.6], cam: [15, 7], engine: 'truck' };
+    tr.position.copy(tv.pos);
+    tr.rotation.y = tv.heading;
+    b.scene.add(tr);
+    b.spot({ id: 'tractor', x: x0, z: z0, r: 3.4, label: 'Traktörü sür', vehicle: tv });
   }
   // çit ve hayvanlar
   const px = F.x - 4, pz = F.z + 22;

@@ -11,6 +11,7 @@ import { PRESETS } from '../dressup/catalog';
 import { Avatar3D, spaceHelmet } from './avatar3d';
 import { board, holdItem } from './places';
 import { Realm, type Hero, type RealmEvents } from './realms';
+import type { Vehicle } from './zones';
 
 const sm = (u: number) => u * u * (3 - 2 * u);
 const clamp01 = (u: number) => Math.min(1, Math.max(0, u));
@@ -151,6 +152,7 @@ export class MarsRealm extends Realm {
     this.solids.push({ x: 18, z: -2, r: 0.8 });
     // eşyanın gövdesi (üs, sera, araç, astronot…): hangi yandan gelinirse gelinsin düğme çıkar
     for (const s of this.spots) {
+      if (s.vehicle) continue;
       let best: { x: number; z: number; r: number } | null = null;
       for (const k of this.solids) {
         if (k.r < 0.5) continue;
@@ -521,44 +523,30 @@ export class MarsRealm extends Realm {
     const camHead = mesh(new THREE.BoxGeometry(0.5, 0.3, 0.3), toon('#3a3f4a'), false);
     camHead.position.set(0.8, 2.95, 1.2);
     rover.add(solar, mast, camHead);
-    const wheels: THREE.Mesh[] = [];
     for (const sx of [-1.35, 1.35]) for (const sz of [-1.3, 0, 1.3]) {
       const w = mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.4, 12), toon('#3a3f4a'));
       w.rotation.z = Math.PI / 2;
       w.position.set(sx, 0.45, sz);
+      w.name = 'wheel';
       rover.add(w);
-      wheels.push(w);
     }
+    // kullanıcı sürer (Mars'ın her yerinde, kayalara ve binalara çarpar)
     const rp = new THREE.Vector3(12, 0, 8);
-    rover.position.set(rp.x, marsHeight(rp.x, rp.z), rp.z);
-    rover.rotation.y = 0.6;
-    this.scene.add(rover);
-    this.solids.push({ x: rp.x, z: rp.z, r: 1.9 });
-    const tour = new THREE.CatmullRomCurve3([[12, 8], [20, 20], [32, 22], [44, 30], [40, 44], [24, 46], [6, 40], [-10, 30], [-20, 16], [-12, 4], [4, 12], [12, 8]].map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
-    this.spots.push({
-      id: 'mars-rover', x: 14.6, z: 9.2, r: 2.4, label: 'Mars aracını sür',
-      act: {
-        dur: 22, pose: 'drive', cam: [12, 6], follow: true,
-        step: (t, u, a, dt) => {
-          const s = sm(u), p = tour.getPointAt(s), tg = tour.getTangentAt(s);
-          const h = Math.atan2(tg.x, tg.z);
-          const y = marsHeight(p.x, p.z);
-          rover.position.set(p.x, y, p.z);
-          rover.rotation.set(-Math.atan2(marsHeight(p.x + tg.x, p.z + tg.z) - marsHeight(p.x - tg.x, p.z - tg.z), 2), h, 0, 'YXZ');
-          for (const w of wheels) w.rotation.x += dt * 6;
-          rover.updateMatrixWorld();
-          a.pos.copy(rover.localToWorld(new THREE.Vector3(0, 1.5, 0.2)));
-          a.heading = h;
-          if (beat(t, dt, 0.6)) this.ev.sound.fx?.('rumble');
-          if (Math.random() < dt * 10) this.sparkles.burst(rover.localToWorld(new THREE.Vector3(0, 0.3, -1.8)), 2, '#e8a070');
-        },
-        end: () => {
-          rover.position.set(rp.x, marsHeight(rp.x, rp.z), rp.z);
-          rover.rotation.set(0, 0.6, 0);
-          return 'Mars aracıyla kraterleri gezdin! Burada kayalar bile kırmızı.';
-        },
+    let dust = 0;
+    const rv: Vehicle = {
+      model: rover, pos: new THREE.Vector3(rp.x, marsHeight(rp.x, rp.z), rp.z), heading: 0.6, speed: 12, water: false, seatY: 1.5, land: true,
+      seat: [0, 1.55, 0.2], cam: [13, 6.5], engine: 'truck',
+      update: (dt, mag) => {
+        if (mag > 0 && (dust += dt) > 0.08) {
+          dust = 0;
+          this.sparkles.burst(rover.localToWorld(new THREE.Vector3(0, 0.3, -1.8)), 2, '#e8a070');
+        }
       },
-    });
+    };
+    rover.position.copy(rv.pos);
+    rover.rotation.y = rv.heading;
+    this.scene.add(rover);
+    this.spots.push({ id: 'mars-rover', x: rp.x, z: rp.z, r: 3.4, label: 'Mars aracını sür', vehicle: rv });
     // bayrak dik
     let planted = false;
     this.spots.push({

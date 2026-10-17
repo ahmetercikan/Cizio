@@ -185,3 +185,36 @@ export function disposeScene(scene: THREE.Scene) {
   mats.clear();
   starGeo = null;
 }
+
+/**
+ * Çiçekler: yeşil sap, beş yapraklı renkli taç ve sarı göbek. Her parça tek bir InstancedMesh (yüzlerce çiçek üç çizim).
+ * `pts`: çiçeklerin yerdeki konumu (y = zemin), `colors`: taç renkleri (sırayla).
+ */
+export function flowers(pts: { x: number; y: number; z: number; s?: number }[], colors: string[]) {
+  const g = new THREE.Group();
+  if (!pts.length) return g;
+  const stemGeo = new THREE.CylinderGeometry(0.035, 0.045, 1, 5).translate(0, 0.5, 0);
+  const petal = new THREE.CylinderGeometry(0.3, 0.16, 0.07, 5).translate(0, 0, 0);
+  const core = new THREE.SphereGeometry(0.1, 6, 4).scale(1, 0.6, 1);
+  const stems = new THREE.InstancedMesh(stemGeo, toon('#4caf50'), pts.length);
+  const tops = new THREE.InstancedMesh(petal, toon('#ffffff'), pts.length);
+  const cores = new THREE.InstancedMesh(core, toon('#ffd43b'), pts.length);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), c = new THREE.Color();
+  pts.forEach((p, i) => {
+    const s = p.s ?? 1, h = 0.45 * s;
+    m4.compose(new THREE.Vector3(p.x, p.y, p.z), q.identity(), new THREE.Vector3(s, h, s));
+    stems.setMatrixAt(i, m4);
+    e.set((Math.random() - 0.5) * 0.4, Math.random() * Math.PI * 2, (Math.random() - 0.5) * 0.4);
+    q.setFromEuler(e);
+    m4.compose(new THREE.Vector3(p.x, p.y + h, p.z), q, new THREE.Vector3(s, s, s));
+    tops.setMatrixAt(i, m4);
+    tops.setColorAt(i, c.set(colors[i % colors.length]));
+    m4.compose(new THREE.Vector3(p.x, p.y + h + 0.05 * s, p.z), q, new THREE.Vector3(s, s, s));
+    cores.setMatrixAt(i, m4);
+  });
+  for (const m of [stems, tops, cores]) {
+    m.frustumCulled = false;
+    g.add(m);
+  }
+  return g;
+}

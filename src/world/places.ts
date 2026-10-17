@@ -5,9 +5,9 @@
  * Her yer kendi yerel düzeninde kurulur: +lz kasabaya (girişe) bakar, +lx sağ taraftır (lunapark gibi).
  */
 import * as THREE from 'three';
-import { mesh, outline, toon, tree } from '../play3d/kit';
+import { flowers, mesh, outline, toon, tree } from '../play3d/kit';
 import { heightAt, ROADS, ROAD_START, ZONES, zone, type Zone } from './layout';
-import { house, sign, type Activity, type WorldBuilder } from './zones';
+import { house, sign, type Activity, type Vehicle, type WorldBuilder } from './zones';
 import type { InteriorId } from './homestead';
 
 const sm = (u: number) => u * u * (3 - 2 * u);
@@ -317,8 +317,9 @@ function buildCity(b: WorldBuilder) {
   }
   cross.position.set(-4.5, 7.5, 5.1);
   hospital.add(hb2, hpost, cross);
-  put(hospital, -19, 20, L_);
-  blkRect(-19, 20, 10, 16);
+  hospital.scale.setScalar(1.35); // karaktere göre daha büyük
+  put(hospital, -20.75, 20, L_);
+  blkRect(-20.75, 20, 13.5, 21.6);
 
   const library = building({ w: 10, d: 8, h: 6.4, wall: '#f3e2c0', trim: '#a8662e', name: 'KÜTÜPHANE', signBg: '#a8662e', floors: 1 });
   for (const x of [-3.6, -1.8, 1.8, 3.6]) {
@@ -326,8 +327,9 @@ function buildCity(b: WorldBuilder) {
     c.position.set(x, 2.8, 4.4);
     library.add(c);
   }
-  put(library, -19, 0, L_);
-  blkRect(-19, 0, 8, 10);
+  library.scale.setScalar(1.35); // karaktere göre daha büyük
+  put(library, -19.4, 0, L_);
+  blkRect(-19.4, 0, 10.8, 13.5);
 
   const school = building({ w: 18, d: 10, h: 8.6, wall: '#ffcf70', trim: '#ef6b4a', name: 'OKUL', signBg: '#ef6b4a', floors: 2 });
   // saat
@@ -341,8 +343,9 @@ function buildCity(b: WorldBuilder) {
   clock.add(face, hand1, hand2);
   clock.position.set(-5.5, 6.6, 5.1);
   school.add(clock);
-  put(school, -19, -21, L_);
-  blkRect(-19, -21, 10, 18);
+  school.scale.setScalar(1.35); // karaktere göre daha büyük
+  put(school, -20.75, -21, L_);
+  blkRect(-20.75, -21, 13.5, 24.3);
   // bayrak direği
   const flag = new THREE.Group();
   const fp = mesh(new THREE.CylinderGeometry(0.08, 0.1, 8, 6), toon('#cfd4dc'));
@@ -373,8 +376,9 @@ function buildCity(b: WorldBuilder) {
       market.add(f);
     }
   });
-  put(market, 19, 20, R_);
-  blkRect(19, 20, 10, 14);
+  market.scale.setScalar(1.35); // karaktere göre daha büyük
+  put(market, 20.75, 20, R_);
+  blkRect(20.75, 20, 13.5, 18.9);
 
   const bakery = building({ w: 10, d: 8, h: 5.4, wall: '#ffd6e5', trim: '#e9487d', name: 'PASTANE', signBg: '#e9487d', floors: 1 });
   const cake = new THREE.Group();
@@ -388,8 +392,9 @@ function buildCity(b: WorldBuilder) {
   cake.add(cherry);
   cake.position.set(0, 5.9, 0);
   bakery.add(cake);
-  put(bakery, 19, 0, R_);
-  blkRect(19, 0, 8, 10);
+  bakery.scale.setScalar(1.35); // karaktere göre daha büyük
+  put(bakery, 19.4, 0, R_);
+  blkRect(19.4, 0, 10.8, 13.5);
   // pastane masaları (yanlarda)
   for (const tz of [-7.5, 7.5]) {
     const tb = new THREE.Group();
@@ -417,8 +422,9 @@ function buildCity(b: WorldBuilder) {
       fire.add(ln);
     }
   }
-  put(fire, 19, -21, R_);
-  blkRect(19, -21, 10, 14);
+  fire.scale.setScalar(1.35); // karaktere göre daha büyük
+  put(fire, 20.75, -21, R_);
+  blkRect(20.75, -21, 13.5, 18.9);
 
   // otobüs durağı, banklar, ağaçlar, trafik ışıkları
   {
@@ -502,46 +508,24 @@ function buildCity(b: WorldBuilder) {
       w.position.set(wx, 0.45, wz);
       amb.add(w);
     }
-    const park = { lx: -9.6, lz: 22 };
-    const pts = [
-      [-9.6, 22], [-9.4, 15], [-8.6, 6], [-6, -6.2], [0, -8.8], [6, -6.2], [8.8, 0], [6, 6.2], [0, 8.8], [-6.2, 6], [-8.8, 0],
-      [-6, -6.2], [0, -8.8], [6, -6.2], [8.8, 0], [6, 6.2], [1, 9.6], [-6.5, 12], [-9.4, 16], [-9.6, 22],
-    ];
-    const curve = new THREE.CatmullRomCurve3(pts.map(([lx, lz]) => G(lx, lz)), false, 'centripetal');
-    const placeAmb = (u: number) => {
-      const p = curve.getPointAt(u), tg = curve.getTangentAt(u);
-      amb.position.copy(p);
-      amb.rotation.set(0, Math.atan2(tg.x, tg.z), 0);
-      return tg;
-    };
+    amb.children.forEach((c) => (c as THREE.Mesh).geometry?.type === 'CylinderGeometry' && (c.name = 'wheel'));
     b.scene.add(amb);
-    placeAmb(0);
-    // park hâlinde caddeye doğru (−lz) değil, meydana bakar
-    amb.rotation.y = head(Math.PI);
-    blk(park.lx, park.lz, 1.8);
     let lights = false;
     b.tick((_dt, t) => {
       const on = lights && Math.floor(t * 4) % 2 === 0;
       (red.material as THREE.MeshBasicMaterial).color.set(on ? '#ff3b3b' : lights ? '#661010' : '#ff3b3b');
       (blue.material as THREE.MeshBasicMaterial).color.set(!on && lights ? '#3b7bff' : lights ? '#10204a' : '#3b7bff');
     });
-    spot('ambulance', -12.6, 23, 2.4, 'Ambulansla tur at', {
-      dur: 16, pose: 'drive', cam: [16, 8], follow: true,
-      start: () => void (lights = true),
-      step(t, u, a, dt) {
-        const tg = placeAmb(sm(u));
-        amb.updateMatrixWorld();
-        a.pos.copy(amb.localToWorld(new THREE.Vector3(-0.4, 0.2, 1.8)));
-        a.heading = Math.atan2(tg.x, tg.z);
-        if (beat(t, dt, 0.9)) b.sound.fx?.('siren');
-      },
-      end() {
-        lights = false;
-        placeAmb(0);
-        amb.rotation.y = head(Math.PI);
-        return 'Ambulans görevini tamamladın, kahraman!';
-      },
-    });
+    // sürülebilir ambulans: joystick ile sür, korna yerine siren
+    const av: Vehicle = {
+      model: amb, pos: G(-9.6, 22), heading: head(Math.PI), speed: 18, water: false, seatY: 0.4, land: true,
+      seat: [-0.45, 0.35, 1.75], cam: [17, 8], hornFx: 'siren', engine: 'truck',
+      update: () => void (lights = true),
+      onLeave: () => void (lights = false),
+    };
+    amb.position.copy(av.pos);
+    amb.rotation.y = av.heading;
+    b.spot({ id: 'ambulance', x: av.pos.x, z: av.pos.z, r: 3.6, label: 'Ambulansı sür', vehicle: av });
   }
 
   // ---- kütüphane: kitap oku
@@ -719,44 +703,48 @@ function buildCity(b: WorldBuilder) {
       w.position.set(wx, 0.5, wz);
       truck.add(w);
     }
-    const p0 = { lx: 10.4, lz: -15 }, p1 = { lx: 8.6, lz: -26.5 };
-    const placeTruck = (k: number) => {
-      const lx = p0.lx + (p1.lx - p0.lx) * k, lz = p0.lz + (p1.lz - p0.lz) * k;
-      truck.position.copy(G(lx, lz));
-      truck.rotation.y = head(Math.PI + 0.15);
-    };
-    placeTruck(0);
+    truck.children.forEach((c) => (c as THREE.Mesh).geometry?.type === 'CylinderGeometry' && c !== reel && (c.name = 'wheel'));
+    const tred = mesh(new THREE.BoxGeometry(0.6, 0.3, 0.4), new THREE.MeshBasicMaterial({ color: '#661010' }), false);
+    tred.position.set(-0.6, 3.35, 1.6);
+    const tblue = mesh(new THREE.BoxGeometry(0.6, 0.3, 0.4), new THREE.MeshBasicMaterial({ color: '#10204a' }), false);
+    tblue.position.set(0.6, 3.35, 1.6);
+    truck.add(tred, tblue);
     b.scene.add(truck);
-    blk(p0.lx, p0.lz, 2);
+    let tl = false;
+    b.tick((_dt, t) => {
+      const on = tl && Math.floor(t * 4) % 2 === 0;
+      (tred.material as THREE.MeshBasicMaterial).color.set(on ? '#ff3b3b' : '#661010');
+      (tblue.material as THREE.MeshBasicMaterial).color.set(tl && !on ? '#3b7bff' : '#10204a');
+    });
+    const tv: Vehicle = {
+      model: truck, pos: G(10.4, -15), heading: head(Math.PI + 0.15), speed: 16, water: false, seatY: 0.6, land: true,
+      seat: [0, 2.45, -1], cam: [19, 9], hornFx: 'siren', engine: 'truck',
+      update: () => void (tl = true),
+      onLeave: () => void (tl = false),
+    };
+    truck.position.copy(tv.pos);
+    truck.rotation.y = tv.heading;
+    b.spot({ id: 'firetruck', x: tv.pos.x, z: tv.pos.z, r: 3.8, label: 'İtfaiye aracını sür', vehicle: tv });
+    // yangın: kulenin önünde hortumla söndürülür
     const target = G(12, -32.6, 5.4);
-    spot('firetruck', 13.6, -12, 2.4, 'Yangını söndür', {
-      dur: 14, cam: [16, 8],
-      pose: (u) => (u > 0.22 && u < 0.8 ? 'hold' : 'drive'),
+    spot('fire', 9.4, -30.5, 2.6, 'Hortumla yangını söndür', {
+      dur: 9, cam: [14, 7], pose: 'hold',
       start: () => {
         burn = 1;
         relight = 0;
       },
-      step(t, u, a, dt) {
-        const k = u < 0.22 ? sm(u / 0.22) : u < 0.8 ? 1 : 1 - sm((u - 0.8) / 0.2);
-        placeTruck(k);
-        truck.updateMatrixWorld();
-        a.pos.copy(truck.localToWorld(new THREE.Vector3(0, 2.45, -1)));
-        if (u > 0.22 && u < 0.8) {
-          a.heading = Math.atan2(target.x - a.pos.x, target.z - a.pos.z);
-          burn = Math.max(0, burn - dt * 0.17);
-          if (beat(t, dt, 0.6)) b.sound.fx?.('spray');
-          // su kavisi
-          const from = a.pos.clone().setY(a.pos.y + 1.4);
-          for (let i = 1; i <= 4; i++) {
-            if (Math.random() > 0.5) continue;
-            const s = i / 4;
-            const p = from.clone().lerp(target, s);
-            p.y += Math.sin(s * Math.PI) * 1.6;
-            b.sparkles.burst(p, 1, '#7cd3ff');
-          }
-        } else {
-          a.heading = truck.rotation.y;
-          if (beat(t, dt, 0.9)) b.sound.fx?.('siren');
+      step(t, _u, a, dt) {
+        a.heading = Math.atan2(target.x - a.pos.x, target.z - a.pos.z);
+        burn = Math.max(0, burn - dt * 0.13);
+        if (beat(t, dt, 0.6)) b.sound.fx?.('spray');
+        // su kavisi
+        const from = a.pos.clone().setY(a.pos.y + 1.6);
+        for (let i = 1; i <= 4; i++) {
+          if (Math.random() > 0.5) continue;
+          const k = i / 4;
+          const q = from.clone().lerp(target, k);
+          q.y += Math.sin(k * Math.PI) * 1.6;
+          b.sparkles.burst(q, 1, '#7cd3ff');
         }
       },
       end() {
@@ -859,9 +847,9 @@ function buildVillage(b: WorldBuilder) {
   const angs = [0.55, 1.15, 1.75, 2.35, -0.55, -1.15, -1.75];
   angs.forEach((a, i) => {
     const r = 24, lx = Math.sin(a) * r, lz = Math.cos(a) * r;
-    const h = house(HC[i][0], 0.72, HC[i][1]);
+    const h = house(HC[i][0], 1.0, HC[i][1]);
     put(h, lx, lz, a + Math.PI);
-    blk(lx, lz, 3.4);
+    blk(lx, lz, 4.6);
     // bahçe: çit ve lahanalar
     const gx = Math.sin(a) * (r - 6), gz = Math.cos(a) * (r - 6);
     const garden = new THREE.Group();
@@ -1080,11 +1068,11 @@ function buildZoo(b: WorldBuilder) {
     put(kiosk, 0, 4);
     const bed = mesh(new THREE.CircleGeometry(6, 24).rotateX(-Math.PI / 2), toon('#7cc760'), false);
     put(bed, 0, 0, 0, 0.06);
-    for (let i = 0; i < 18; i++) {
-      const a = (i / 18) * Math.PI * 2;
-      const fl = mesh(new THREE.SphereGeometry(0.3, 8, 6), toon(['#ff6b8a', '#ffc83d', '#b98cff'][i % 3]), false);
-      put(fl, Math.sin(a) * 5, Math.cos(a) * 5, 0, 0.35);
-    }
+    const ring = Array.from({ length: 30 }, (_, i) => {
+      const a = (i / 30) * Math.PI * 2;
+      return G(Math.sin(a) * 5, Math.cos(a) * 5, 0.06);
+    });
+    b.scene.add(flowers(ring, ['#ff6b8a', '#ffc83d', '#b98cff']));
     const t = tree('round', 1.4);
     put(t, 0, -1.5);
     blk(0, -1.5, 1.4);
@@ -1241,7 +1229,7 @@ function buildZoo(b: WorldBuilder) {
 function buildAirport(b: WorldBuilder) {
   const Z = zone('airport');
   const F = frame(b, Z);
-  const { put, blk, blkRect, V, spot } = F;
+  const { put, blk, blkRect, V } = F;
   b.keepOut.push({ x: Z.x, z: Z.z, r: 54 });
   // pist (+lx boyunca)
   {
@@ -1354,75 +1342,24 @@ function buildAirport(b: WorldBuilder) {
   b.scene.add(plane);
   let propSpeed = 0;
   b.tick((dt) => void (prop.rotation.z += dt * propSpeed));
-  // uçuş yolu: pistte hızlan, kalk, adanın etrafında büyük bir tur, alçal ve in
-  const gy = (lx: number, lz: number) => F.hAt(lx, lz) + 1.5;
-  const pts: THREE.Vector3[] = [V(-34, gy(-34, -10), -10), V(-10, gy(-10, -10), -10), V(16, gy(16, -10) + 0.5, -10), V(46, gy(46, -10) + 8, -10), V(85, 32, -14)];
-  const a0 = Math.atan2(Z.z, Z.x);
-  for (let i = 1; i <= 9; i++) {
-    const a = a0 + 0.45 + (i / 10) * (Math.PI * 2 - 0.9);
-    pts.push(new THREE.Vector3(Math.cos(a) * 235, 62 + Math.sin(i * 1.3) * 8, Math.sin(a) * 235));
-  }
-  pts.push(V(-110, 32, -6), V(-70, gy(-70, -10) + 10, -10), V(-46, gy(-46, -10) + 2, -10), V(-24, gy(-24, -10), -10), V(-4, gy(-4, -10), -10));
-  const route = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-  const parkAt = () => {
-    plane.position.copy(pts[0]);
-    plane.rotation.set(0, F.head(Math.PI / 2), 0);
-  };
-  parkAt();
-  blk(-34, -10, 3);
-  const up = new THREE.Vector3(0, 1, 0), m = new THREE.Matrix4(), q = new THREE.Quaternion(), roll = new THREE.Quaternion(), zAx = new THREE.Vector3(0, 0, 1);
-  let lastH = 0, took = false, landed = false;
-  const DUR = 40;
-  // hız: pistte yavaş başlar, havada hızlı, inişte yavaşlar (hız eğrisinin integrali, önceden)
-  const N = 400, cum = [0];
-  for (let i = 1; i <= N; i++) {
-    const u = i / N, v = u < 0.15 ? u / 0.15 : u > 0.85 ? 1 - ((u - 0.85) / 0.15) * 0.85 : 1;
-    cum.push(cum[i - 1] + v);
-  }
-  const prog = (u: number) => {
-    const f = clamp01(u) * N, i = Math.min(N - 1, Math.floor(f));
-    return (cum[i] + (cum[i + 1] - cum[i]) * (f - i)) / cum[N];
-  };
-  spot('plane', -34, -4.4, 2.6, 'Uçakla adayı gez', {
-    dur: DUR, pose: (u) => (u > 0.2 && u < 0.85 ? 'cheer' : 'drive'), cam: [16, 6], follow: true,
-    start: () => {
-      propSpeed = 30;
-      took = landed = false;
-      lastH = plane.rotation.y;
+  // uçak pistin başında park hâlinde (tekerlekleri yerde)
+  const pts = [V(-34, F.hAt(-34, -10) + 1.5, -10)];
+  // kullanıcı uçurur: joystick yönü, uçak yükselir, "İn" ile karada iner
+  const pv: Vehicle = {
+    model: plane, pos: pts[0].clone(), heading: F.head(Math.PI / 2), speed: 32, water: false, seatY: 0.4, fly: true,
+    alt: 26, park: 1.5, bank: true, seat: [0, 0.1, 2.0], cam: [24, 9], engine: 'fly',
+    update: (dt, mag) => {
+      propSpeed = 18 + mag * 22;
+      if (Math.random() < dt * 4) b.sound.fx?.('engine');
     },
-    step(t, u, a, dt) {
-      const s = Math.min(1, prog(u));
-      const p = route.getPointAt(s), tg = route.getTangentAt(s);
-      plane.position.copy(p);
-      m.lookAt(tg, new THREE.Vector3(), up);
-      q.setFromRotationMatrix(m);
-      const h = Math.atan2(tg.x, tg.z);
-      let dh = h - lastH;
-      dh = Math.atan2(Math.sin(dh), Math.cos(dh));
-      lastH = h;
-      roll.setFromAxisAngle(zAx, Math.max(-0.6, Math.min(0.6, (-dh / Math.max(dt, 1e-3)) * 0.9)));
-      plane.quaternion.copy(q).multiply(roll);
-      plane.updateMatrixWorld();
-      a.pos.copy(plane.localToWorld(new THREE.Vector3(0, 0.1, 2.0)));
-      a.heading = h;
-      if (beat(t, dt, 0.55)) b.sound.fx?.('engine');
-      if (!took && s > 0.07) {
-        took = true;
-        b.sound.whoosh?.();
-        b.sound.fx?.('wee');
-      }
-      if (!landed && s > 0.975) {
-        landed = true;
-        b.sound.fx?.('thump');
-      }
-    },
-    end: () => {
+    onLeave: () => {
       propSpeed = 0;
-      parkAt();
-      b.sound.fx?.('yay');
-      return 'Bütün adayı kuş bakışı gördün! Kaptan pilot sensin!';
+      b.sound.fx?.('thump');
     },
-  });
+  };
+  plane.position.copy(pv.pos);
+  plane.rotation.set(0, pv.heading, 0);
+  b.spot({ id: 'plane', x: pv.pos.x, z: pv.pos.z, r: 4.2, label: 'Uçağı uçur', vehicle: pv });
 }
 
 // ================================================================================================
@@ -1437,19 +1374,11 @@ function buildPicnic(b: WorldBuilder) {
   // çiçek tarlası
   {
     const cols = ['#ff6b8a', '#ffc83d', '#ffffff', '#b98cff', '#ff8a65'];
-    const geo = new THREE.SphereGeometry(0.2, 6, 5);
-    for (const col of cols) {
-      const list: THREE.Vector3[] = [];
-      for (let i = 0; i < 60; i++) {
-        const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 9;
-        list.push(G(-14 + Math.cos(a) * r, -10 + Math.sin(a) * r, 0.25));
-      }
-      const im = new THREE.InstancedMesh(geo, toon(col), list.length);
-      const m4 = new THREE.Matrix4();
-      list.forEach((p, i) => im.setMatrixAt(i, m4.makeTranslation(p.x, p.y, p.z)));
-      im.frustumCulled = false;
-      b.scene.add(im);
-    }
+    const field = Array.from({ length: 260 }, () => {
+      const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 9;
+      return Object.assign(G(-14 + Math.cos(a) * r, -10 + Math.sin(a) * r, 0.02), { s: 0.8 + Math.random() * 0.5 });
+    });
+    b.scene.add(flowers(field, cols));
     if (b.tex.kelebek) for (let i = 0; i < 4; i++) {
       const [x, z] = F.L(-14 + (i % 2) * 4, -10 + Math.floor(i / 2) * 4);
       const c = b.card('kelebek', 1.1);

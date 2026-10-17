@@ -48,6 +48,8 @@ export abstract class Realm {
   spots: SpotDef[] = [];
   /** Yerçekimi çarpanı (Mars: düşük, yüksek zıplanır). */
   gravity = 1;
+  /** Karakterin bu dünyadaki boyu (binaların içi: daha ferah görünsün diye biraz küçük). */
+  heroScale = 1;
   /** Kahraman uzay kaskı takar. */
   helmet = false;
   /** Çizimden önce (kameraya göre duvarları gizlemek gibi). */

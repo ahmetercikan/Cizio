@@ -3,7 +3,7 @@
  * ve tek çizimde (InstancedMesh) dökülen ağaçlar, çiçekler, kayalar. Engeller hızlı arama için ızgaraya konur.
  */
 import * as THREE from 'three';
-import { canvasTexture, toon } from '../play3d/kit';
+import { canvasTexture, flowers, toon } from '../play3d/kit';
 import { groundKind, heightAt, isWater, LAND_R, roadDist, WORLD_R, ZONES } from './layout';
 
 export interface Blocker { x: number; z: number; r: number }
@@ -177,20 +177,22 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
     }
   }
 
-  // çiçekler (yürünebilir, gölge yok)
+  // çiçek öbekleri (yürünebilir, gölge yok): saplı, yapraklı gerçek çiçekler
   const cols = ['#ff6b8a', '#ffc83d', '#ffffff', '#b98cff', '#ff8a65'];
-  for (const col of cols) {
-    const list: { x: number; y: number; z: number; s: number }[] = [];
-    for (let i = 0; i < 640; i++) {
-      const a = rnd() * Math.PI * 2, r = 8 + Math.sqrt(rnd()) * (LAND_R - 20);
-      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+  const fl: { x: number; y: number; z: number; s: number }[] = [];
+  for (let k = 0; k < 170; k++) {
+    const a = rnd() * Math.PI * 2, r = 20 + Math.sqrt(rnd()) * (LAND_R - 34);
+    const cx = Math.cos(a) * r, cz = Math.sin(a) * r;
+    if (nearZone(cx, cz, 30) || roadDist(cx, cz) < 4) continue;
+    const n = 4 + Math.floor(rnd() * 6);
+    for (let i = 0; i < n; i++) {
+      const x = cx + (rnd() - 0.5) * 3, z = cz + (rnd() - 0.5) * 3;
       const h = heightAt(x, z);
-      if (h < 1 || h > 14 || roadDist(x, z) < 3) continue;
-      list.push({ x, y: h + 0.2, z, s: 0.8 + rnd() * 0.6 });
+      if (h < 1 || h > 14) continue;
+      fl.push({ x, y: h, z, s: 0.75 + rnd() * 0.4 });
     }
-    const f = inst(new THREE.SphereGeometry(0.18, 6, 5), toon(col), list);
-    f.castShadow = false;
   }
+  scene.add(flowers(fl, cols));
   // kayalar
   const rocks: { x: number; y: number; z: number; s: number; sy: number }[] = [];
   for (let i = 0; i < 620 && rocks.length < 170; i++) {

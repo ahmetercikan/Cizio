@@ -120,6 +120,7 @@ export class InteriorRealm extends Realm {
     super(ev, '#2f2a3d', [70, 140], 'none');
     this.id = id;
     this.leave = 'Dışarı çık';
+    this.heroScale = 0.78;
     this.cam = [9.5, 7.5];
     const size: Record<InteriorId, [number, number]> = { okul: [24, 18], hastane: [24, 18], market: [26, 20], kutuphane: [22, 18], pastane: [20, 16], itfaiye: [26, 20] };
     [this.W, this.D] = size[id];
@@ -288,7 +289,7 @@ export class InteriorRealm extends Realm {
   }
   private npc(over: Partial<DollState>, x: number, z: number, h: number, pose: Pose = 'idle', scale = 1.18, preset = 0): Npc {
     const av = new Avatar3D(npcDoll(over, preset));
-    av.root.scale.setScalar(scale);
+    av.root.scale.setScalar(scale * 0.8);
     av.root.position.set(x, 0, z);
     av.root.rotation.y = h;
     this.scene.add(av.root);

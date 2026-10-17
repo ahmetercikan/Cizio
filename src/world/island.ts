@@ -475,6 +475,30 @@ export class Island {
   dismount() {
     if (!this.drive) return;
     const v = this.drive;
+    if (v.alt && v.alt > 5) {
+      // uçak: yalnızca karada iner, tekerlekleri yere oturur
+      if (this.groundAt(v.pos.x, v.pos.z) < 0.3) {
+        this.ev.onMessage('Önce karaya uç, sonra in!');
+        return;
+      }
+      v.pos.y = this.groundAt(v.pos.x, v.pos.z) + (v.park ?? 0);
+      v.model.position.copy(v.pos);
+      v.model.rotation.set(0, v.heading, 0);
+    }
+    v.onLeave?.();
+    if (this.realm) {
+      // bir dünyada (Mars): aracın soluna, boş bir yere
+      const x = v.pos.x + Math.cos(v.heading) * 2.6, z = v.pos.z - Math.sin(v.heading) * 2.6;
+      this.pos.set(x, this.groundAt(x, z), z);
+      this.unstick();
+      this.hero.vy = 0;
+      this.hero.grounded = true;
+      this.drive = null;
+      this.nearQuietUntil = this.clock + 1.2;
+      this.setNear(null);
+      this.ev.onDrive(false);
+      return;
+    }
     // aracın bin düğmesinin alanının dışına in
     const spotR = this.spots.find((s) => s.vehicle === v)?.r ?? 0;
     let best: [number, number] | null = null;
@@ -542,19 +566,43 @@ export class Island {
     if (car === 'bisiklet') return { horn: 3, engine: '' };
     if (car === 'unicorn' || car === 'limuzin') return { horn: 4, engine: 'car' };
     if (v.fly) return { horn: 4, engine: 'fly' };
+    if (v.engine) return { horn: v.fly ? 4 : 1, engine: v.engine };
     if (!v.land) return { horn: 2, engine: 'boat' };
     if (car === 'jip' || car === 'karavan') return { horn: 1, engine: 'truck' };
     return { horn: 0, engine: 'car' };
   }
   honk() {
+    if (this.drive?.hornFx) return this.ev.sound.fx?.(this.drive.hornFx);
     const k = this.vehicleKind().horn;
     this.ev.sound.fx?.('horn', k);
     // araba kornası: kısa ve uzun ("bip-biiip")
     if (k <= 1) setTimeout(() => this.ev.sound.fx?.('horn', k), 420);
   }
-  private carY(v: { fly?: boolean }, x: number, z: number) {
-    const g = this.wb.ground(x, z);
-    return v.fly ? Math.max(g, 0) + 2.2 : Math.max(g, -0.2);
+  private carY(v: { fly?: boolean; alt?: number }, x: number, z: number) {
+    const g = this.groundAt(x, z);
+    return v.fly ? Math.max(g, 0) + (v.alt ?? 2.2) : this.realm ? g : Math.max(g, -0.2);
+  }
+  /** Zemin: adada arazi, bir dünyada (Mars) dünyanın zemini. */
+  private groundAt(x: number, z: number) {
+    if (this.realm) {
+      const f = this.realm.floor(x, z, 1e4);
+      return Number.isFinite(f) ? f : -1e9;
+    }
+    return this.wb.ground(x, z);
+  }
+  /** Bir engelin içinde kalındıysa en yakın boş yere çık (eşyanın, aracın içine düşülmesin). */
+  private unstick() {
+    if (!this.blockedAt(this.pos.x, this.pos.z, this.pos.y)) return;
+    for (let r = 0.6; r <= 9; r += 0.6) {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 10) {
+        const x = this.pos.x + Math.cos(a) * r, z = this.pos.z + Math.sin(a) * r;
+        const f = this.floorAt(x, z, this.pos.y + 1);
+        if (!Number.isFinite(f) || f < -0.5 && !this.realm) continue;
+        if (this.blockedAt(x, z, f)) continue;
+        this.pos.set(x, f, z);
+        return;
+      }
+    }
   }
   /** Haritadan hızlı gidiş. */
   teleport(x: number, z: number) {
@@ -753,6 +801,7 @@ export class Island {
     this.moveActors(realm.scene);
     // arkadaşlar üst üste doğmasın: başlangıç noktası biraz kayar
     this.pos.copy(realm.spawn).add(new THREE.Vector3((Math.random() - 0.5) * 3, 0, (Math.random() - 0.5) * 1.5));
+    this.unstick();
     this.heading = realm.spawnH;
     this.camYaw = this.camYawGoal = realm.spawnH + Math.PI;
     this.hero.vy = 0;
@@ -887,7 +936,7 @@ export class Island {
     const g = this.realm ? 0 : this.wb.ground(this.pos.x, this.pos.z);
     this.swimming = !this.realm && g < -0.7 && this.pos.y < 0;
     const run = mag > 0.95 && !this.swimming;
-    const sp = mag <= 0 ? 0 : (run ? RUN : WALK * mag) * (this.swimming ? 0.55 : 1);
+    const sp = mag <= 0 ? 0 : (run ? RUN : WALK * mag) * (this.swimming ? 0.55 : 1) * Math.sqrt(this.realm?.heroScale ?? 1);
     // hız yumuşakça hızlanır / yavaşlar (havadayken daha az kontrol)
     const want = dir.clone().multiplyScalar(sp);
     const k = 1 - Math.exp(-dt * (mag > 0 ? (this.hero.grounded ? 10 : 4) : this.hero.grounded ? 14 : 2));
@@ -902,10 +951,12 @@ export class Island {
         const R = Math.hypot(next.x, next.z);
         if (R > WORLD_R) next.multiplyScalar(WORLD_R / R);
       }
-      // duvarlar (bloklar, labirent): eksen eksen dene, duvar boyunca kayar
-      if (!this.blockedAt(next.x, this.pos.z, this.pos.y)) this.pos.x = next.x;
+      // duvarlar (bloklar, labirent): eksen eksen dene, duvar boyunca kayar. Bir engelin içinde kalındıysa
+      // (ör. eşyanın içine düşüldü) engel yok sayılır ki dışarı yürünebilsin.
+      const stuck = this.blockedAt(this.pos.x, this.pos.z, this.pos.y);
+      if (stuck || !this.blockedAt(next.x, this.pos.z, this.pos.y)) this.pos.x = next.x;
       else this.vel.x = 0;
-      if (!this.blockedAt(this.pos.x, next.z, this.pos.y)) this.pos.z = next.z;
+      if (stuck || !this.blockedAt(this.pos.x, next.z, this.pos.y)) this.pos.z = next.z;
       else this.vel.z = 0;
       const before = this.heading;
       if (mag > 0) this.turnTo(Math.atan2(dir.x, dir.z), dt, run ? 8 : 11);
@@ -1017,11 +1068,18 @@ export class Island {
     const { dir, mag } = this.moveDir();
     this.engineOn = true;
     this.ev.sound.engine?.(mag, this.vehicleKind().engine);
+    v.update?.(dt, mag, this.clock);
+    const h0 = v.heading;
     if (mag > 0) {
-      v.heading += angDiff(Math.atan2(dir.x, dir.z), v.heading) * Math.min(1, dt * 3);
+      v.heading += angDiff(Math.atan2(dir.x, dir.z), v.heading) * Math.min(1, dt * (v.bank ? 1.8 : 3));
       const f = new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading));
       const next = v.pos.clone().addScaledVector(f, v.speed * mag * dt);
-      if (v.land) {
+      if (v.land && this.realm) {
+        // bir dünyada (Mars): zeminin ve engellerin içinden geçmez
+        const ahead = next.clone().addScaledVector(f, 1.6);
+        if (this.groundAt(next.x, next.z) > -1e8 && !this.realm.blocked(ahead.x, ahead.z, v.pos.y) && !this.realm.blocked(next.x, next.z, v.pos.y)) v.pos.set(next.x, v.pos.y, next.z);
+        for (const w of v.model.children) if (w.name === 'wheel') w.rotation.x += v.speed * mag * dt * 1.6;
+      } else if (v.land) {
         // karada: suya girmez, engellerden ve bloklardan geçmez
         this.grid.push(next, 1.3);
         if (this.wb.ground(next.x, next.z) > 0.05 && Math.hypot(next.x, next.z) < WORLD_R && !this.home.build.blocked(next.x, next.z, v.pos.y)) v.pos.set(next.x, v.pos.y, next.z);
@@ -1036,12 +1094,20 @@ export class Island {
       // yokuşlarda burun yukarı / aşağı
       const f = new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading));
       const ty = this.carY(v, v.pos.x, v.pos.z) + (v.fly ? Math.sin(this.clock * 2) * 0.25 : 0);
-      v.pos.y += (ty - v.pos.y) * Math.min(1, dt * 10);
-      const pitch = v.fly ? 0 : -Math.atan2(this.wb.ground(v.pos.x + f.x * 1.5, v.pos.z + f.z * 1.5) - this.wb.ground(v.pos.x - f.x * 1.5, v.pos.z - f.z * 1.5), 3);
+      const climb = ty - v.pos.y;
+      // uçak yavaşça kalkar ve alçalır; araba yere hemen oturur
+      v.pos.y += climb * Math.min(1, dt * (v.alt && v.alt > 5 ? 0.9 : 10));
+      let pitch = v.fly ? 0 : -Math.atan2(this.groundAt(v.pos.x + f.x * 1.5, v.pos.z + f.z * 1.5) - this.groundAt(v.pos.x - f.x * 1.5, v.pos.z - f.z * 1.5), 3);
+      if (v.bank) pitch = -Math.max(-0.35, Math.min(0.35, climb * 0.05));
+      // dönerken yana yatma (uçak)
+      const roll = v.bank ? Math.max(-0.6, Math.min(0.6, (-angDiff(v.heading, h0) / Math.max(dt, 1e-3)) * 0.35)) : 0;
       v.model.position.copy(v.pos);
-      v.model.rotation.set(pitch, v.heading, 0, 'YXZ');
+      v.model.rotation.set(pitch, v.heading, (v.model.rotation.z + (roll - v.model.rotation.z) * Math.min(1, dt * 4)), 'YXZ');
       this.speed = 0;
-      this.pos.set(v.pos.x, v.pos.y + v.seatY, v.pos.z);
+      if (v.seat) {
+        v.model.updateMatrixWorld();
+        this.pos.copy(v.model.localToWorld(new THREE.Vector3(...v.seat)));
+      } else this.pos.set(v.pos.x, v.pos.y + v.seatY, v.pos.z);
       this.heading = v.heading;
       return;
     }
@@ -1056,6 +1122,11 @@ export class Island {
     const u = Math.min(1, a.t / a.def.dur);
     this.actor.heading = this.heading;
     a.def.step(a.t, u, this.actor, dt);
+    const hs = this.realm?.heroScale ?? 1;
+    if (hs < 1) {
+      const p = typeof a.def.pose === 'function' ? a.def.pose(u) : a.def.pose;
+      if (p === 'sit' || p === 'drive') this.pos.y += 0.9 * (1 - hs);
+    }
     this.heading = this.actor.heading;
     if (u < 1) return;
     const r0 = this.realm;
@@ -1072,6 +1143,7 @@ export class Island {
     if (this.realm) {
       const f = this.realm.floor(this.pos.x, this.pos.z, this.pos.y + 0.5);
       if (Number.isFinite(f)) this.pos.y = Math.max(f, Math.min(this.pos.y, f + 0.4));
+      this.unstick();
     } else {
       // etkinlik bitince kahraman yere (ya da suya) iner
       const g = this.wb.ground(this.pos.x, this.pos.z);
@@ -1170,7 +1242,8 @@ export class Island {
     this.avatar.root.rotation.y = this.heading;
     this.avatar.root.rotation.z = this.act || this.drive ? 0 : this.lean;
     this.squash += (0 - this.squash) * Math.min(1, dt * 10);
-    this.avatar.root.scale.set(1 + this.squash * 0.5, 1 - this.squash, 1 + this.squash * 0.5);
+    const hs = this.realm?.heroScale ?? 1;
+    this.avatar.root.scale.set(hs * (1 + this.squash * 0.5), hs * (1 - this.squash), hs * (1 + this.squash * 0.5));
     this.avatar.update(dt, this.clock, pose, this.act ? (pose === 'climb' ? 0.8 : 0) : this.speed);
     const g = this.floorAt(this.pos.x, this.pos.z, this.pos.y + 0.1);
     this.shadow.visible = !this.swimming && !this.drive && Number.isFinite(g) && this.pos.y - g < 8 && (this.realm ? true : g > -0.3);
@@ -1197,7 +1270,7 @@ export class Island {
     // kamera (hız treninde kahramanın arkasından izler)
     if (this.act?.def.follow) this.camYawGoal = this.heading + Math.PI;
     this.camYaw += angDiff(this.camYawGoal, this.camYaw) * Math.min(1, dt * 6);
-    const [d0, h0] = this.act?.def.cam ?? (this.realm ? this.realm.cam : this.building ? [17, 13] : this.drive ? [16, 8] : [13, 7.5]);
+    const [d0, h0] = this.act?.def.cam ?? (this.drive ? (this.drive.cam ?? [16, 8]) : this.realm ? this.realm.cam : this.building ? [17, 13] : [13, 7.5]);
     // yukarı / aşağı bakış: kamera kahramanın çevresinde yükselir ya da alçalır
     this.camPitch += (this.camPitchGoal - this.camPitch) * Math.min(1, dt * 6);
     const R0 = Math.hypot(d0, h0), e = Math.min(1.35, Math.max(0.08, Math.atan2(h0, d0) + this.camPitch));
