@@ -7,7 +7,7 @@ export type QuestId =
   | 'coaster' | 'waterslide' | 'swan' | 'swim' | 'jetski' | 'surf' | 'snorkel' | 'sandcastle' | 'lifeguard'
   | 'campfire' | 'tent' | 'treehouse' | 'harvest' | 'tractor' | 'snowman' | 'sled' | 'fossil' | 'egg' | 'castle' | 'rocket'
   | 'farm' | 'sell' | 'build' | 'maze' | 'sky' | 'candy' | 'decorate'
-  | 'tower' | 'mall' | 'cinema' | 'taxi';
+  | 'tower' | 'mall' | 'cinema' | 'taxi' | 'pet';
 
 export const STARS_GOAL = 5;
 /** Yıldız avı dışında her gün kaç görev. */
@@ -63,6 +63,7 @@ export const QUESTS: Record<QuestId, string> = {
   mall: 'Şehir Merkezi’ndeki AVM’de alışveriş yap',
   cinema: 'Şehir Merkezi’ndeki sinemada film izle',
   taxi: 'Şehir Merkezi’nde taksi sür',
+  pet: 'Evcil Hayvan Parkı’nda dostlarınla ilgilen',
 };
 
 /** Bugünün görevleri: yıldız avı hep var, diğer üçü güne göre değişir. */

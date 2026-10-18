@@ -12,6 +12,7 @@ import { house, sign, type Activity, type HouseOpts, type Vehicle, type WorldBui
 import { fountain, waterSurface } from './water';
 import type { InteriorId } from './homestead';
 import { buildDowntown } from './city';
+import { buildPetPark } from './petpark';
 
 const sm = (u: number) => u * u * (3 - 2 * u);
 const clamp01 = (u: number) => Math.min(1, Math.max(0, u));
@@ -1475,6 +1476,7 @@ function buildPicnic(b: WorldBuilder) {
 export function buildPlaces(b: WorldBuilder) {
   buildCity(b);
   buildDowntown(b);
+  buildPetPark(b);
   buildVillage(b);
   buildZoo(b);
   buildAirport(b);
