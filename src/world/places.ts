@@ -56,20 +56,25 @@ export function frame(b: WorldBuilder, Z: Zone) {
 /** Canvas yazılı levha (yalnızca ön yüz). */
 export function board(text: string, bg: string, fg = '#ffffff', w = 6, h = 1.4, font = 600) {
   const c = document.createElement('canvas');
-  c.width = 1024;
-  c.height = Math.round((1024 * h) / w);
+  // Dokunun çözünürlüğü tabelanın gerçek boyuna göre (metrede ~170 piksel), en çok 1024.
+  // Sabit 1024 verilince küçük ve uzun levhalar dev doku üretiyordu: müzedeki 26 levha tek başına
+  // 200 MB'ı aşıp telefonun ekran kartı belleğini doldurduğu için uygulama çöküyordu.
+  const PX = Math.max(96, Math.min(1024, Math.round(w * 170)));
+  c.width = PX;
+  c.height = Math.max(32, Math.min(1024, Math.round((PX * h) / w)));
+  const k = PX / 1024; // çerçeve kalınlıkları da küçülsün
   const x = c.getContext('2d')!;
   x.fillStyle = bg;
   x.beginPath();
-  x.roundRect(6, 6, c.width - 12, c.height - 12, c.height * 0.22);
+  x.roundRect(6 * k, 6 * k, c.width - 12 * k, c.height - 12 * k, c.height * 0.22);
   x.fill();
-  x.lineWidth = 12;
+  x.lineWidth = 12 * k;
   x.strokeStyle = '#3a2b27';
   x.stroke();
   x.fillStyle = fg;
   let size = c.height * 0.62;
   x.font = `${font} ${size}px Fredoka, Nunito, sans-serif`;
-  while (x.measureText(text).width > c.width * 0.88 && size > 20) x.font = `${font} ${(size -= 4)}px Fredoka, Nunito, sans-serif`;
+  while (x.measureText(text).width > c.width * 0.88 && size > 20 * k) x.font = `${font} ${(size -= 4 * k)}px Fredoka, Nunito, sans-serif`;
   x.textAlign = 'center';
   x.textBaseline = 'middle';
   x.fillText(text, c.width / 2, c.height / 2 + size * 0.06);

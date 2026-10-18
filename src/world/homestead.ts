@@ -579,7 +579,7 @@ export function buildMarket(b: WorldBuilder) {
   const ang = b.facing(M.x, M.z, 0, 0);
   b.place(g, M.x, M.z, ang);
   b.block(M.x, M.z, 3.8);
-  const sg = sign('Pazar', '#ffe1a8');
+  const sg = sign('Pazar', '#ffe1a8', false);
   sg.scale.setScalar(1.3);
   b.place(sg, M.x - Math.sin(ang) * 1.6, M.z - Math.cos(ang) * 1.6, ang, 2.4);
   // satıcı: Çizio'nun kartı (varsa)
@@ -652,7 +652,7 @@ export function buildPortals(b: WorldBuilder, enter: (id: RealmId) => void) {
     }
     g.add(ring, disc, swirl);
     b.place(g, x, z, face);
-    const sg = sign(r.name, r.glow);
+    const sg = sign(r.name, r.glow, false);
     b.place(sg, x - Math.sin(face) * 0.2, z - Math.cos(face) * 0.2, face, 4.4);
     b.block(x + Math.cos(face) * 2.6, z - Math.sin(face) * 2.6, 0.7);
     b.block(x - Math.cos(face) * 2.6, z + Math.sin(face) * 2.6, 0.7);

@@ -955,7 +955,32 @@ export class Island {
   // ----------------------------------------------------------------------------------------------
   // Döngü
   // ----------------------------------------------------------------------------------------------
+  /** Üst üste hata veren kare sayısı (bir aksilik oyunu dondurmasın). */
+  private errs = 0;
   private frame = (now: number) => {
+    // önce sıradaki kareyi iste: bu karede bir hata olsa bile oyun donup kalmasın
+    this.raf = requestAnimationFrame(this.frame);
+    try {
+      this.step(now);
+      this.errs = 0;
+    } catch (e) {
+      console.error('[ada] kare hatası', e);
+      this.errs++;
+      if (this.errs === 1 && this.realm) {
+        this.ev.onMessage('Bir aksilik oldu, dışarı çıkıyoruz.');
+        try {
+          this.leaveRealm();
+        } catch {
+          /* çıkış da başarısızsa bir sonraki kare yeniden dener */
+        }
+      } else if (this.errs > 90) {
+        cancelAnimationFrame(this.raf);
+        this.ev.onMessage('Ada yeniden açılmalı. Geri düğmesine dokunup tekrar gir.');
+      }
+    }
+  };
+
+  private step(now: number) {
     const raw = (now - this.last) / 1000;
     const dt = Math.min(0.05, raw);
     this.last = now;
@@ -998,8 +1023,7 @@ export class Island {
       this.home.build.stepDoors(this.pos.x, this.pos.z, dt);
     }
     this.draw(dt);
-    this.raf = requestAnimationFrame(this.frame);
-  };
+  }
 
   private moveDir(): { dir: THREE.Vector3; mag: number } {
     if (this.joy.lengthSq() > 0.01) {

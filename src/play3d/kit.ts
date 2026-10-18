@@ -180,13 +180,29 @@ export function makeRenderer(canvas: HTMLCanvasElement) {
   return r;
 }
 
+/** Malzemenin kendi dokuları (tabela yazıları, kâğıt kartlar...). gradientMap ortaktır, burada yok. */
+const TEX_SLOTS = ['map', 'alphaMap', 'aoMap', 'bumpMap', 'displacementMap', 'emissiveMap', 'lightMap', 'metalnessMap', 'normalMap', 'roughnessMap', 'specularMap', 'matcap'] as const;
+
+/** Malzemeyi ve dokularını birlikte bırakır (doku bırakılmazsa ekran kartı belleğinde birikir). */
+function dropMaterial(m: THREE.Material) {
+  const slots = m as unknown as Record<string, THREE.Texture | undefined>;
+  for (const k of TEX_SLOTS) slots[k]?.dispose();
+  m.dispose();
+}
+
 export function disposeScene(scene: THREE.Scene) {
   scene.traverse((o) => {
+    // ışığın gölge haritası: her sahne için 2048x2048 ayrı bir doku ayrılır, bırakılmazsa birikir
+    const l = o as THREE.Light & { shadow?: THREE.LightShadow };
+    if (l.isLight && l.shadow?.map) {
+      l.shadow.map.dispose();
+      l.shadow.map = null as unknown as THREE.WebGLRenderTarget;
+    }
     const m = o as THREE.Mesh;
     m.geometry?.dispose();
     const mat = m.material as THREE.Material | THREE.Material[] | undefined;
-    if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
-    else mat?.dispose();
+    if (Array.isArray(mat)) mat.forEach(dropMaterial);
+    else if (mat) dropMaterial(mat);
   });
   // önbellekteki malzemeler ve şekiller de atıldı: bir sonraki sahne yenilerini kursun
   mats.clear();

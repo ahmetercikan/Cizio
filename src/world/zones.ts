@@ -440,22 +440,37 @@ export function house(color: string, s = 1, roof = '#e05a4f', o: HouseOpts = {})
   return g;
 }
 
-/** Tabelanın yüzünü çiz (yazı sonradan değişebilsin diye ayrı). */
+/** Tabelanın yüzünü çiz (yazı sonradan değişebilsin diye ayrı): yuvarlak köşeli ahşap levha. */
 function paintSign(c: HTMLCanvasElement, text: string, color: string) {
+  const W = 512, H = 160;
   const x = c.getContext('2d')!;
-  x.clearRect(0, 0, 512, 160);
+  x.clearRect(0, 0, W, H);
   x.fillStyle = color;
-  x.fillRect(0, 0, 512, 160);
+  x.beginPath();
+  x.roundRect(6, 6, W - 12, H - 12, 26);
+  x.fill();
+  x.lineWidth = 11;
   x.strokeStyle = '#3a2b27';
-  x.lineWidth = 12;
-  x.strokeRect(6, 6, 500, 148);
+  x.stroke();
+  // ince iç çizgi ve iki yanda süs noktası: oyma tahta görünümü
+  x.lineWidth = 3.5;
+  x.strokeStyle = 'rgba(58, 43, 39, 0.3)';
+  x.beginPath();
+  x.roundRect(19, 19, W - 38, H - 38, 16);
+  x.stroke();
+  x.fillStyle = 'rgba(58, 43, 39, 0.4)';
+  for (const dx of [34, W - 34]) {
+    x.beginPath();
+    x.arc(dx, H / 2, 5.5, 0, Math.PI * 2);
+    x.fill();
+  }
   x.fillStyle = '#3a2b27';
-  let size = 64;
+  let size = 62;
   x.textAlign = 'center';
   x.textBaseline = 'middle';
   x.font = `600 ${size}px Fredoka, Nunito, sans-serif`;
-  while (x.measureText(text).width > 452 && size > 22) x.font = `600 ${(size -= 4)}px Fredoka, Nunito, sans-serif`;
-  x.fillText(text, 256, 84);
+  while (x.measureText(text).width > 404 && size > 22) x.font = `600 ${(size -= 4)}px Fredoka, Nunito, sans-serif`;
+  x.fillText(text, W / 2, H / 2 + 3);
 }
 
 /** Tabelanın yazısını değiştir (ev adı gibi sonradan değişenler için). */
@@ -466,7 +481,11 @@ export function signText(g: THREE.Group, text: string) {
   u.tex.needsUpdate = true;
 }
 
-export function sign(text: string, color = '#ffffff') {
+/**
+ * Ahşap asma tabela: iki direk, üstte kiriş, kirişten halkalarla sarkan çerçeveli levha.
+ * Yazı iki yüzde de düz okunur; `signText` ile sonradan değiştirilebilir (ev adı).
+ */
+export function sign(text: string, color = '#ffffff', direkli = true) {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 160;
@@ -474,17 +493,38 @@ export function sign(text: string, color = '#ffffff') {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   const g = new THREE.Group();
-  // iki yüzlü tabela: arkadan da düz okunur
+  const W = 3.5, H = 1.1, Y = 2.05;
+  // levhanın ahşap çerçevesi
+  const panel = outline(mesh(new THREE.BoxGeometry(W + 0.26, H + 0.24, 0.14), toon('#b9773f')), 1.03);
+  panel.position.y = Y;
+  g.add(panel);
   const mat = new THREE.MeshBasicMaterial({ map: t });
-  for (const r of [0, Math.PI]) {
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.1), mat);
-    board.position.set(0, 2.4, r ? -0.02 : 0.02);
-    board.rotation.y = r;
-    g.add(board);
+  for (const s of [1, -1]) {
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(W, H), mat);
+    face.position.set(0, Y, s * 0.085);
+    face.rotation.y = s > 0 ? 0 : Math.PI;
+    g.add(face);
   }
-  const post = mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.4, 6), toon('#9b6b43'));
-  post.position.y = 1.2;
-  g.add(post);
+  // yere oturan tabelalarda iki direk, üst kiriş ve levhayı taşıyan halkalar
+  // (pazar tentesi, macera kapısı gibi havada duranlarda yalnızca çerçeveli levha kalır)
+  if (direkli) {
+    const PX = W / 2 + 0.24;
+    for (const s of [-1, 1]) {
+      const post = outline(mesh(new THREE.CylinderGeometry(0.08, 0.11, 3.1, 8), toon('#9b6b43')), 1.05);
+      post.position.set(s * PX, 1.55, 0);
+      const cap = outline(mesh(new THREE.SphereGeometry(0.14, 10, 8), toon('#e2a868')), 1.06);
+      cap.position.set(s * PX, 3.2, 0);
+      g.add(post, cap);
+    }
+    const beam = outline(mesh(new THREE.BoxGeometry(W + 0.84, 0.22, 0.28), toon('#b9773f')), 1.03);
+    beam.position.y = 2.94;
+    g.add(beam);
+    for (const s of [-1, 1]) {
+      const ring = outline(mesh(new THREE.TorusGeometry(0.11, 0.035, 6, 12), toon('#6b5f4c')), 1.08);
+      ring.position.set(s * W * 0.3, 2.76, 0);
+      g.add(ring);
+    }
+  }
   g.userData.canvas = c;
   g.userData.color = color;
   g.userData.tex = t;
@@ -634,9 +674,14 @@ function buildTown(b: WorldBuilder) {
     // kapı kasabaya bakar: tabela ve giriş noktası da merkeze doğru konur
     const mr = Math.hypot(mx, mz);
     const ileri = (d: number): [number, number] => [(mx * (mr - d)) / mr, (mz * (mr - d)) / mr];
+    // tabela kapının önünü kapatmasın: girişin yanına, basamakların solundan biraz ileriye
+    const yan = (d: number, s: number): [number, number] => {
+      const [fx, fz] = ileri(d);
+      return [fx + (-mz / mr) * s, fz + (mx / mr) * s];
+    };
     const tabela = sign('Müze', '#f0e2c8');
     tabela.scale.setScalar(1.2);
-    b.place(tabela, ...ileri(8.4), ang);
+    b.place(tabela, ...yan(6.6, 6), ang);
     b.place(g, mx, mz, ang);
     b.block(mx, mz, 6.4);
     // kapıdan içeri girilir (iç mekân: src/world/interiors.ts → muze)
