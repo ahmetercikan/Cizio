@@ -599,3 +599,28 @@
 .song-done { text-align: center; font-family: var(--display); font-size: 21px; color: var(--teal-dark); }
 .song-hint { text-align: center; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .song-word.sing { transform: none; } }
+
+/* ------------------------------------------------------------------------------------------------
+   Say It! konuşma pratiği (src/english/games/SayIt.tsx)
+   ------------------------------------------------------------------------------------------------ */
+.say { display: grid; justify-items: center; gap: 12px; text-align: center; }
+.say__art { width: min(44vw, 190px); height: min(44vw, 190px); }
+.say__word { font-family: var(--display); font-size: clamp(28px, 8vw, 44px); font-weight: 600; line-height: 1; }
+.say__hint { font-weight: 800; color: var(--ink-2); font-size: 17px; min-height: 1.4em; }
+.say__warn { font-weight: 700; color: var(--coral-dark); font-size: 14px; }
+.say__wave { display: flex; align-items: center; gap: 5px; height: 72px; }
+.say__wave i {
+  width: 9px; border-radius: 6px; background: var(--teal); display: block;
+  transition: height 0.06s linear; min-height: 10px;
+}
+.say__row { display: flex; align-items: center; gap: 18px; }
+.say__mic {
+  width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--coral); color: #fff; box-shadow: var(--shadow-pop); border: 4px solid #fff;
+}
+.say__mic:disabled { opacity: 0.45; }
+.say__mic--on { background: var(--red); animation: say-pulse 1.1s ease-in-out infinite; }
+.say__mic--done { background: var(--teal); }
+.say__mic:active { transform: translateY(3px); }
+@keyframes say-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+@media (prefers-reduced-motion: reduce) { .say__mic--on { animation: none; } }

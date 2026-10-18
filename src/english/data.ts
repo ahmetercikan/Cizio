@@ -353,6 +353,13 @@ export const PRAISE = ['Great job!', 'Well done!', 'Yes! You got it!', 'Super!',
 export const TRY_AGAIN = "Let's try again!";
 export const UI = {
   welcome: 'Hello! Welcome to the English Club!',
+  // Say It! (konuşma pratiği)
+  sayListen: 'Listen!',
+  sayYour: 'Your turn! Say it!',
+  sayRec: 'I am listening...',
+  sayHear: 'Now listen to you!',
+  sayNext: 'Next word',
+  sayNoMic: 'Say it out loud with me!',
   hello: "Hello, friend! It's English time!",
   howAreYou: 'How are you today?',
   newWords: "New words! Listen and look.",

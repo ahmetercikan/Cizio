@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Kâğıda yaptığın çizimin fotoğrafını çekip örnekle karşılaştırmak için kamera kullanılır.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>İngilizce konuşma alıştırmasında kendi sesini kaydedip dinleyebilmen için mikrofon kullanılır. Kayıt telefonundan çıkmaz.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Çizimini fotoğraflarına kaydetmek için kullanılır.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

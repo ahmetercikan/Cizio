@@ -34,5 +34,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Kâğıt modu: çizimin fotoğrafı (görüntü cihazdan çıkmaz) -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- English Club: konuşma pratiğinde çocuk kendi sesini kaydedip dinler (kayıt cihazdan çıkmaz) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
