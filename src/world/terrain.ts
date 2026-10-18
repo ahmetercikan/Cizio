@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { canvasTexture, flowers, toon } from '../play3d/kit';
 import { COAST_MAX, coastAt, groundKind, heightAt, isWater, roadDist, WORLD_R, ZONES } from './layout';
+import { SEASONS, seasonOf } from './weather';
 
 export interface Blocker { x: number; z: number; r: number }
 
@@ -168,7 +169,9 @@ export function buildVegetation(scene: THREE.Scene, grid: BlockGrid, keepOut: { 
   const round = trees.filter((t) => t.kind === 0);
   const crown = new THREE.IcosahedronGeometry(1, 1);
   crown.translate(0, 1.85, 0);
-  inst(crown, toon('#5cc36b'), round.map((t) => ({ x: t.x, y: heightAt(t.x, t.z), z: t.z, s: t.s })));
+  // geniş yapraklı ağaçların ortak malzemesi: mevsime göre rengi değişir (src/world/weather.ts)
+  const leafMat = toon(SEASONS[seasonOf()].leaf);
+  inst(crown, leafMat, round.map((t) => ({ x: t.x, y: heightAt(t.x, t.z), z: t.z, s: t.s })));
   for (const [kind, color] of [[1, '#3fa45a'], [2, '#e9f6ff']] as const) {
     const pines = trees.filter((t) => t.kind === kind);
     for (let i = 0; i < 3; i++) {

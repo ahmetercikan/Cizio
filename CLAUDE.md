@@ -27,6 +27,7 @@
   - `layout.ts`: haritanın verisi (kıyı, bölgeler, yollar). Ada kuzeydoğuda bir yarımadayla büyüdü
     (`CAPE`, `COAST_MAX`); plaj, deniz feneri gibi eski kıyı yerleri yerinde kaldı.
   - `zones.ts` / `places.ts`: bölgeler
+  - `weather.ts`: mevsim (yaprak rengi, tarihten) ve günün havası (yağmur / kar; aynı gün hep aynı)
   - `water.ts`: dalgalanan havuz suyu ve kavis çizen fıskiye (kasaba çeşmesi, köy çeşmesi, AVM havuzu, ev havuzu)
   - `city.ts`: Şehir Merkezi (gökdelenler, dönel kavşak, AVM, sinema, otel, taksi) ve ortak `tower()` modeli
   - `interiors.ts`: binaların içi (okul, hastane, market, kütüphane, pastane, itfaiye + Şehir Merkezi'nin

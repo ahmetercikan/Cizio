@@ -15,6 +15,7 @@ import type { DollState } from '../dressup/catalog';
 import { isWater, WORLD_R } from './layout';
 import { petCard } from './puppet';
 import { BlockGrid, buildHorizon, buildTerrain, buildVegetation } from './terrain';
+import { Sky, weatherOf } from './weather';
 import { buildPlaces } from './places';
 import { buildZones, starPlaces, WorldBuilder, type Activity, type SpotDef, type Vehicle } from './zones';
 import { buildMarket, buildPortals, buildShops, Homestead, realmName, type FarmBridge, type RealmId } from './homestead';
@@ -131,6 +132,8 @@ export class Island {
   private spots: SpotDef[];
   // durum
   private raf = 0;
+  /** Günün havası (yağmur / kar); açık havada yok. */
+  private hava: Sky | null = null;
   private last = 0;
   private clock = 0;
   private pos = new THREE.Vector3();
@@ -261,6 +264,9 @@ export class Island {
     mark('çiftlik+pazar+kapılar');
     this.wb.autoBodies();
     buildVegetation(this.scene, this.grid, this.wb.keepOut);
+    // günün havası (aynı gün hep aynı): yağmur ya da kar kahramanın çevresinde yağar
+    const hava = weatherOf();
+    if (hava !== 'acik') this.hava = new Sky(this.scene, hava);
     mark('bitki örtüsü');
     this.spots = this.wb.spots;
     this.buildStars();
@@ -1375,6 +1381,12 @@ export class Island {
     }
     // adada güneş (ya da ay) gökte saate göre ilerler; gökyüzü, lambalar
     this.sky.update(dt, this.pos, this.camera, !this.realm, this.underwater);
+    // yağmur / kar yalnızca adanın açık havasında görünür (bina içi, Mars, su altı hariç)
+    if (this.hava) {
+      const gorunur = !this.realm && !this.underwater;
+      this.hava.visible = gorunur;
+      if (gorunur) this.hava.update(dt, this.pos, this.clock);
+    }
     this.realm?.beforeRender?.(this.camera, this.pos);
     this.renderer.render(this.stage, this.camera);
     // fotoğraf modu: kare çizildikten hemen sonra tuval okunur (WebGL tamponu sonra temizlenir)
@@ -1528,6 +1540,7 @@ export class Island {
     cancelAnimationFrame(this.raf);
     this.resizeObs.disconnect();
     this.avatar.dispose();
+    this.hava?.dispose();
     for (const r of this.remotes.values()) r.av.dispose();
     if (this.realm) {
       disposeScene(this.realm.scene);
