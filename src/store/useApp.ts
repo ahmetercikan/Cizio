@@ -115,6 +115,8 @@ export interface ProfileData {
   farm?: FarmState;
   /** Çevrimiçi kimlik (ebeveyn bölümünden açılır; yoksa çevrimiçi kapalı). */
   online?: OnlineIdentity;
+  /** Harf ve rakam izleme: harf kimliği → en iyi yıldız (src/trace). */
+  trace?: Record<string, number>;
 }
 
 export interface EnglishInput {
@@ -191,6 +193,8 @@ interface AppState {
   buyRare(key: string, price: number): boolean;
   /** Nadir eşyayı yıldız harcamadan verir (Butik'te altınla alınan, mini oyun ödülü). */
   grantOwned(key: string): void;
+  /** Bir harf / rakam izlendi: en iyi yıldızı saklar, yeni rekorsa kazanılan yıldızı döndürür. */
+  recordTrace(id: string, stars: number): number;
   buyChest(price: number): boolean;
   buyFrame(id: string, price: number): boolean;
   setFrame(id?: string): void;
@@ -545,6 +549,24 @@ export const useApp = create<AppState>()(
         const d = { ...emptyData(), ...data[activeId] };
         if ((d.owned ?? []).includes(key)) return;
         set({ data: { ...data, [activeId]: { ...d, owned: [...(d.owned ?? []), key] } } });
+      },
+
+      recordTrace(id, stars) {
+        const { activeId, data } = get();
+        if (!activeId) return 0;
+        const d = { ...emptyData(), ...data[activeId] };
+        const prev = d.trace?.[id] ?? 0;
+        if (stars <= prev) return 0;
+        // yalnızca fark kadar yıldız kazandırır (aynı harf tekrar tekrar yıldız basmasın)
+        const kazanc = stars - prev;
+        const t = today(d);
+        const next: ProfileData = {
+          ...d,
+          trace: { ...d.trace, [id]: stars },
+          days: { ...d.days, [dayKey()]: { ...t, stars: (t.stars ?? 0) + kazanc } },
+        };
+        set({ data: { ...data, [activeId]: withChests(d, next) } });
+        return kazanc;
       },
 
       buyChest(price) {

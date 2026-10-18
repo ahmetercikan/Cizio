@@ -3131,3 +3131,51 @@
 
 /* Sayfa yüklenirken (App.tsx Suspense) */
 .page-wait { min-height: 100dvh; }
+
+/* ------------------------------------------------------------------------------------------------
+   Harfler ve Sayılar (src/pages/Letters.tsx, src/trace)
+   ------------------------------------------------------------------------------------------------ */
+.letters { display: grid; gap: 10px; margin-bottom: 22px; }
+.letters__head { display: flex; align-items: baseline; gap: 10px; }
+.letters__head small { font-family: var(--body); font-size: 14px; font-weight: 800; color: var(--muted); }
+.letters__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 9px; }
+.letters__grid--num { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+.letter-card {
+  display: grid; justify-items: center; gap: 3px; padding: 10px 4px 7px; border-radius: 20px;
+  background: var(--paper); border: 2px solid var(--line); box-shadow: var(--shadow-card); color: var(--ink);
+}
+.letter-card b { font-family: var(--display); font-size: 27px; font-weight: 600; line-height: 1; display: flex; align-items: baseline; gap: 3px; }
+.letter-card b span { font-size: 19px; color: var(--muted); }
+.letter-card--num b { font-size: 31px; }
+.letter-card.done { border-color: var(--teal); background: var(--teal-soft); }
+.letter-card:active { transform: translateY(2px); }
+
+/* izleme tahtası */
+.trace { display: grid; justify-items: center; gap: 12px; }
+.trace__board {
+  background: var(--paper); border: 3px solid var(--line); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card); overflow: hidden; touch-action: none; position: relative;
+}
+.trace__board > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+.trace__guide { display: block; }
+.trace__bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.trace__hint { font-weight: 700; color: var(--ink-2); text-align: center; }
+.trace__hint--miss { color: var(--coral-dark); }
+.trace__dots { display: flex; gap: 7px; }
+.trace__dots i { width: 11px; height: 11px; border-radius: 50%; background: var(--line-2); display: block; }
+.trace__dots i.on { background: var(--teal); }
+.trace__nav { display: flex; align-items: center; gap: 14px; }
+.trace__nav-label { font-weight: 800; color: var(--muted); }
+.trace__won { font-family: var(--display); font-size: 24px; color: var(--sun-dark); text-align: center; }
+.trace__best { display: flex; align-items: center; gap: 8px; justify-content: center; font-weight: 700; }
+
+/* Dersler sayfasındaki "Harfler ve Sayılar" kartı */
+.letters-cta {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, var(--sun-soft), var(--teal-soft)); border: 2px solid var(--line);
+  box-shadow: var(--shadow-card); color: var(--ink); margin-bottom: 16px;
+}
+.letters-cta__abc { font-family: var(--display); font-size: 30px; font-weight: 600; letter-spacing: 1px; }
+.letters-cta__text { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.letters-cta__text b { font-family: var(--display); font-size: 19px; font-weight: 600; }
+.letters-cta__text small { color: var(--ink-2); font-weight: 700; }

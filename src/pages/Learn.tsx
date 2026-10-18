@@ -5,6 +5,7 @@ import { AppShell } from '../components/AppShell';
 import { SketchImg } from '../components/Sketch';
 import { BackButton, Stars } from '../components/ui';
 import { getPath, lessonsByPath, paths } from '../lessons';
+import { sfx } from '../lib/sfx';
 import { useProfileData } from '../store/useApp';
 
 export default function Learn() {
@@ -17,6 +18,14 @@ export default function Learn() {
           <h1 className="title-xl">Dersler</h1>
         </div>
       </header>
+      <Link to="/harfler" className="letters-cta rise" onClick={() => sfx.pop()}>
+        <span className="letters-cta__abc" aria-hidden="true">Aa1</span>
+        <span className="letters-cta__text">
+          <b>Harfler ve Sayılar</b>
+          <small>Parmağınla alfabeyi ve 0-9'u yaz</small>
+        </span>
+        <ArrowRight size={22} />
+      </Link>
       <div className="course-grid">
         {paths.map((p, i) => {
           const ls = lessonsByPath(p.id);
