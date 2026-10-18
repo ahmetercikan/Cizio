@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clockText, MATH_GAMES, MATH_LINES, mathGame, question, type MathGame } from '../mathpark';
+import { clockText, MATH_GAMES, MATH_LINES, mathGame, question, saatDogru, type MathGame } from '../mathpark';
 
 const oyunlar: MathGame[] = ['say', 'topla', 'cikar', 'saat'];
 
@@ -46,6 +46,17 @@ describe('Matematik Parkı', () => {
       expect(h).toBeLessThanOrEqual(12);
       expect([0, 30]).toContain(m);
       expect(q.answer).toBe(h);
+    }
+  });
+
+  it('oyunun sesli okuduğu her soru ve saat cevabı seslendirme listesinde', () => {
+    const liste = new Set(MATH_LINES);
+    for (const g of oyunlar) for (const lv of [1, 2, 3] as const) {
+      for (let i = 0; i < 400; i++) {
+        const q = question(g, lv);
+        expect(liste.has(q.say), `${g}/${lv}: ${q.say}`).toBe(true);
+        if (q.clock) expect(liste.has(saatDogru(q.clock[0], q.clock[1])), `${g}/${lv}: saat cevabı`).toBe(true);
+      }
     }
   });
 

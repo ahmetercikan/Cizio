@@ -11,7 +11,7 @@ import { AppShell } from '../components/AppShell';
 import { GameIcon } from '../world/GameIcon';
 import { Mascot } from '../components/Mascot';
 import { Stars } from '../components/ui';
-import { clockText, MATH_GAMES, MATH_UI, question, type MathGame, type MathQuestion } from '../lib/mathpark';
+import { MATH_GAMES, MATH_UI, question, saatDogru, type MathGame, type MathQuestion } from '../lib/mathpark';
 import { sfx } from '../lib/sfx';
 import { speak } from '../lib/speech';
 import { useApp, useProfileData } from '../store/useApp';
@@ -87,7 +87,7 @@ function Tur({ oyun, zorluk, onBack }: { oyun: MathGame; zorluk: 1 | 2 | 3; onBa
       return;
     }
     sfx.star(dogru % 5);
-    speak(q.clock ? `${MATH_UI.right} ${clockText(q.clock[0], q.clock[1])}.` : MATH_UI.right);
+    speak(q.clock ? saatDogru(q.clock[0], q.clock[1]) : MATH_UI.right);
     const n = dogru + 1;
     setDogru(n);
     window.setTimeout(() => {

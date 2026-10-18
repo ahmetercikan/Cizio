@@ -69,6 +69,15 @@ function options(answer: number, spread = 3, min = 0): number[] {
 const SAAT_AD = ['on iki', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz', 'on', 'on bir'];
 export const clockText = (h: number, m: number) => (m === 30 ? `${SAAT_AD[h % 12]} buçuk` : `saat ${SAAT_AD[h % 12]}`);
 
+/** Zorluğa göre en büyük sayılar (toplamada iki sayının her biri, çıkarmada eksilen için). */
+const TOPLA_MAX = { 1: 4, 2: 6, 3: 9 } as const;
+const CIKAR_MAX = { 1: 5, 2: 9, 3: 14 } as const;
+
+/** Sesli okunan soru ve cevap cümleleri (oyun da ses listesi de bunları kullanır, ikisi hep aynı kalır). */
+export const toplaSoru = (a: number, b: number) => `${a} artı ${b} kaç eder?`;
+export const cikarSoru = (a: number, b: number) => `${a} eksi ${b} kaç eder?`;
+export const saatDogru = (h: number, m: number) => `${MATH_UI.right} ${clockText(h, m)}.`;
+
 /** Zorluk: 1 kolay (5 yaş), 2 orta, 3 zor. */
 export function question(game: MathGame, level: 1 | 2 | 3): MathQuestion {
   if (game === 'say') {
@@ -83,23 +92,23 @@ export function question(game: MathGame, level: 1 | 2 | 3): MathQuestion {
     };
   }
   if (game === 'topla') {
-    const max = level === 1 ? 4 : level === 2 ? 6 : 9;
+    const max = TOPLA_MAX[level];
     const a = 1 + rnd(max), b = 1 + rnd(max);
     return {
       text: `${a} + ${b} = ?`,
-      say: `${a} artı ${b} kaç eder?`,
+      say: toplaSoru(a, b),
       answer: a + b,
       options: options(a + b, 3, 0),
       counts: [a, b],
     };
   }
   if (game === 'cikar') {
-    const max = level === 1 ? 5 : level === 2 ? 9 : 14;
+    const max = CIKAR_MAX[level];
     const a = 2 + rnd(max);
     const b = 1 + rnd(a - 1);
     return {
       text: `${a} - ${b} = ?`,
-      say: `${a} eksi ${b} kaç eder?`,
+      say: cikarSoru(a, b),
       answer: a - b,
       options: options(a - b, 3, 0),
       counts: [a, b],
@@ -126,14 +135,30 @@ export const MATH_UI = {
   done: 'Hepsini bildin! Matematikte çok iyisin!',
 };
 
-/** Soru metni değişmeyen oyunların sesli hâli (toplama/çıkarma sayılarla değiştiği için cihazın sesiyle okunur). */
+/** Soru metni değişmeyen oyunların sesli hâli. */
 const SABIT_SORULAR = ['Kaç tane var? Say bakalım!', 'Saat kaç?'];
 
-/** Seslendirilecek cümleler: oyun adları, ipuçları, sabit cümleler, sabit sorular ve saat okunuşları. */
+/** Toplama ve çıkarmada çıkabilecek bütün sorular (en zor seviyenin aralığı kolayları da kapsar). */
+const tumToplama = () => {
+  const out: string[] = [];
+  for (let a = 1; a <= TOPLA_MAX[3]; a++) for (let b = 1; b <= TOPLA_MAX[3]; b++) out.push(toplaSoru(a, b));
+  return out;
+};
+const tumCikarma = () => {
+  const out: string[] = [];
+  for (let a = 2; a <= 1 + CIKAR_MAX[3]; a++) for (let b = 1; b < a; b++) out.push(cikarSoru(a, b));
+  return out;
+};
+
+/** Seslendirilecek cümleler: oyun adları, ipuçları, sabit cümleler, bütün sorular, saat okunuşları ve saat cevapları. */
 export const MATH_LINES: string[] = [...new Set([
   ...MATH_GAMES.flatMap((g) => [g.name, g.hint]),
   ...Object.values(MATH_UI),
   ...SABIT_SORULAR,
+  ...tumToplama(),
+  ...tumCikarma(),
   ...Array.from({ length: 12 }, (_, i) => clockText(i + 1, 0)),
   ...Array.from({ length: 12 }, (_, i) => clockText(i + 1, 30)),
+  ...Array.from({ length: 12 }, (_, i) => saatDogru(i + 1, 0)),
+  ...Array.from({ length: 12 }, (_, i) => saatDogru(i + 1, 30)),
 ])];
