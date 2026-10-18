@@ -14,6 +14,7 @@ import type { DollState } from '../dressup/catalog';
 import { ABC_LINES } from './abc';
 import { SONG_LINES } from './songs';
 import { DRAW_LINES } from './draw';
+import { MORE_STORIES } from './stories';
 
 // ------------------------------------------------------------------------------------------------
 // Resimler
@@ -718,6 +719,7 @@ export const STORIES: Story[] = [
       { bg: 'day', say: ['"Thank you! Bye-bye!"', 'Now brush your teeth, Rex!', 'The end.'], items: [{ lesson: 'trex', x: 380, y: 310, s: 400 }, { lesson: 'mascot', x: 760, y: 340, s: 200 }] },
     ],
   },
+  ...MORE_STORIES,
 ];
 export const getStory = (id: string) => STORIES.find((s) => s.id === id);
 
