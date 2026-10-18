@@ -26,6 +26,7 @@ const DressUp = lazy(loadDress);
 const Duel = lazy(() => import('./pages/Duel'));
 const EnglishHome = lazy(loadEnglish);
 const EnglishAbc = lazy(() => import('./english/AbcPage'));
+const EnglishSongs = lazy(() => import('./english/SongsPage'));
 const EnglishGames = named(loadEnglish, 'EnglishGames');
 const EnglishPlay = named(loadEnglish, 'EnglishPlay');
 const EnglishStories = named(loadEnglish, 'EnglishStories');
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="/english" element={<NeedsProfile><EnglishHome /></NeedsProfile>} />
         <Route path="/english/zaman" element={<NeedsProfile><EnglishTime /></NeedsProfile>} />
         <Route path="/english/abc" element={<NeedsProfile><EnglishAbc /></NeedsProfile>} />
+        <Route path="/english/sarkilar" element={<NeedsProfile><EnglishSongs /></NeedsProfile>} />
         <Route path="/english/kelimeler" element={<NeedsProfile><EnglishWords /></NeedsProfile>} />
         <Route path="/english/kelimeler/:id" element={<NeedsProfile><EnglishTopic /></NeedsProfile>} />
         <Route path="/english/oyunlar" element={<NeedsProfile><EnglishGames /></NeedsProfile>} />
