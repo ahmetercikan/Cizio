@@ -495,6 +495,78 @@ function motorBurst(f: number, dur: number, gain: number, lp: number) {
 }
 
 /**
+ * Roket kalkışı: gerçek bir fırlatma gibi. Üç katman üst üste biner —
+ * yanma gürültüsü (alçaktan kabaran geniş bir uğultu), motorun derin gümbürtüsü ve
+ * hızlanınca ortaya çıkan ıslıklı akış. Roket yükseldikçe ses hem kısılır hem boğuklaşır (uzaklaşma).
+ */
+function rocketRoar(dur: number, gain = 0.38) {
+  const a = ac();
+  if (!a) return;
+  const t = a.currentTime;
+  const end = t + dur;
+  // 1) yanma gürültüsü: alçak geçiren süzgeçten geçen geniş gürültü
+  const src = noiseSrc(a);
+  const lp = a.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.Q.value = 0.9;
+  lp.frequency.setValueAtTime(260, t);
+  lp.frequency.linearRampToValueAtTime(1500, t + dur * 0.3);
+  lp.frequency.linearRampToValueAtTime(420, end);
+  const hp = a.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 45;
+  const shake = a.createBiquadFilter(); // gövde titreşimi
+  shake.type = 'peaking';
+  shake.frequency.value = 95;
+  shake.Q.value = 1.1;
+  shake.gain.value = 9;
+  const ng = a.createGain();
+  ng.gain.setValueAtTime(0.0001, t);
+  ng.gain.exponentialRampToValueAtTime(gain, t + 0.35);
+  ng.gain.setValueAtTime(gain, t + dur * 0.55);
+  ng.gain.exponentialRampToValueAtTime(gain * 0.22, end - 0.3);
+  ng.gain.exponentialRampToValueAtTime(0.0001, end);
+  src.connect(hp).connect(shake).connect(lp).connect(ng);
+  out(a, ng, 0.45);
+  src.start(t);
+  src.stop(end + 0.05);
+  // 2) motorun derin gümbürtüsü
+  const o = a.createOscillator();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(34, t);
+  o.frequency.linearRampToValueAtTime(52, t + dur * 0.35);
+  o.frequency.linearRampToValueAtTime(28, end);
+  const olp = a.createBiquadFilter();
+  olp.type = 'lowpass';
+  olp.frequency.value = 180;
+  const og = a.createGain();
+  og.gain.setValueAtTime(0.0001, t);
+  og.gain.exponentialRampToValueAtTime(gain * 0.6, t + 0.3);
+  og.gain.setValueAtTime(gain * 0.6, t + dur * 0.5);
+  og.gain.exponentialRampToValueAtTime(0.0001, end);
+  o.connect(olp).connect(og);
+  out(a, og, 0.3);
+  o.start(t);
+  o.stop(end + 0.05);
+  // 3) ıslıklı akış: kalkıştan sonra yükselip uzaklaşır
+  const air = noiseSrc(a);
+  const bp = a.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 0.8;
+  bp.frequency.setValueAtTime(900, t);
+  bp.frequency.exponentialRampToValueAtTime(2600, t + dur * 0.45);
+  bp.frequency.exponentialRampToValueAtTime(700, end);
+  const ag = a.createGain();
+  ag.gain.setValueAtTime(0.0001, t);
+  ag.gain.exponentialRampToValueAtTime(gain * 0.3, t + dur * 0.3);
+  ag.gain.exponentialRampToValueAtTime(0.0001, end);
+  air.connect(bp).connect(ag);
+  out(a, ag, 0.5);
+  air.start(t);
+  air.stop(end + 0.05);
+}
+
+/**
  * Korna tonu: gerçek klakson gibi. Perde atakta aşağıdan yakalanır (membran hızlanır), gövde
  * rezonansı metalik tadı verir, bırakınca perde hafif düşer.
  */
@@ -642,6 +714,16 @@ const RIDE: Record<string, (i: number) => void> = {
   },
   /** Uzaktan bir motor: kısa patlama (rover, geçen araç). */
   engine: () => motorBurst(34, 0.55, 0.05, 900),
+  /** Roket ateşlemesi: fitil tutuşur, sonra gümbürtü başlar. */
+  ignite: () => {
+    noise(0, 0.5, 0.14, 1200, 320, 0.7, 0.3);
+    fm(60, 0.02, 0.5, 0.3, 1, 2.4, 0.2);
+  },
+  /** Roket kalkışı (Mars'a gidiş ve dönüş): varsa gerçek kayıt, yoksa sentez gümbürtü. */
+  rocket: (i = 0) => {
+    const dur = i || 7;
+    if (!playSample('rocket', 0.55, { dur, wet: 0.3 })) rocketRoar(dur);
+  },
   /** Fil borusu. */
   trumpet: () => sweep('sawtooth', 330, 420, 0, 0.9, 0.06, { mid: 620, vib: 18, vibRate: 9, lp: 1800, wet: 0.4 }),
   /** Aslan kükremesi (sevimli). */

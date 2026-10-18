@@ -260,6 +260,7 @@ function buildFootball(b: WorldBuilder) {
   // top
   // beyaz top, on iki siyah beşgen yama
   const ball = outline(mesh(new THREE.SphereGeometry(R, 20, 16), toon('#ffffff')), 1.06);
+  ball.userData.noTap = true; // top, arkasındaki mekâna dokunmayı engellemesin
   const ico = new THREE.IcosahedronGeometry(1, 0).getAttribute('position');
   const seen = new Set<string>();
   const patch = new THREE.CircleGeometry(R * 0.36, 5);
@@ -587,6 +588,7 @@ function buildBasket(b: WorldBuilder) {
   // top
   const ballMat = toon('#f08a24');
   const ball = outline(mesh(new THREE.SphereGeometry(BR, 18, 14), ballMat), 1.07);
+  ball.userData.noTap = true; // taşınan top, arkasındaki mekâna dokunmayı engellemesin
   for (const r of [0, Math.PI / 2]) {
     const seam = mesh(new THREE.TorusGeometry(BR + 0.003, 0.012, 4, 24), toon('#3a2b27'), false);
     seam.rotation.y = r;

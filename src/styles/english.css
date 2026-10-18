@@ -44,19 +44,26 @@
   min-height: 0;
   max-height: 640px;
 }
-/* Altı kart ekrana sığmaz: ızgara ekrana göre sıkışmaz, içeriği kadar uzar ve sayfa kayar.
+/* Kartlar ekrana göre sıkışmaz, içerikleri kadar uzar ve sayfa kayar.
    (Sıkıştığında kartlar kısalıyor, içlerindeki resimler kırpılıyordu.) */
+.worlds__grid--4,
 .worlds__grid--6 { flex: none; min-height: auto; max-height: none; }
-/* Dar ekranda tek sütun (aşağıdaki ortak kural), tablette iki, geniş ekranda üç sütun. */
+/* Dar ekranda tek sütun (aşağıdaki ortak kural), tablette iki, geniş ekranda hepsi yan yana. */
 @media (min-width: 861px) and (max-width: 1279px) {
+  .worlds__grid--4,
   .worlds__grid--6 { grid-template-columns: repeat(2, 1fr); }
+  .worlds__grid--4 .world-card,
   .worlds__grid--6 .world-card { flex-direction: row; align-items: center; padding: 12px 70px 12px 12px; }
+  .worlds__grid--4 .world-art,
   .worlds__grid--6 .world-art { flex: none; height: clamp(140px, min(18vw, 34vh), 250px); width: auto; min-height: 0; aspect-ratio: 1; }
+  .worlds__grid--4 .world-card__go,
   .worlds__grid--6 .world-card__go { top: 50%; bottom: auto; transform: translateY(-50%); }
 }
 @media (min-width: 1280px) {
+  .worlds__grid--4 { grid-template-columns: repeat(4, 1fr); }
   .worlds__grid--6 { grid-template-columns: repeat(3, 1fr); }
   /* Resim kutusunun oranı sabit: kart alçalsa da resim kırpılmaz, kutu resimle birlikte küçülür. */
+  .worlds__grid--4 .world-art,
   .worlds__grid--6 .world-art { flex: none; width: 100%; min-height: 0; aspect-ratio: 4 / 3; }
 }
 

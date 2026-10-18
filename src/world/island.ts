@@ -422,12 +422,18 @@ export class Island {
     for (const h of hits) {
       let o: THREE.Object3D | null = h.object;
       if (o === this.shadow || o === this.pick || o === this.sea) continue;
-      while (o && o !== this.avatar.root && o !== this.pet) o = o.parent;
-      if (o) continue; // kendi karakterine dokundu
+      // kahramanın yanındaki şeyler (taşıdığı top, parıltılar) dokunuşu yutmasın: onlara takılınca
+      // arkalarındaki bina ya da araç hiç görülmüyor, "hiçbir yere giremiyorum" oluyordu
+      let gecis = false;
+      while (o && o !== this.avatar.root && o !== this.pet) {
+        if (o.userData.noTap) gecis = true;
+        o = o.parent;
+      }
+      if (o || gecis) continue; // kendi karakterine ya da taşıdığı bir şeye dokundu
       if (h.object === this.land || h.distance > 90) return null;
       let best: SpotDef | null = null, bd = Infinity;
       for (const s of this.live) {
-        if (s.dyn && s.dyn() === null) continue;
+        if (this.spotLabel(s) === null) continue;
         const x = s.vehicle ? s.vehicle.pos.x : s.x, z = s.vehicle ? s.vehicle.pos.z : s.z;
         let d = Math.hypot(h.point.x - x, h.point.z - z) - s.r;
         if (s.body) d = Math.min(d, Math.hypot(h.point.x - s.body.x, h.point.z - s.body.z) - s.body.r);
@@ -477,7 +483,13 @@ export class Island {
     this.target = null;
     this.pending = null;
     if (s.use) {
-      const u = s.use();
+      let u: ReturnType<NonNullable<SpotDef['use']>>;
+      try {
+        u = s.use();
+      } catch (e) {
+        console.error('[ada] mekân hatası', s.id, e);
+        return this.ev.onMessage('Bu şimdi açılmadı, biraz sonra tekrar dene.');
+      }
       if (!u) return;
       if (u === 'page') return this.ev.onPage(id);
       if ('msg' in u) {
@@ -497,18 +509,45 @@ export class Island {
     this.act.t = Math.max(this.act.t, this.act.def.dur);
   }
 
+  /** Elindekini bırak (yeni bir işe başlarken, araca binerken, bir dünyaya girip çıkarken). */
+  private dropHeld() {
+    this.avatar.hand.children.slice().forEach((c) => c.removeFromParent());
+  }
+
   private startAct(s: SpotDef, def: Activity) {
+    // eldeki eski eşya (dondurma, balon...) yeni işe karışmasın
+    this.dropHeld();
     this.act = { spot: s, def, t: 0 };
     this.vel.set(0, 0, 0);
     this.hero.vy = 0;
     this.hero.grounded = true;
     this.actor.heading = this.heading;
-    def.start?.(this.actor);
     this.ev.onBusy(true);
     this.setNear(null);
+    try {
+      def.start?.(this.actor);
+    } catch (e) {
+      console.error('[ada] etkinlik başlamadı', s.id, e);
+      return this.cancelAct('Bu şimdi olmadı, başka bir şey deneyelim.');
+    }
     if (def.underwater) this.setUnderwater(true);
   }
+
+  /**
+   * Etkinliği zorla bitir (bir aksilik olduğunda). Kahraman serbest kalır: düğmeler geri gelir,
+   * çocuk hiçbir zaman oyunun içinde kilitli kalmaz.
+   */
+  private cancelAct(msg?: string) {
+    if (!this.act) return;
+    const under = this.act.def.underwater;
+    this.act = null;
+    if (under) this.setUnderwater(false);
+    this.ev.onBusy(false);
+    if (msg) this.ev.onMessage(msg);
+    this.unstick();
+  }
   private mount(s: SpotDef) {
+    this.dropHeld();
     this.drive = s.vehicle!;
     // kamera aracın arkasına geçsin (önünde kalıp binaya girmesin)
     this.camYawGoal = this.camYaw + angDiff(this.drive.heading + Math.PI, this.camYaw);
@@ -891,6 +930,7 @@ export class Island {
       hush: () => this.ev.onHush?.(),
     }, this.seed, { museum: this.o.farm.get().museum ?? [], film: this.o.film ?? [] });
     this.realm = realm;
+    this.dropHeld(); // ada eşyası binanın içine taşınmasın
     if (this.building) this.setBuildMode(false);
     this.moveActors(realm.scene);
     // arkadaşlar üst üste doğmasın: başlangıç noktası biraz kayar
@@ -926,6 +966,7 @@ export class Island {
       this.ev.onBusy(false);
     }
     this.realm = null;
+    this.dropHeld(); // bina eşyası adaya taşınmasın
     this.wearHelmet(false);
     this.moveActors(this.scene);
     disposeScene(r.scene);
@@ -1152,11 +1193,22 @@ export class Island {
     if (this.clock > this.nearQuietUntil) for (const s of this.live) {
       const d = this.spotDist(s, this.pos.x, this.pos.z);
       if (d >= 1 || d >= best) continue;
-      const l = s.dyn ? s.dyn() : s.label;
+      const l = this.spotLabel(s);
       if (l === null) continue;
       [near, best, label] = [s, d, l];
     }
     this.setNear(near, label);
+  }
+
+  /** Mekânın o anki yazısı (null: şimdilik gizli). Hata çıkarsa mekân sessizce gizlenir. */
+  private spotLabel(s: SpotDef): string | null {
+    if (!s.dyn) return s.label;
+    try {
+      return s.dyn();
+    } catch (e) {
+      console.error('[ada] mekân yazısı', s.id, e);
+      return null;
+    }
   }
 
   private setNear(s: SpotDef | null, label = '') {
@@ -1250,7 +1302,12 @@ export class Island {
     a.t += dt;
     const u = Math.min(1, a.t / a.def.dur);
     this.actor.heading = this.heading;
-    a.def.step(a.t, u, this.actor, dt);
+    try {
+      a.def.step(a.t, u, this.actor, dt);
+    } catch (e) {
+      console.error('[ada] etkinlik hatası', a.spot.id, e);
+      return this.cancelAct('Bir aksilik oldu, hadi devam edelim.');
+    }
     const hs = this.realm?.heroScale ?? 1;
     if (hs < 1) {
       const p = typeof a.def.pose === 'function' ? a.def.pose(u) : a.def.pose;
@@ -1259,7 +1316,12 @@ export class Island {
     this.heading = this.actor.heading;
     if (u < 1) return;
     const r0 = this.realm;
-    const msg = a.def.end?.(this.actor);
+    let msg: string | void = undefined;
+    try {
+      msg = a.def.end?.(this.actor);
+    } catch (e) {
+      console.error('[ada] etkinlik bitişi', a.spot.id, e);
+    }
     if (this.realm === r0) this.heading = this.actor.heading;
     this.act = null;
     if (a.def.underwater) this.setUnderwater(false);
@@ -1300,7 +1362,15 @@ export class Island {
   private stepWorld(dt: number) {
     this.water.offset.x += dt * 0.02;
     for (const s of this.stars) if (!s.taken) s.obj.rotation.y += dt * 2;
-    for (const f of this.wb.ticks) f(dt, this.clock, this.actor);
+    // bir hareketin hatası bütün kareyi düşürmesin: o hareket sessizce durur, oyun akmaya devam eder
+    for (const f of this.wb.ticks) {
+      try {
+        f(dt, this.clock, this.actor);
+      } catch (e) {
+        console.error('[ada] hareket durdu', e);
+        this.wb.ticks.splice(this.wb.ticks.indexOf(f), 1);
+      }
+    }
     this.home.update(dt, this.clock);
     // araçlar: binilmeyenler suda sallanır
     for (const s of this.spots) {

@@ -13,6 +13,7 @@ import { ALIVE_LINE, GAME_END_LINES, GAME_LINES, GAME_LIVES_LINE } from '../art/
 import { STORY_VOICE_LINES } from '../story/data';
 import { ISLAND_VOICE_LINES } from '../world/quests';
 import { TRACE_VOICE_LINES } from '../trace/lines';
+import { MUZIK_MATEMATIK_ACIK } from '../lib/flags';
 import { MUSIC_LINES } from '../lib/instruments';
 import { MATH_LINES } from '../lib/mathpark';
 
@@ -59,9 +60,8 @@ export const STATIC_LINES: string[] = [
   ...ISLAND_VOICE_LINES,
   // Harf ve rakam yazma (src/trace)
   ...TRACE_VOICE_LINES,
-  // Müzik Odası ve Matematik Parkı
-  ...MUSIC_LINES,
-  ...MATH_LINES,
+  // Müzik Odası ve Matematik Parkı (şimdilik kapalı: src/lib/flags.ts)
+  ...(MUZIK_MATEMATIK_ACIK ? [...MUSIC_LINES, ...MATH_LINES] : []),
 ];
 
 /** Her ders için üretilecek kalıp cümleler. */

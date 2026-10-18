@@ -144,6 +144,7 @@ export class Sparkles {
       let p = this.pool.find((x) => x.life <= 0);
       if (!p) {
         const s = new THREE.Sprite(this.mat.clone());
+        s.userData.noTap = true; // parıltılar ekrana dokunuşu yutmasın
         this.scene.add(s);
         p = { s, v: new THREE.Vector3(), life: 0 };
         this.pool.push(p);

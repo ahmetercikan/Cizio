@@ -12,6 +12,7 @@ import { PRESETS } from '../dressup/catalog';
 import { Doll } from '../dressup/Doll';
 import { LessonArt } from '../english/Art';
 import { lessons } from '../lessons';
+import { MUZIK_MATEMATIK_ACIK } from '../lib/flags';
 import { sfx } from '../lib/sfx';
 import { dayKey } from '../lib/util';
 import { useProfile, useProfileData } from '../store/useApp';
@@ -106,7 +107,7 @@ export default function Worlds() {
           <p className="sub">{greeting()}, {profile.name}!</p>
           <h1 className="title-xl">Bugün nereye gidelim?</h1>
         </header>
-        <div className="worlds__grid worlds__grid--6">
+        <div className={`worlds__grid worlds__grid--${MUZIK_MATEMATIK_ACIK ? 6 : 4}`}>
           {CARDS.map(({ id, sub, Art }, i) => (
             <Link key={id} to={WORLDS[id].home} className={`world-card world-card--${id} rise`} style={{ animationDelay: `${0.08 * i}s` }} onClick={() => sfx.pop()}>
               <Art />
@@ -131,24 +132,28 @@ export default function Worlds() {
             </span>
             <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
           </Link>
-          <Link to="/muzik" className="world-card world-card--muzik rise" style={{ animationDelay: '0.3s' }} onClick={() => sfx.pop()}>
-            <span className="world-card__mini" aria-hidden="true"><Music size={46} strokeWidth={2.2} /></span>
-            <span className="world-card__text">
-              <b>Müzik Odası</b>
-              <small>Çalgı çal, ezgiyi tekrarla</small>
-              <span className="world-card__status">Beş çalgı seni bekliyor</span>
-            </span>
-            <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
-          </Link>
-          <Link to="/matematik" className="world-card world-card--matematik rise" style={{ animationDelay: '0.36s' }} onClick={() => sfx.pop()}>
-            <span className="world-card__mini" aria-hidden="true"><Calculator size={46} strokeWidth={2.2} /></span>
-            <span className="world-card__text">
-              <b>Matematik Parkı</b>
-              <small>Say, topla, çıkar, saati oku</small>
-              <span className="world-card__status">Dört oyun hazır</span>
-            </span>
-            <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
-          </Link>
+          {MUZIK_MATEMATIK_ACIK && (
+            <>
+            <Link to="/muzik" className="world-card world-card--muzik rise" style={{ animationDelay: '0.3s' }} onClick={() => sfx.pop()}>
+              <span className="world-card__mini" aria-hidden="true"><Music size={46} strokeWidth={2.2} /></span>
+              <span className="world-card__text">
+                <b>Müzik Odası</b>
+                <small>Çalgı çal, ezgiyi tekrarla</small>
+                <span className="world-card__status">Beş çalgı seni bekliyor</span>
+              </span>
+              <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
+            </Link>
+            <Link to="/matematik" className="world-card world-card--matematik rise" style={{ animationDelay: '0.36s' }} onClick={() => sfx.pop()}>
+              <span className="world-card__mini" aria-hidden="true"><Calculator size={46} strokeWidth={2.2} /></span>
+              <span className="world-card__text">
+                <b>Matematik Parkı</b>
+                <small>Say, topla, çıkar, saati oku</small>
+                <span className="world-card__status">Dört oyun hazır</span>
+              </span>
+              <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
+            </Link>
+            </>
+          )}
         </div>
       </main>
       <RewardsHost />

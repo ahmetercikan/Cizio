@@ -777,7 +777,8 @@ function buildTown(b: WorldBuilder) {
   b.block(ix, iz, 2.8);
   b.spot({
     id: 'icecream', x: 10.6, z: 12.4, r: 2.4, label: 'Dondurma al',
-    act: { dur: 1.4, pose: 'hold', step() {}, end: (a) => { const c = coneModel(1); c.position.set(0, -0.05, 0.12); c.name = 'held'; a.hand.add(c); return 'Afiyet olsun!'; } },
+    // eldeki eski eşya bırakılır, yenisi alınır: el hiç dolup taşmaz
+    act: { dur: 1.4, pose: 'hold', step() {}, end: (a) => { a.hand.getObjectByName('held')?.removeFromParent(); const c = coneModel(1); c.position.set(0, -0.05, 0.12); c.name = 'held'; a.hand.add(c); return 'Afiyet olsun!'; } },
   });
   // müzik karoları
   const mz = -26;
@@ -2911,10 +2912,12 @@ function buildRocket(b: WorldBuilder) {
   b.place(rocket, R.x, R.z, 0, 0.6);
   b.block(R.x, R.z, 2);
   const g0 = b.h(R.x, R.z) + 0.6;
+  let atesli = false; // kalkış sesi bir kez çalsın
   b.spot({
     id: 'rocket', x: R.x + 4, z: R.z + 3, r: 3, label: 'Roketle Mars’a git',
     act: {
       dur: 9, pose: 'sit', cam: [60, 30],
+      start: () => void (atesli = false),
       step(t, u, a, dt) {
         let y = 0;
         // geri sayım: titreme, sonra kalkış
@@ -2927,7 +2930,12 @@ function buildRocket(b: WorldBuilder) {
         a.heading = 0;
         if (flame.visible && Math.random() < 0.4) b.sparkles.burst(new THREE.Vector3(R.x, g0 + y - 1, R.z), 3, '#ffc83d');
         if (t > 0.3 && t < 2.3 && Math.floor(t) !== Math.floor(t - dt)) b.sound.star(5 - Math.floor(t));
-        if (flame.visible && Math.floor(t / 0.5) !== Math.floor((t - dt) / 0.5)) b.sound.fx?.('engine');
+        // ateşleme bir kez: ardından kalkış gümbürtüsü uçuş boyunca sürer
+        if (flame.visible && !atesli) {
+          atesli = true;
+          b.sound.fx?.('ignite');
+          b.sound.fx?.('rocket', 7.4);
+        }
       },
       end: () => {
         rocket.position.set(R.x, g0, R.z);

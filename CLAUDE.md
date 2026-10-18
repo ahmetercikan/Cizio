@@ -40,8 +40,8 @@
   - `MiniGames.tsx` / `ArcadeGames.tsx`: Oyun Çadırı'nın 14 mini oyunu (lobi: `Shops.tsx` GamesPanel)
   - `Rewards.tsx`: hazine sandıkları, günlük hediye serisi, koleksiyon rozetleri (hesap: `economy.ts`)
   - `carsData.ts` / `vehicles.ts`: araçlar (seviyeyle açılır, altınla alınır)
-- **Müzik Odası** (`/muzik`, `src/lib/instruments.ts`): beş çalgı ve ezgi tekrarlama oyunu; sesler Web Audio ile
-  üretilir, ses dosyası gerekmez.
-- **Matematik Parkı** (`/matematik`, `src/lib/mathpark.ts`): say, topla, çıkar, saati oku; sorular her
-  seferinde üretilir, üç zorluk.
+- **Şimdilik kapalı** (`src/lib/flags.ts` → `MUZIK_MATEMATIK_ACIK = false`): Müzik Odası (`/muzik`,
+  `src/lib/instruments.ts`) ve Matematik Parkı (`/matematik`, `src/lib/mathpark.ts`). Kod duruyor; ana sayfada
+  kart yok, adresleri ana sayfaya döner, cümleleri seslendirme listesine girmez. Açmak için bayrağı `true` yap.
+  Ana sayfa bu yüzden dört kartla açılır.
 - **Yatay telefon düzeni:** `src/styles/landscape.css` (yalnızca yatay ve kısa ekranlarda devreye girer).

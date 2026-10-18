@@ -490,11 +490,13 @@ export class MarsRealm extends Realm {
 
   private activities(rocket: THREE.Group) {
     const flame = rocket.getObjectByName('flame')!;
+    let atesli = false; // kalkış sesi bir kez çalsın
     // adaya dönüş
     this.spots.push({
       id: 'mars-donus', x: 3.6, z: 3.2, r: 2.6, label: 'Roketle adaya dön',
       act: {
         dur: 7, pose: 'sit', cam: [40, 18],
+        start: () => void (atesli = false),
         step: (t, u, a) => {
           let y = 0;
           if (u < 0.2) rocket.position.x = Math.sin(t * 50) * 0.08;
@@ -505,7 +507,12 @@ export class MarsRealm extends Realm {
           a.pos.set(0, 0.4 + y + 7.5, 0.2);
           a.heading = 0;
           if (flame.visible && Math.random() < 0.5) this.sparkles.burst(new THREE.Vector3(0, y - 0.6, 0), 3, '#ffc83d');
-          if (beat(t, 1 / 60, 0.55, 1)) this.ev.sound.fx?.('engine');
+          // ateşleme bir kez: ardından kalkış gümbürtüsü uçuş boyunca sürer
+          if (flame.visible && !atesli) {
+            atesli = true;
+            this.ev.sound.fx?.('ignite');
+            this.ev.sound.fx?.('rocket', 5.9);
+          }
         },
         end: () => {
           this.ev.leave?.();

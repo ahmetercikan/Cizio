@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, type ComponentType, type ReactNode } from 'r
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ScreenTimeGuard } from './components/ScreenTime';
+import { MUZIK_MATEMATIK_ACIK } from './lib/flags';
 import { setSfxEnabled } from './lib/sfx';
 import { setNaturalVoice, unlockAudio } from './lib/speech';
 import Learn, { CoursePage } from './pages/Learn';
@@ -121,8 +122,9 @@ export default function App() {
         <Route path="/yol/:id" element={<NeedsProfile><CoursePage /></NeedsProfile>} />
         <Route path="/dergi" element={<NeedsProfile><Journal /></NeedsProfile>} />
         <Route path="/harfler" element={<NeedsProfile><Letters /></NeedsProfile>} />
-        <Route path="/muzik" element={<NeedsProfile><MusicRoom /></NeedsProfile>} />
-        <Route path="/matematik" element={<NeedsProfile><MathPark /></NeedsProfile>} />
+        {/* Şimdilik kapalı (src/lib/flags.ts) */}
+        {MUZIK_MATEMATIK_ACIK && <Route path="/muzik" element={<NeedsProfile><MusicRoom /></NeedsProfile>} />}
+        {MUZIK_MATEMATIK_ACIK && <Route path="/matematik" element={<NeedsProfile><MathPark /></NeedsProfile>} />}
         <Route path="/ders/:id" element={<NeedsProfile><LessonPage /></NeedsProfile>} />
         <Route path="/ciz" element={<NeedsProfile><FreeDraw /></NeedsProfile>} />
         <Route path="/duello" element={<NeedsProfile><Duel /></NeedsProfile>} />
