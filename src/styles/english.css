@@ -44,6 +44,21 @@
   min-height: 0;
   max-height: 640px;
 }
+/* Altı kart ekrana sığmaz: ızgara ekrana göre sıkışmaz, içeriği kadar uzar ve sayfa kayar.
+   (Sıkıştığında kartlar kısalıyor, içlerindeki resimler kırpılıyordu.) */
+.worlds__grid--6 { flex: none; min-height: auto; max-height: none; }
+/* Dar ekranda tek sütun (aşağıdaki ortak kural), tablette iki, geniş ekranda üç sütun. */
+@media (min-width: 861px) and (max-width: 1279px) {
+  .worlds__grid--6 { grid-template-columns: repeat(2, 1fr); }
+  .worlds__grid--6 .world-card { flex-direction: row; align-items: center; padding: 12px 70px 12px 12px; }
+  .worlds__grid--6 .world-art { flex: none; height: clamp(140px, min(18vw, 34vh), 250px); width: auto; min-height: 0; aspect-ratio: 1; }
+  .worlds__grid--6 .world-card__go { top: 50%; bottom: auto; transform: translateY(-50%); }
+}
+@media (min-width: 1280px) {
+  .worlds__grid--6 { grid-template-columns: repeat(3, 1fr); }
+  /* Resim kutusunun oranı sabit: kart alçalsa da resim kırpılmaz, kutu resimle birlikte küçülür. */
+  .worlds__grid--6 .world-art { flex: none; width: 100%; min-height: 0; aspect-ratio: 4 / 3; }
+}
 
 .world-card {
   position: relative;
@@ -140,15 +155,17 @@
 
 @media (max-width: 860px) {
   .worlds__grid { grid-template-columns: 1fr; max-height: none; }
-  .world-card { flex-direction: row; align-items: center; min-height: 170px; padding: 12px 70px 12px 12px; }
-  .world-art { flex: none; width: 42%; min-height: 0; aspect-ratio: 1; }
+  .world-card { flex-direction: row; align-items: center; min-height: 0; padding: 12px 70px 12px 12px; }
+  /* Kutunun boyu ekrana göre belli: kart boyunu ona göre alır, resim hiçbir ekranda kırpılmaz.
+     (Yüzdeyle verildiğinde kartın boyu hesaplanamıyor ve resmin üstü altı kesiliyordu.) */
+  .world-art { flex: none; height: clamp(104px, min(30vw, 38vh), 240px); width: auto; min-height: 0; aspect-ratio: 1; }
   .world-card__text b { font-size: 24px; }
   .world-card__text small { font-size: 14px; }
   .world-card__go { top: 50%; bottom: auto; transform: translateY(-50%); width: 44px; height: 44px; right: 12px; }
 }
 @media (max-width: 520px) {
   .worlds__main { padding: 4px 16px calc(var(--safe-bottom) + 20px); }
-  .world-card { min-height: 140px; gap: 10px; padding-right: 58px; }
+  .world-card { min-height: 0; gap: 10px; padding-right: 58px; }
   .world-card__status { font-size: 12px; padding: 3px 9px; }
 }
 
@@ -530,7 +547,11 @@
   .world-art--atolye .world-art__mascot { left: 8%; bottom: 3%; width: 30%; }
   .world-art--english .world-art__mascot { right: 10%; bottom: 6%; width: 38%; }
   .world-art--english .world-art__blocks { width: 66%; bottom: 6%; }
-  .world-art__bubble { top: 12%; right: 8%; font-size: 34px; }
+  .world-art__bubble { top: 12%; right: 8%; font-size: 22px; padding: 6px 12px; }
+}
+/* Balon ancak resim kutusu gerçekten büyükken büyür (küçük kutuda taşıyordu). */
+@media (min-width: 1280px) {
+  .world-art__bubble { font-size: 34px; padding: 8px 16px; }
 }
 @media (max-width: 860px) {
   .world-art__bubble { font-size: 18px; padding: 4px 10px; top: 8%; right: 6%; }

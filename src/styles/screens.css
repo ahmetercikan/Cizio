@@ -3252,14 +3252,7 @@
 /* ------------------------------------------------------------------------------------------------
    Müzik Odası ve Matematik Parkı (ana sayfa kartları + sayfalar)
    ------------------------------------------------------------------------------------------------ */
-/* Altı kart: dar ekranda tek sütun (ortak kural), orta ekranda iki, geniş ekranda üç sütun. */
-@media (min-width: 861px) and (max-width: 1279px) {
-  .worlds__grid--6 { grid-template-columns: repeat(2, 1fr); max-height: none; }
-  .worlds__grid--6 .world-card { flex-direction: row; align-items: center; padding: 12px 70px 12px 12px; }
-  .worlds__grid--6 .world-art { flex: none; width: 44%; min-height: 0; aspect-ratio: 1; }
-  .worlds__grid--6 .world-card__go { top: 50%; bottom: auto; transform: translateY(-50%); }
-}
-@media (min-width: 1280px) { .worlds__grid--6 { grid-template-columns: repeat(3, 1fr); max-height: none; } }
+/* Altı kartın ızgara düzeni english.css'te (.worlds__grid ile aynı yerde durması gerekiyor). */
 .world-card--muzik { --world: #9b6bff; }
 .world-card--matematik { --world: #2bb673; }
 .world-card__mini {
