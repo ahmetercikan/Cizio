@@ -9,7 +9,7 @@
  * React tarafı (src/pages/World.tsx) yalnızca girdi verir ve olayları dinler.
  */
 import * as THREE from 'three';
-import { cloud, disposeScene, makeRenderer, Sparkles, star } from '../play3d/kit';
+import { cloud, disposeScene, makeRenderer, Sparkles, star, shadowSize } from '../play3d/kit';
 import { spaceHelmet, Avatar3D, type Pose } from './avatar3d';
 import type { DollState } from '../dressup/catalog';
 import { isWater, WORLD_R } from './layout';
@@ -221,7 +221,7 @@ export class Island {
     this.sun.castShadow = true;
     // telefonda gölge haritası daha küçük
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-    this.sun.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048);
+    this.sun.shadow.mapSize.setScalar(shadowSize());
     this.maxRatio = Math.min(coarse ? 1.5 : 1.75, window.devicePixelRatio || 1);
     this.ratio = this.maxRatio;
     this.renderer.setPixelRatio(this.ratio);

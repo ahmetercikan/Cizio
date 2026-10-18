@@ -10,7 +10,7 @@
  */
 import * as THREE from 'three';
 import { skyAt } from './daynight';
-import { Sparkles } from '../play3d/kit';
+import { Sparkles, shadowSize } from '../play3d/kit';
 import { Avatar3D, type Pose } from './avatar3d';
 import type { DollState } from '../dressup/catalog';
 import { petCard } from './puppet';
@@ -133,7 +133,7 @@ export class HomeScene {
       this.warm.distance = 7 + 3 * (1 - day);
     }
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.mapSize.setScalar(shadowSize());
     this.sun.shadow.bias = -0.0012;
     this.sun.shadow.normalBias = 0.08;
     this.sun.shadow.radius = 4;

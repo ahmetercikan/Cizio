@@ -17,6 +17,8 @@
   (dosya adı cümleden hesaplanır, değiştirilemez). MP3'ler `public/voice/` içine konup
   `npm run voice -- --manifest-only --allow-partial` çalıştırılınca devreye girer. Dosyası olmayan cümleyi
   telefonun kendi sesi okur, yani hiçbir bölüm sessiz kalmaz.
+  Komut iki dosya yazar: `manifest.json` (anahtar → cümle; yalnızca betikler okur) ve `index.json`
+  (uygulamanın indirdiği ince liste, ~40 KB). İkisi de her seferinde birlikte güncellenir.
 - **Sesler:** `public/sfx/*.mp3` ElevenLabs ses efekti kütüphanesinden indirilmiş gerçek kayıtlardır
   (ücretli planda telifsiz, ticari kullanıma açık, atıf gerekmez). Dosya yüklenemezse `src/lib/sfx.ts`
   aynı sesi sentezleyerek çalar; yani ses hiçbir zaman kesilmez.

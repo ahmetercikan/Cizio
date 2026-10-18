@@ -25,7 +25,7 @@ import type { Island, RealmInfo, Spot } from '../world/island';
 import { coastAt, LAKE, SNOW_PEAK, WORLD_R, ZONES, type Zone } from '../world/layout';
 import { buyPlus, canBuy, managePlus, PLUS_ENABLED, restorePlus, usePlus } from '../world/plus';
 import { ISLAND_LINES, QUESTS, STARS_GOAL, todayQuests, type QuestId } from '../world/quests';
-import { Gate } from './Parent';
+import { Gate } from '../components/Gate';
 import {
   advanceJourney, CROPS, ANIMALS, STRUCTS, fillOrders, type PlaceKind, miniWin, type MiniGameId, type MiniPrize, newFarm, normalizeFarm,
   realmReward, unlocksAt, claimBadges, dailyGift, openChest, type ChestDef, type DailyGift, type FarmState, type Result,

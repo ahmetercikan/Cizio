@@ -10,7 +10,7 @@ import { Clock, Lock } from 'lucide-react';
 import { Mascot } from './Mascot';
 import { dayKey } from '../lib/util';
 import { useApp, useProfileData } from '../store/useApp';
-import { Gate } from '../pages/Parent';
+import { Gate } from './Gate';
 
 /** Bugün kullanılan ve izin verilen dakika. */
 export function useScreenTime() {

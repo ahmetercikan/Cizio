@@ -17,10 +17,13 @@ export function toonGradient() {
 
 const mats = new Map<string, THREE.MeshToonMaterial>();
 export function toon(color: string | number, opts: { emissive?: string; transparent?: boolean; opacity?: number } = {}) {
-  const key = `${color}|${opts.emissive ?? ''}|${opts.opacity ?? 1}`;
+  const opacity = opts.opacity ?? 1;
+  // saydamlık anahtara da girer: aynı renkli saydam ve mat malzeme birbirinin yerine geçmesin
+  const transparent = opts.transparent ?? opacity < 1;
+  const key = `${color}|${opts.emissive ?? ''}|${opacity}|${transparent ? 1 : 0}`;
   let m = mats.get(key);
   if (!m) {
-    m = new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), transparent: opts.transparent, opacity: opts.opacity ?? 1 });
+    m = new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), transparent, opacity });
     if (opts.emissive) m.emissive = new THREE.Color(opts.emissive);
     mats.set(key, m);
   }
@@ -170,6 +173,13 @@ export class Sparkles {
     }
   }
 }
+
+/**
+ * Gölge haritasının boyu. Dokunmatik cihazlarda (telefon, tablet) yarıya iner: her ışık için
+ * 16 MB yerine 4 MB ekran kartı belleği ve belirgin biçimde daha hızlı gölge çizimi — gölgeler
+ * küçük ekranda zaten aynı görünür.
+ */
+export const shadowSize = () => (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 1024 : 2048);
 
 /** Ekran boyutuna uyan, çözünürlüğü telefonu yormayacak kadar sınırlı WebGL çizici. */
 export function makeRenderer(canvas: HTMLCanvasElement) {

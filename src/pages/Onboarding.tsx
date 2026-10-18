@@ -18,7 +18,7 @@ import type { Lesson, PathId } from '../lessons/types';
 import { sfx } from '../lib/sfx';
 import { speak, unlockAudio } from '../lib/speech';
 import { useApp } from '../store/useApp';
-import { PREF_ROUNDS } from '../voice/lines';
+import { PREF_ROUNDS } from '../voice/prefRounds';
 
 type Step = 'splash' | 'avatar' | 'name' | 'pref' | 'showcase' | 'parent' | 'start';
 

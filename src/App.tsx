@@ -85,10 +85,11 @@ export default function App() {
   // Çizio Plus (Google Play aboneliği) yalnızca Android uygulamasında başlatılır
   useEffect(() => void initPlus().catch(() => {}), []);
   useEffect(() => void initPremium().catch(() => {}), []);
-  // sık açılan sayfaları uygulama boştayken hazırla (ilk dokunuşta bekletmesin)
+  // sık açılan sayfaları uygulama boştayken hazırla (ilk dokunuşta bekletmesin).
+  // Ada burada yok: paketi ağır, kartına dokununca hazırlanıyor (src/lib/preload.ts).
   useEffect(() => {
     const idle = (f: () => void) => ('requestIdleCallback' in window ? (window as Window & { requestIdleCallback: (f: () => void) => number }).requestIdleCallback(f) : setTimeout(f, 1500));
-    const t = setTimeout(() => idle(() => void Promise.all([loadLesson(), loadFree(), loadDress(), loadEnglish(), loadWorld()]).catch(() => {})), 2500);
+    const t = setTimeout(() => idle(() => void Promise.all([loadLesson(), loadFree(), loadDress(), loadEnglish()]).catch(() => {})), 2500);
     return () => clearTimeout(t);
   }, []);
   // iOS: ses ancak bir dokunuştan sonra çalabilir; ilk dokunuşta ses öğesinin kilidini aç.

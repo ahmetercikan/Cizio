@@ -6,7 +6,7 @@
  * Labirent bir tohumla kurulur: aynı adadaki arkadaşlar aynı labirenti görür (tohum: oda + gün).
  */
 import * as THREE from 'three';
-import { cloud, mesh, outline, Sparkles, star, toon, tree } from '../play3d/kit';
+import { cloud, mesh, outline, Sparkles, star, toon, tree, shadowSize } from '../play3d/kit';
 import type { RealmId } from './homestead';
 import type { SpotDef } from './zones';
 
@@ -70,7 +70,7 @@ export abstract class Realm {
     const sun = (this.sun = new THREE.DirectionalLight('#fff4dc', 1.4));
     sun.position.set(-30, 60, 26);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.setScalar(shadowSize());
     sun.shadow.bias = -0.0006;
     sun.shadow.normalBias = 0.05;
     Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 200 });

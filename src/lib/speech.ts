@@ -109,10 +109,38 @@ function speakSynth(text: string, opts: SpeakOptions) {
 // ------------------------------------------------------------------------------------------------
 // Doğal ses (önceden üretilmiş MP3'ler)
 // ------------------------------------------------------------------------------------------------
+/** Uygulamanın kullandığı hâl: hangi cümlenin sesi var (anahtar kümesi) ve bir örnek cümle. */
 interface VoiceManifest {
   voice: string;
   version?: string;
-  lines: Record<string, string>;
+  keys: Set<string>;
+  /** Ebeveyn ekranındaki "Sesi dene" için kayıtlı bir Türkçe cümle. */
+  sample: string;
+}
+
+/** `public/voice/index.json`: anahtarlar tek bir dizgede (8'er hane) — her açılışta 190 KB yerine ~40 KB. */
+interface SlimFile { voice: string; version?: string; keys: string; sample?: string }
+/** Eski (tam) manifest: anahtar → cümle. Önbellekte kalmış eski sürümler için hâlâ okunur. */
+interface FullFile { voice: string; version?: string; lines: Record<string, string> }
+
+const KEY_LEN = 8;
+function parseManifest(raw: SlimFile | FullFile | null): VoiceManifest | null {
+  if (!raw || typeof raw !== 'object') return null;
+  if (typeof (raw as SlimFile).keys === 'string') {
+    const { keys, voice, version, sample } = raw as SlimFile;
+    const set = new Set<string>();
+    for (let i = 0; i + KEY_LEN <= keys.length; i += KEY_LEN) set.add(keys.slice(i, i + KEY_LEN));
+    return set.size ? { voice, version, keys: set, sample: sample ?? '' } : null;
+  }
+  const { lines, voice, version } = raw as FullFile;
+  if (!lines || typeof lines !== 'object') return null;
+  const texts = Object.values(lines);
+  return {
+    voice,
+    version,
+    keys: new Set(Object.keys(lines)),
+    sample: texts.find((t) => /[ışğüöçİ]/.test(t) && t.length < 60) ?? texts[0] ?? '',
+  };
 }
 
 let natural = true;
@@ -144,9 +172,11 @@ export function setNaturalVoice(on: boolean) {
 function loadManifest(): Promise<VoiceManifest | null> {
   if (!audioOk) return Promise.resolve(null);
   if (!manifestPromise) {
-    manifestPromise = fetch(voiceUrl('manifest.json'))
-      .then((r) => (r.ok ? r.json() : null))
-      .then((m: VoiceManifest | null) => (manifest = m && typeof m.lines === 'object' ? m : null))
+    // Önce ince liste; eski bir yayından geliniyorsa (dosya yoksa) tam manifest'e düşer.
+    manifestPromise = fetch(voiceUrl('index.json'))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('yok'))))
+      .catch(() => fetch(voiceUrl('manifest.json')).then((r) => (r.ok ? r.json() : null)))
+      .then((raw) => (manifest = parseManifest(raw)))
       .catch(() => null)
       .then((m) => {
         // Başarısızsa (ör. çevrimdışı ve önbellekte yok) sonraki çağrıda yeniden denensin.
@@ -267,7 +297,7 @@ function playNatural(m: VoiceManifest, key: string, text: string, opts: SpeakOpt
 
 /** Doğal sesin durumu: dosya listesi yüklendi mi, son denemede ne oldu. */
 export function voiceStatus() {
-  return { manifest: !!manifest, lines: manifest ? Object.keys(manifest.lines).length : 0, last: lastVoice };
+  return { manifest: !!manifest, lines: manifest ? manifest.keys.size : 0, last: lastVoice };
 }
 
 /**
@@ -281,7 +311,7 @@ export function speak(text: string, opts: SpeakOptions = {}) {
   if (!natural || !audioOk) return speakSynth(text, opts);
   const key = lineKey(text);
   if (manifest) {
-    if (key in manifest.lines) playNatural(manifest, key, text, opts, my);
+    if (manifest.keys.has(key)) playNatural(manifest, key, text, opts, my);
     else speakSynth(text, opts);
     return;
   }
@@ -289,7 +319,7 @@ export function speak(text: string, opts: SpeakOptions = {}) {
   const wait = new Promise<null>((r) => setTimeout(() => r(null), MANIFEST_WAIT_MS));
   void Promise.race([loadManifest(), wait]).then((m) => {
     if (my !== token) return;
-    if (m && key in m.lines) playNatural(m, key, text, opts, my);
+    if (m && m.keys.has(key)) playNatural(m, key, text, opts, my);
     else {
       if (!m) lastVoice = 'Ses dosyalarının listesi yüklenemedi; cihazın sesi kullanıldı.';
       speakSynth(text, opts);
@@ -301,9 +331,9 @@ export function speak(text: string, opts: SpeakOptions = {}) {
 export async function testVoice(): Promise<string> {
   const m = await loadManifest();
   if (!m) return 'Ses dosyalarının listesi yüklenemedi.';
-  const line = Object.values(m.lines).find((t) => /[ışğüöçİ]/.test(t) && t.length < 60) ?? Object.values(m.lines)[0];
+  if (!m.sample) return 'Ses listesi okunamadı.';
   lastVoice = '';
-  speak(line);
+  speak(m.sample);
   await new Promise((r) => setTimeout(r, 2500));
   return lastVoice || 'Doğal ses hâlâ yükleniyor…';
 }
@@ -356,7 +386,7 @@ export function preloadLines(texts: string[]) {
     for (const t of texts) {
       if (!t) continue;
       const key = lineKey(t);
-      if (key in m.lines) fetchBlob(m, key, true).catch(() => {});
+      if (m.keys.has(key)) fetchBlob(m, key, true).catch(() => {});
     }
   });
 }

@@ -31,10 +31,12 @@ export default defineConfig({
       },
       workbox: {
         // Seslendirme dosyaları (public/voice) kuruluma dahil edilmez; çalındıkça önbelleğe alınır.
-        // Efektler (public/sfx, ~800 KB) ise dahildir: oyunun sesi çevrimdışı da tam çalışsın.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}', 'sfx/*.mp3'],
+        // Yalnızca ince ses listesi (voice/index.json, ~68 KB) dahildir: açılışta hiç ağ beklenmesin.
+        // Efektler (public/sfx, ~800 KB) de dahildir: oyunun sesi çevrimdışı da tam çalışsın.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}', 'sfx/*.mp3', 'voice/index.json'],
         // Çevrimiçi istemci (Firebase, ~650 KB) yalnızca çevrimiçi özelliği açanlara, ilk kullanımda iner.
-        globIgnores: ['**/node_modules/**/*', 'voice/**/*', 'assets/client-*.js'],
+        // Tam manifest (voice/manifest.json, 644 KB) yalnızca betikler içindir, uygulama indirmez.
+        globIgnores: ['**/node_modules/**/*', 'voice/*.mp3', 'voice/manifest.json', 'assets/client-*.js'],
         runtimeCaching: [
           {
             // Ders eskizleri (public/thumbs): bir kez inince hep önbellekten (atölyede kaydırırken beklemesin).
@@ -43,10 +45,10 @@ export default defineConfig({
             options: { cacheName: 'thumbs', expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 60 } },
           },
           {
-            // Manifest güncellenebilir: önce ağ, çevrimdışıysa önbellek.
-            urlPattern: ({ url }) => url.pathname.includes('/voice/') && url.pathname.endsWith('/manifest.json'),
-            handler: 'NetworkFirst',
-            options: { cacheName: 'voice-manifest', networkTimeoutSeconds: 3, expiration: { maxEntries: 2 } },
+            // Ses listesi: önbellekten hemen verilir, arka planda tazelenir (açılış ağ beklemez).
+            urlPattern: ({ url }) => url.pathname.includes('/voice/') && /\/(index|manifest)\.json$/.test(url.pathname),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'voice-manifest', expiration: { maxEntries: 4 } },
           },
           {
             urlPattern: ({ url }) => url.pathname.includes('/voice/'),

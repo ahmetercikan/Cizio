@@ -14,6 +14,7 @@ import { STORY_VOICE_LINES } from '../story/data';
 import { ISLAND_VOICE_LINES } from '../world/quests';
 import { TRACE_VOICE_LINES } from '../trace/lines';
 import { MUZIK_MATEMATIK_ACIK } from '../lib/flags';
+import { PREF_ROUNDS } from './prefRounds';
 import { MUSIC_LINES } from '../lib/instruments';
 import { MATH_LINES } from '../lib/mathpark';
 
@@ -72,31 +73,7 @@ export const LESSON_LINES: ((l: Lesson) => string)[] = [
   (l) => l.skill,
 ];
 
-/**
- * Karşılamadaki "hangisini daha çok seviyorsun?" turları: her tur farklı cümle, ekranda farklı başlık
- * ve farklı okuma tonu (Çizio aynı soruyu aynı sesle tekrar etmesin diye).
- */
-export const PREF_ROUNDS: { text: string; title: string; tone: string }[] = [
-  {
-    text: 'Bunlardan hangisini daha çok seviyorsun?',
-    title: 'Bunlardan hangisini daha çok seviyorsun?',
-    tone: 'Ask with bright, curious enthusiasm, like starting a fun little game.',
-  },
-  {
-    text: 'Hımm... Güzel seçim! Peki bunlardan hangisini daha çok seviyorsun?',
-    title: 'Hımm… peki bunlardan hangisi?',
-    tone:
-      "Begin with a long, thoughtful, playful 'Hımm...' as if really pondering, then a warm smiling 'Güzel seçim!', " +
-      'then ask the question softly and a little slower, full of curiosity.',
-  },
-  {
-    text: 'Ooo, harika! Son soru geliyor... Sence hangisi daha tatlı?',
-    title: 'Son soru! Sence hangisi daha tatlı?',
-    tone:
-      "Sound genuinely delighted on 'Ooo, harika!', build playful suspense on 'Son soru geliyor...' with a short pause, " +
-      'then ask excitedly with a big grin.',
-  },
-];
+export { PREF_ROUNDS };
 
 /** Kendine özel tonla (tek tek) üretilen cümleler. */
 export const TONED_LINES: { text: string; tone: string }[] = PREF_ROUNDS.map(({ text, tone }) => ({ text, tone }));

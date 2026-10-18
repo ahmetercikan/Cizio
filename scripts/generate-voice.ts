@@ -389,6 +389,15 @@ const manifest = {
 };
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
+// Uygulamanın indirdiği ince liste: yalnızca anahtarlar (8'er hane, tek dizge) ve bir örnek cümle.
+// Tam manifest (anahtar -> cümle) betikler için durur; uygulama her açılışta 190 KB yerine ~40 KB indirir.
+const sample = Object.values(manifest.lines).find((t) => /[ışğüöçİ]/.test(t) && t.length < 60) ?? '';
+writeFileSync(
+  join(OUT, 'index.json'),
+  JSON.stringify({ voice, version: manifest.version, keys: Object.keys(manifest.lines).join(''), sample }) + '\n',
+  'utf8',
+);
+
 // --- Budama ve özet ----------------------------------------------------------------------------
 let pruned = 0;
 if (prune) {

@@ -13,6 +13,7 @@ import { Doll } from '../dressup/Doll';
 import { LessonArt } from '../english/Art';
 import { lessons } from '../lessons';
 import { MUZIK_MATEMATIK_ACIK } from '../lib/flags';
+import { preloadWorld } from '../lib/preload';
 import { sfx } from '../lib/sfx';
 import { dayKey } from '../lib/util';
 import { useProfile, useProfileData } from '../store/useApp';
@@ -121,7 +122,8 @@ export default function Worlds() {
               <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
             </Link>
           ))}
-          <Link to="/ada" className="world-card world-card--ada rise" style={{ animationDelay: '0.24s' }} onClick={() => sfx.pop()}>
+          <Link to="/ada" className="world-card world-card--ada rise" style={{ animationDelay: '0.24s' }}
+            onPointerDown={preloadWorld} onPointerEnter={preloadWorld} onClick={() => sfx.pop()}>
             <AdaArt />
             <span className="world-card__text">
               <b>Çizio Adası</b>
