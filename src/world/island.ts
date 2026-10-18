@@ -880,7 +880,7 @@ export class Island {
       },
       sound: { star: (i) => this.ev.sound.star(i), pop: () => this.ev.sound.pop(), note: (i) => this.ev.sound.note(i), fx: (n, i) => this.ev.sound.fx?.(n, i), whoosh: () => this.ev.sound.whoosh?.() },
       leave: () => this.leaveRealm(),
-    }, this.seed);
+    }, this.seed, { museum: this.o.farm.get().museum ?? [] });
     this.realm = realm;
     if (this.building) this.setBuildMode(false);
     this.moveActors(realm.scene);

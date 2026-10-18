@@ -98,9 +98,18 @@ export function counts(found: string[]): Record<CollectGroup, { have: number; al
 export const foundLine = (c: Collectible, yeni: boolean) =>
   yeni ? `${c.name} buldun! ${c.fact} Müzeye koyuldu.` : `Yine bir ${c.name}! Bu zaten müzende var.`;
 
+/** Müzedeki camekânda parçaya dokununca okunan cümle. */
+export const caseLine = (c: Collectible) => `${c.name}. ${c.fact}`;
+/** Boş camekâna dokununca. */
+export const emptyCaseLine = (g: CollectGroup) => `Burası boş. ${GROUPS[g].name} bölümünde aradığını bulunca buraya gelecek!`;
+
 /** Seslendirilecek cümleler. */
 export const COLLECT_LINES: string[] = [...new Set([
-  ...COLLECTION.flatMap((c) => [foundLine(c, true), foundLine(c, false)]),
+  ...COLLECTION.flatMap((c) => [foundLine(c, true), foundLine(c, false), caseLine(c)]),
+  ...(Object.keys(GROUPS) as CollectGroup[]).map(emptyCaseLine),
   'Müzene hoş geldin! Bulduğun her şey burada.',
   'Bütün koleksiyonu tamamladın! Sen gerçek bir kâşifsin!',
+  'Bu iskelet milyonlarca yıl önce yaşamış bir dinozora ait. Kemikler taşa dönüşünce fosil olur!',
+  'Küratör: Hoş geldin! Camekânlar şimdilik boş. Adada balık tut, fosil kaz, kabuk topla, böcek ara!',
+  'Küratör: Bütün koleksiyonu tamamladın! Müzemizin en büyük kâşifi sensin!',
 ])];

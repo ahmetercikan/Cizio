@@ -7,11 +7,17 @@ import { InteriorRealm } from './interiors';
 import { MarsRealm } from './mars';
 import { CandyRealm, MazeRealm, SkyRealm, type Realm, type RealmEvents } from './realms';
 
-export function makeRealm(id: RealmId, ev: RealmEvents, seed: number): Realm {
+/** Dünyaya dışarıdan verilen veri (şimdilik yalnızca müzedeki koleksiyon). */
+export interface RealmData {
+  /** Müzede sergilenecek, bulunmuş koleksiyon parçaları. */
+  museum?: string[];
+}
+
+export function makeRealm(id: RealmId, ev: RealmEvents, seed: number, data: RealmData = {}): Realm {
   if (id === 'maze') return new MazeRealm(ev, seed);
   if (id === 'sky') return new SkyRealm(ev);
   if (id === 'candy') return new CandyRealm(ev, seed);
   if (id === 'mars') return new MarsRealm(ev);
-  if (id in INTERIORS) return new InteriorRealm(ev, id as InteriorId);
+  if (id in INTERIORS) return new InteriorRealm(ev, id as InteriorId, data);
   return new CandyRealm(ev, seed);
 }

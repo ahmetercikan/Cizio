@@ -13,6 +13,8 @@ import { Avatar3D, type Pose } from './avatar3d';
 import type { InteriorId } from './homestead';
 import { board, holdItem } from './places';
 import { Realm, type Hero, type RealmEvents } from './realms';
+import type { RealmData } from './worlds';
+import { byGroup, caseLine, emptyCaseLine, GROUPS, item as parca, TOTAL, type CollectGroup } from './collection';
 import { fountain, waterSurface } from './water';
 import type { Activity } from './zones';
 
@@ -185,19 +187,22 @@ export class InteriorRealm extends Realm {
   private decks: { x: number; z: number; w: number; d: number; y: number }[] = [];
   private ticks: ((dt: number, t: number) => void)[] = [];
   private npcs: Npc[] = [];
+  /** Müzede sergilenecek, bulunmuş koleksiyon parçaları. */
+  private found: string[] = [];
 
-  constructor(ev: RealmEvents, id: InteriorId) {
+  constructor(ev: RealmEvents, id: InteriorId, data: RealmData = {}) {
     super(ev, '#2f2a3d', [70, 140], 'none');
     this.id = id;
+    this.found = data.museum ?? [];
     this.leave = 'Dışarı çık';
     this.heroScale = 0.78;
     this.cam = [9.5, 7.5];
     const size: Record<InteriorId, [number, number]> = {
       okul: [24, 18], hastane: [24, 18], market: [26, 20], kutuphane: [22, 18], pastane: [20, 16], itfaiye: [26, 20],
-      avm: [34, 26], sinema: [26, 22], otel: [28, 20], ofis: [24, 18], apartman: [22, 16],
+      avm: [34, 26], sinema: [26, 22], otel: [28, 20], ofis: [24, 18], apartman: [22, 16], muze: [30, 24],
     };
     [this.W, this.D] = size[id];
-    this.wallH = id === 'avm' ? 10.5 : id === 'sinema' ? 7.6 : id === 'otel' ? 7 : H;
+    this.wallH = id === 'avm' ? 10.5 : id === 'sinema' ? 7.6 : id === 'otel' ? 7 : id === 'muze' ? 8 : H;
     const look: Record<InteriorId, [keyof typeof FLOORS, string, string]> = {
       okul: ['wood', '#fff3d6', '#ffb347'],
       hastane: ['mint', '#eef7f7', '#5cc8b8'],
@@ -210,12 +215,13 @@ export class InteriorRealm extends Realm {
       otel: ['marble', '#f6ecd8', '#c0392b'],
       ofis: ['grey', '#eef3f8', '#2b6cb0'],
       apartman: ['wood', '#fff1e0', '#f08a5d'],
+      muze: ['marble', '#f4efe3', '#8a5a35'],
     };
     this.room(...look[id]);
     ({
       okul: () => this.school(), hastane: () => this.hospital(), market: () => this.market(), kutuphane: () => this.library(),
       pastane: () => this.bakery(), itfaiye: () => this.fireStation(), avm: () => this.mall(), sinema: () => this.cinema(),
-      otel: () => this.hotel(), ofis: () => this.office(), apartman: () => this.flat(),
+      otel: () => this.hotel(), ofis: () => this.office(), apartman: () => this.flat(), muze: () => this.museum(),
     })[id]();
     this.spawn.set(0, 0, this.D / 2 - 2.6);
     this.spawnH = Math.PI;
@@ -2581,6 +2587,200 @@ export class InteriorRealm extends Realm {
         return 'Komşun: Hoş geldin! Kurabiye ister misin?';
       },
     });
+  }
+
+  // ----------------------------------------------------------------------------------------------
+  // Müze: bulunan balıklar, fosiller, kabuklar ve böcekler camekânlarda sergilenir
+  // ----------------------------------------------------------------------------------------------
+  private museum() {
+    const { W, D } = this;
+
+    /** Kaideli, camlı sergi dolabı. İçindeki parça bulunduysa renkli, bulunmadıysa soru işareti. */
+    const kutu = (c: { id: string; name: string; color: string; fact: string }, x: number, z: number, rot: number) => {
+      const bulundu = this.found.includes(c.id);
+      const g = new THREE.Group();
+      // kaide
+      g.add(this.box(1.5, 1.15, 1.2, '#cfc3ad', 0, 0.58, 0));
+      g.add(this.box(1.68, 0.14, 1.36, '#b8aa90', 0, 1.2, 0, false));
+      // cam fanus
+      const cam = mesh(new THREE.BoxGeometry(1.3, 1.4, 1.05), toon(bulundu ? '#dff1ff' : '#e6e0d4', { transparent: true, opacity: bulundu ? 0.3 : 0.45 }), false);
+      cam.position.y = 2;
+      g.add(cam);
+      for (const sx of [-0.65, 0.65]) g.add(this.box(0.07, 1.4, 0.07, '#9c8e78', sx, 2, 0.5, false));
+      // içindeki parça
+      if (bulundu) {
+        const p = outline(mesh(new THREE.IcosahedronGeometry(0.34, 1), toon(c.color)), 1.08);
+        p.position.y = 1.78;
+        p.scale.set(1, c.id === 'inci' || c.id === 'amonit' ? 1 : 0.82, 1.15);
+        g.add(p);
+        this.ticks.push((_dt, t) => {
+          p.rotation.y = t * 0.7;
+          p.position.y = 1.78 + Math.sin(t * 1.6 + x) * 0.05;
+        });
+      } else {
+        const q = board('?', '#d8cfbb', '#8a7b63', 0.5, 0.6, 800);
+        q.position.set(0, 1.85, 0.03);
+        g.add(q);
+      }
+      // ad levhası
+      const ad = board(bulundu ? c.name : '???', bulundu ? '#8a5a35' : '#b8aa90', '#ffffff', 1.5, 0.4, 700);
+      ad.position.set(0, 1.3, 0.62);
+      ad.rotation.x = -0.5;
+      g.add(ad);
+      this.add(g, x, z, rot);
+      this.solid(x, z, 1.8, 1.5, 2.6);
+
+      this.spot(`muze-${c.id}`, x + Math.sin(rot) * 2.1, z + Math.cos(rot) * 2.1, 1.7, bulundu ? c.name : 'Boş camekân', {
+        dur: 3, pose: 'idle', cam: [7, 4.4],
+        step: (_t, _u, a) => {
+          a.pos.set(x + Math.sin(rot) * 1.9, 0, z + Math.cos(rot) * 1.9);
+          a.heading = rot + Math.PI;
+        },
+        end: () => {
+          if (!bulundu) return emptyCaseLine(parca(c.id)?.group ?? 'balik');
+          this.fx('pop');
+          this.sparkles.burst(new THREE.Vector3(x, 2.2, z), 8, c.color);
+          return caseLine(parca(c.id)!);
+        },
+      });
+    };
+
+    // ---- salonlar: balıklar arka duvarda, fosiller solda, kabuklar sağda, böcekler ortada
+    const balik = byGroup('balik');
+    const fosil = byGroup('fosil');
+    const kabuk = byGroup('kabuk');
+    const bocek = byGroup('bocek');
+    balik.forEach((c, i) => kutu(c, -W / 2 + 3.4 + i * 3.4, -D / 2 + 2.2, 0));
+    fosil.forEach((c, i) => kutu(c, -W / 2 + 2.2, -D / 2 + 6.5 + i * 2.5, Math.PI / 2));
+    kabuk.forEach((c, i) => kutu(c, W / 2 - 2.2, -D / 2 + 6.5 + i * 2.5, -Math.PI / 2));
+    // böcekler: ortadaki adanın iki yanında
+    bocek.forEach((c, i) => kutu(c, -3.4 + (i % 3) * 3.4, 2.4 + Math.floor(i / 3) * 3.2, Math.PI));
+
+    // ---- salon tabelaları
+    const tabela = (g: CollectGroup, wall: THREE.Group, along: number) => {
+      const t = board(GROUPS[g].name, GROUPS[g].color, '#ffffff', 4.2, 0.9, 700);
+      this.hang(wall, t, along, 5.4, 0.05);
+    };
+    tabela('balik', this.wallBack, 0);
+    tabela('fosil', this.wallLeft, 0);
+    tabela('kabuk', this.wallRight, 0);
+
+    // ---- ortadaki dinozor iskeleti (müzenin baş eseri)
+    {
+      const g = new THREE.Group();
+      g.add(this.box(6.4, 0.4, 3.6, '#cfc3ad', 0, 0.2, 0));
+      const omur = new THREE.Group();
+      for (let i = 0; i < 9; i++) {
+        const k = outline(mesh(new THREE.SphereGeometry(0.38 - i * 0.016, 10, 8), toon('#efe7d6')), 1.06);
+        k.position.set(-2.5 + i * 0.63, 2.3 + Math.sin(i * 0.4) * 0.22, 0);
+        omur.add(k);
+        if (i > 1 && i < 7) {
+          for (const s of [-1, 1]) {
+            const kaburga = mesh(new THREE.TorusGeometry(0.72, 0.075, 6, 16, Math.PI), toon('#efe7d6'), false);
+            kaburga.rotation.set(Math.PI / 2, 0, s * Math.PI / 2);
+            kaburga.position.set(k.position.x, k.position.y - 0.15, 0);
+            omur.add(kaburga);
+          }
+        }
+      }
+      const kafa = outline(mesh(new THREE.BoxGeometry(1.3, 0.78, 0.6), toon('#efe7d6')), 1.05);
+      kafa.position.set(-3.5, 2.6, 0);
+      const cene = outline(mesh(new THREE.BoxGeometry(1.05, 0.26, 0.5), toon('#efe7d6')), 1.05);
+      cene.position.set(-3.42, 2.14, 0);
+      // göz çukuru ve dişler
+      for (const sz of [-0.31, 0.31]) {
+        const goz = mesh(new THREE.BoxGeometry(0.26, 0.26, 0.06), toon('#6b5f4c'), false);
+        goz.position.set(-3.75, 2.72, sz);
+        kafa.add(goz.clone().translateX(3.75).translateY(-2.72).translateZ(-sz));
+      }
+      const kuyruk = new THREE.Group();
+      for (let i = 0; i < 5; i++) {
+        const k = outline(mesh(new THREE.SphereGeometry(0.25 - i * 0.035, 8, 6), toon('#efe7d6')), 1.07);
+        k.position.set(3.1 + i * 0.5, 2.3 - i * 0.2, 0);
+        kuyruk.add(k);
+      }
+      for (const sx of [-1.4, 1.4]) for (const sz of [-0.5, 0.5]) {
+        const bacak = mesh(new THREE.CylinderGeometry(0.15, 0.12, 2, 7), toon('#efe7d6'), false);
+        bacak.position.set(sx, 1.2, sz);
+        g.add(bacak);
+      }
+      g.add(omur, kafa, cene, kuyruk);
+      this.add(g, 0, -1.6);
+      this.solid(0, -1.6, 6.8, 3.8, 2.8);
+      this.ticks.push((_dt, t) => {
+        kafa.rotation.z = Math.sin(t * 0.6) * 0.05;
+      });
+      this.spot('muze-dino', 0, 1.1, 2, 'Dev iskelete bak', {
+        dur: 4, pose: 'clap', cam: [11, 6],
+        step: (_t, _u, a) => {
+          a.pos.set(0, 0, 1.2);
+          a.heading = Math.PI;
+        },
+        end: () => {
+          this.fx('yay');
+          return 'Bu iskelet milyonlarca yıl önce yaşamış bir dinozora ait. Kemikler taşa dönüşünce fosil olur!';
+        },
+      });
+    }
+
+    // ---- küratör ve bilgi panosu
+    const kurator = this.npc(
+      { gender: 'kiz', top: 'gomlek', topColor: '#ffffff', bottom: 'etek', bottomColor: '#8a5a35', glasses: 'kare', hair: 'kut' },
+      W / 2 - 3.2, D / 2 - 4.2, -2.2, 'idle', 1.2, 2,
+    );
+    {
+      const pano = new THREE.Group();
+      pano.add(this.box(4.4, 2.6, 0.2, '#f7f2e6', 0, 1.9, 0));
+      pano.add(this.box(4.7, 0.2, 0.3, '#8a5a35', 0, 3.3, 0, false));
+      for (const sx of [-1.9, 1.9]) pano.add(this.box(0.16, 1.9, 0.16, '#8a5a35', sx, 0.95, 0, false));
+      const basl = board('Koleksiyonun', '#8a5a35', '#ffffff', 3.4, 0.6, 700);
+      basl.position.set(0, 2.7, 0.12);
+      pano.add(basl);
+      const yazi = board(`${this.found.length} / ${TOTAL}`, '#f7f2e6', '#8a5a35', 3.2, 1.3, 800);
+      yazi.position.set(0, 1.7, 0.12);
+      pano.add(yazi);
+      this.add(pano, -W / 2 + 3.4, D / 2 - 3.4, 0.6);
+      this.solid(-W / 2 + 3.4, D / 2 - 3.4, 2.4, 1, 3);
+    }
+
+    this.spot('muze-kurator', W / 2 - 3.2, D / 2 - 6.4, 2, 'Küratörle konuş', {
+      dur: 3.4, pose: 'wave', cam: [8, 4.6],
+      start: () => void (kurator.pose = 'wave'),
+      step: (_t, _u, a) => {
+        a.pos.set(W / 2 - 3.2, 0, D / 2 - 6.2);
+        a.heading = 0;
+      },
+      end: () => {
+        kurator.pose = 'idle';
+        const n = this.found.length;
+        if (n >= TOTAL) return 'Küratör: Bütün koleksiyonu tamamladın! Müzemizin en büyük kâşifi sensin!';
+        if (!n) return 'Küratör: Hoş geldin! Camekânlar şimdilik boş. Adada balık tut, fosil kaz, kabuk topla, böcek ara!';
+        return `Küratör: ${n} parçan var, ${TOTAL - n} tane daha bulursan koleksiyon tamamlanır. Hadi bakalım!`;
+      },
+    });
+
+    // ---- bilgi levhaları (duvarlarda)
+    const levha = (wall: THREE.Group, along: number, metin: string, renk: string) => {
+      const l = board(metin, renk, '#ffffff', 3.4, 0.7, 600);
+      this.hang(wall, l, along, 3.6, 0.05);
+    };
+    levha(this.wallBack, -9.5, 'Balıklar iskelede bulunur', '#3f7fe0');
+    levha(this.wallBack, 9.5, 'Dinozorlar taşa dönüşür', '#c4874f');
+    levha(this.wallLeft, -7.5, 'Fosiller vadide kazılır', '#c4874f');
+    levha(this.wallRight, -7.5, 'Kabuklar denizin altında', '#e9a3b8');
+
+    // ---- banklar ve saksılar
+    for (const [bx, bz] of [[-6.5, 6.5], [6.5, 6.5]] as const) {
+      const b = new THREE.Group();
+      b.add(this.box(2.6, 0.18, 0.9, '#b9773f', 0, 0.62, 0));
+      for (const sx of [-1, 1]) b.add(this.box(0.2, 0.6, 0.8, '#9c6a3a', sx * 1.1, 0.3, 0, false));
+      this.add(b, bx, bz);
+      this.solid(bx, bz, 2.8, 1.1, 0.7);
+    }
+    for (const [px, pz] of [[-W / 2 + 1.6, D / 2 - 1.8], [W / 2 - 1.6, D / 2 - 1.8]] as const) {
+      this.add(this.plant(1.5), px, pz);
+      this.solid(px, pz, 1.3, 1.3, 1.4);
+    }
   }
 
   // ----------------------------------------------------------------------------------------------

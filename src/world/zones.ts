@@ -639,7 +639,26 @@ function buildTown(b: WorldBuilder) {
     b.place(tabela, ...ileri(8.4), ang);
     b.place(g, mx, mz, ang);
     b.block(mx, mz, 6.4);
-    b.spot({ id: 'museum', x: ileri(6.6)[0], z: ileri(6.6)[1], r: 3.2, label: 'Müzeye gir', page: true });
+    // kapıdan içeri girilir (iç mekân: src/world/interiors.ts → muze)
+    {
+      const [sx, sz] = ileri(7.2);
+      const [ix, iz] = ileri(4.6);
+      const [bx, bz] = ileri(9.2);
+      b.spot({
+        id: 'museum', x: sx, z: sz, r: 3.2, label: 'Müzeye gir',
+        act: {
+          dur: 0.8, pose: 'walk', quest: 'museum',
+          step(_t, u, a) {
+            a.pos.lerpVectors(new THREE.Vector3(sx, b.h(sx, sz), sz), new THREE.Vector3(ix, b.h(ix, iz), iz), u);
+            a.heading = ang + Math.PI;
+          },
+          end: () => {
+            b.sound.fx?.('dooropen');
+            b.enter?.('muze', { x: bx, z: bz, h: ang });
+          },
+        },
+      });
+    }
   }
 
   // sanat galerisi

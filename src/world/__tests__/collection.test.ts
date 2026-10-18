@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { byGroup, COLLECTION, COLLECT_LINES, counts, foundLine, GROUPS, item, roll, TOTAL, type CollectGroup } from '../collection';
+import { byGroup, caseLine, COLLECTION, COLLECT_LINES, counts, emptyCaseLine, foundLine, GROUPS, item, roll, TOTAL, type CollectGroup } from '../collection';
 
 const gruplar = Object.keys(GROUPS) as CollectGroup[];
 
@@ -50,6 +50,14 @@ describe('koleksiyon', () => {
     expect(foundLine(c, true)).toContain(c.fact);
     expect(foundLine(c, false)).not.toContain(c.fact);
     expect(new Set(COLLECT_LINES).size).toBe(COLLECT_LINES.length);
+  });
+
+  it('müze camekânı cümleleri hazır', () => {
+    const c = COLLECTION[5];
+    expect(caseLine(c)).toContain(c.name);
+    expect(caseLine(c)).toContain(c.fact);
+    for (const g of gruplar) expect(emptyCaseLine(g)).toContain(GROUPS[g].name);
+    expect(COLLECT_LINES).toContain(caseLine(c));
   });
 
   it('item kimlikten parçayı bulur', () => {

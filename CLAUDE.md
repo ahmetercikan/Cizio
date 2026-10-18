@@ -30,11 +30,12 @@
   - `weather.ts`: mevsim (yaprak rengi, tarihten) ve günün havası (yağmur / kar; aynı gün hep aynı)
   - `water.ts`: dalgalanan havuz suyu ve kavis çizen fıskiye (kasaba çeşmesi, köy çeşmesi, AVM havuzu, ev havuzu)
   - `city.ts`: Şehir Merkezi (gökdelenler, dönel kavşak, AVM, sinema, otel, taksi) ve ortak `tower()` modeli
-  - `interiors.ts`: binaların içi (okul, hastane, market, kütüphane, pastane, itfaiye + Şehir Merkezi'nin
-    AVM, sinema, otel, ofis ve apartman daireleri). Kapılar `places.ts` ve `city.ts`'te `door(...)` ile kurulur.
+  - `interiors.ts`: binaların içi (okul, hastane, market, kütüphane, pastane, itfaiye, müze + Şehir Merkezi'nin
+    AVM, sinema, otel, ofis ve apartman daireleri). Müze camekânları çocuğun koleksiyonuna göre dolar
+    (`makeRealm(..., { museum })`). Kapılar `places.ts` ve `city.ts`'te `door(...)` ile kurulur.
   - `mars.ts`: Mars
   - `home.ts`: Evim (Ev planı sekmesinden evine ad verilir; ad ada tabelasında yazar)
-  - `collection.ts` / `MuseumPanel.tsx`: koleksiyon (balık, fosil, kabuk, böcek) ve kasabadaki Müze
+  - `collection.ts`: koleksiyon (balık, fosil, kabuk, böcek); Müze'nin içi `interiors.ts` → `muze`
   - `petpark.ts`: Evcil Hayvan Parkı (besle, yıka, topla oyna, böcek ara)
   - `MiniGames.tsx` / `ArcadeGames.tsx`: Oyun Çadırı'nın 14 mini oyunu (lobi: `Shops.tsx` GamesPanel)
   - `Rewards.tsx`: hazine sandıkları, günlük hediye serisi, koleksiyon rozetleri (hesap: `economy.ts`)

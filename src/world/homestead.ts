@@ -621,7 +621,7 @@ export const REALMS = [
 /** Binaların içi (adadaki ve Şehir Merkezi'ndeki kapılardan girilir). */
 export const INTERIORS = {
   okul: 'Okul', hastane: 'Hastane', market: 'Market', kutuphane: 'Kütüphane', pastane: 'Pastane', itfaiye: 'İtfaiye',
-  avm: 'AVM', sinema: 'Sinema', otel: 'Otel', ofis: 'Ofis', apartman: 'Apartman',
+  avm: 'AVM', sinema: 'Sinema', otel: 'Otel', ofis: 'Ofis', apartman: 'Apartman', muze: 'Müze',
 } as const;
 export type InteriorId = keyof typeof INTERIORS;
 export type RealmId = (typeof REALMS)[number]['id'] | 'mars' | InteriorId;
