@@ -3,7 +3,7 @@
  */
 import { ParentPremium } from '../world/ParentPremium';
 import { WeekSummary } from '../components/WeekCard';
-import { Download, Lock, Trash2, Upload, Volume2 } from 'lucide-react';
+import { Download, Lock, Trash2, Upload, Volume2, Printer } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Confirm, Modal, TopBar, useToast } from '../components/ui';
@@ -11,6 +11,8 @@ import { lessons, lessonsByPath, paths } from '../lessons';
 import { blobToDataUrl, dataUrlToBlob, deleteArtworksOf, listArtworks, saveArtwork, type Artwork } from '../lib/gallery';
 import { setNaturalVoice, speak, speechSupported, testVoice, turkishVoices } from '../lib/speech';
 import { saveFile } from '../lib/files';
+import { coloringPdf } from '../lib/coloring';
+import { weekTheme } from '../lib/theme';
 import { addDays, dayKey, TR_DAYS } from '../lib/util';
 import { useApp } from '../store/useApp';
 import { AvatarArt, AVATARS } from '../components/Avatars';
@@ -51,6 +53,49 @@ export function Gate({ onPass, onCancel }: { onPass: () => void; onCancel: () =>
         <button className="btn-outline btn-outline--sm" onClick={onCancel}>Vazgeç</button>
       </div>
     </Modal>
+  );
+}
+
+/** Yazdırılabilir boyama sayfaları. */
+function ColoringCard({ name }: { name: string }) {
+  const data = useApp((x) => (x.activeId ? x.data[x.activeId] : undefined));
+  const [busy, setBusy] = useState<string | null>(null);
+  const tema = weekTheme();
+  const favoriler = (data?.favorites ?? []).map((id) => lessons.find((l) => l.id === id)).filter(Boolean) as typeof lessons;
+  const bitirilen = lessons.filter((l) => data?.lessons?.[l.id]);
+
+  const setler: { id: string; ad: string; ders: typeof lessons }[] = [
+    { id: 'tema', ad: `Bu haftanın teması: ${tema.title}`, ders: tema.lessons.slice(0, 8) },
+    ...(favoriler.length ? [{ id: 'fav', ad: `Favorileri (${favoriler.length})`, ders: favoriler.slice(0, 12) }] : []),
+    ...(bitirilen.length ? [{ id: 'bit', ad: `Bitirdiği dersler (${bitirilen.length})`, ders: bitirilen.slice(0, 12) }] : []),
+  ];
+
+  const yap = async (set: { id: string; ad: string; ders: typeof lessons }) => {
+    setBusy(set.id);
+    try {
+      const blob = await coloringPdf(set.ders, name);
+      await saveFile(blob, `cizio-boyama-${set.id}.pdf`, 'Boyama sayfaları');
+    } catch {
+      /* iptal edildi ya da kaydedilemedi */
+    }
+    setBusy(null);
+  };
+
+  return (
+    <section className="paper-card settings-card" style={{ marginTop: 16 }}>
+      <h2 className="card-title">Boyama sayfaları</h2>
+      <p className="muted" style={{ fontWeight: 600 }}>
+        Çizimlerin boş konturlarını PDF olarak kaydedin, yazdırıp {name} ile ekransız boyayın.
+        Her sayfada iki çizim var.
+      </p>
+      <div className="limit-row">
+        {setler.map((s) => (
+          <button key={s.id} className="limit-chip" disabled={!!busy} onClick={() => yap(s)}>
+            <Printer size={16} /> {busy === s.id ? 'Hazırlanıyor…' : s.ad}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -250,6 +295,8 @@ export default function Parent() {
       )}
 
       {active && data && <WeekSummary data={data} name={active.name} />}
+
+      {active && <ColoringCard name={active.name} />}
 
       {active && <ScreenTimeCard />}
 
