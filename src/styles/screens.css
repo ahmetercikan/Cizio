@@ -3198,3 +3198,27 @@
   border: 2px solid var(--line); box-shadow: var(--shadow-card);
 }
 .breaktime__clock { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; color: var(--muted); }
+
+/* ------------------------------------------------------------------------------------------------
+   Haftalık karne (src/components/WeekCard.tsx)
+   ------------------------------------------------------------------------------------------------ */
+.weekcard {
+  display: grid; gap: 12px; padding: 16px 18px; border-radius: var(--radius-lg); margin: 4px 0 20px;
+  background: linear-gradient(135deg, var(--teal-soft), var(--sun-soft));
+  border: 2px solid var(--line); box-shadow: var(--shadow-card);
+}
+.weekcard__head { display: flex; align-items: center; gap: 12px; }
+.weekcard__label { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: var(--muted); font-size: 13px; }
+.weekcard__days { display: flex; gap: 7px; }
+.weekcard__day { display: grid; justify-items: center; gap: 3px; flex: 1; }
+.weekcard__day i { width: 100%; height: 10px; border-radius: 6px; background: rgba(58, 43, 39, 0.12); display: block; }
+.weekcard__day.on i { background: var(--teal); }
+.weekcard__day small { font-size: 11px; font-weight: 800; color: var(--muted); }
+.weekcard__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.weekcard__rows li {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid rgba(58, 43, 39, 0.1); font-weight: 700; color: var(--ink-2);
+}
+.weekcard__rows li:last-child { border-bottom: 0; }
+.weekcard__rows b { font-family: var(--display); font-size: 19px; font-weight: 600; color: var(--teal-dark); }
+.weekcard__stars { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; color: var(--ink-2); }

@@ -2,6 +2,7 @@
  * Ebeveyn bölümü (basit çarpma sorusuyla korunur): profiller, ses, çizim ayarları, ilerleme ve yedekleme.
  */
 import { ParentPremium } from '../world/ParentPremium';
+import { WeekSummary } from '../components/WeekCard';
 import { Download, Lock, Trash2, Upload, Volume2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -247,6 +248,8 @@ export default function Parent() {
           </div>
         </section>
       )}
+
+      {active && data && <WeekSummary data={data} name={active.name} />}
 
       {active && <ScreenTimeCard />}
 

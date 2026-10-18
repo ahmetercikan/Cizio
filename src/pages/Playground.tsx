@@ -12,6 +12,7 @@ import { CHALLENGES, questDone, specialDay, todayQuest } from '../lib/daily';
 import { questLink } from './Challenge';
 import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../components/AppShell';
+import { WeekCertificate } from '../components/WeekCard';
 import { CardRow, LessonCard } from '../components/LessonCard';
 import { Mascot } from '../components/Mascot';
 import { Modal } from '../components/ui';
@@ -135,6 +136,8 @@ export default function Playground() {
           )}
         </div>
       </section>
+
+      <WeekCertificate />
 
       {favorites.length > 0 ? (
         <CardRow title="Favorilerim" icon={<Heart size={20} fill="currentColor" />} lessons={favorites} />
