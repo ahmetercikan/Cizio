@@ -11,6 +11,7 @@
  * "Çizio"ya çevrilir.
  */
 import type { DollState } from '../dressup/catalog';
+import { ABC_LINES } from './abc';
 
 // ------------------------------------------------------------------------------------------------
 // Resimler
@@ -29,7 +30,9 @@ export type Art =
   | { k: 'feel'; f: FeelId }
   | { k: 'body'; p: BodyId }
   | { k: 'cloth'; patch: Partial<DollState>; region: string }
-  | { k: 'act'; a: ActId };
+  | { k: 'act'; a: ActId }
+  /** ABC'de resmi olmayan birkaç kelime (umbrella, xylophone) için elle çizilmiş resim. */
+  | { k: 'abc'; ch: string };
 
 // ------------------------------------------------------------------------------------------------
 // Kelimeler
@@ -783,5 +786,6 @@ export function englishLines(): string[] {
       if (p.act) out.push(p.act.ask, p.act.yes);
     }
   }
+  out.push(...ABC_LINES);
   return [...new Set(out)];
 }

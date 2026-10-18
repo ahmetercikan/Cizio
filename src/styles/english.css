@@ -543,3 +543,23 @@
   .appbar__brand--world > span:last-child { white-space: normal; line-height: 1.05; max-width: 92px; overflow: visible; }
   .appbar__worlds { width: 34px; height: 34px; border-radius: 12px; }
 }
+
+/* ------------------------------------------------------------------------------------------------
+   ABC ve harf sesleri (src/english/AbcPage.tsx)
+   ------------------------------------------------------------------------------------------------ */
+.abc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; }
+.abc-card {
+  display: grid; justify-items: center; gap: 2px; padding: 10px 6px 8px; border-radius: 22px;
+  background: #fff; border: 2px solid var(--line); box-shadow: var(--shadow-card); color: var(--ink);
+}
+.abc-card__art { width: 62px; height: 62px; }
+.abc-card b { font-family: var(--display); font-size: 24px; font-weight: 600; line-height: 1; display: flex; align-items: baseline; gap: 3px; }
+.abc-card b span { font-size: 17px; color: var(--muted); }
+.abc-card small { font-weight: 800; color: var(--ink-2); font-size: 12.5px; }
+.abc-card.done { border-color: var(--teal); background: var(--teal-soft); }
+.abc-card:active { transform: translateY(2px); }
+
+.abc-head { display: flex; align-items: center; gap: 14px; justify-content: center; margin-bottom: 12px; }
+.abc-head__art { width: 86px; height: 86px; }
+.abc-head__word { font-family: var(--display); font-size: 27px; font-weight: 600; display: block; line-height: 1.1; }
+.abc-head__tr { color: var(--muted); font-weight: 700; }

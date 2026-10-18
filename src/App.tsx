@@ -25,6 +25,7 @@ const DrawGamePicker = named(() => import('./pages/DrawGame'), 'DrawGamePicker')
 const DressUp = lazy(loadDress);
 const Duel = lazy(() => import('./pages/Duel'));
 const EnglishHome = lazy(loadEnglish);
+const EnglishAbc = lazy(() => import('./english/AbcPage'));
 const EnglishGames = named(loadEnglish, 'EnglishGames');
 const EnglishPlay = named(loadEnglish, 'EnglishPlay');
 const EnglishStories = named(loadEnglish, 'EnglishStories');
@@ -91,6 +92,7 @@ export default function App() {
         <Route path="/atolye" element={<NeedsProfile><Playground /></NeedsProfile>} />
         <Route path="/english" element={<NeedsProfile><EnglishHome /></NeedsProfile>} />
         <Route path="/english/zaman" element={<NeedsProfile><EnglishTime /></NeedsProfile>} />
+        <Route path="/english/abc" element={<NeedsProfile><EnglishAbc /></NeedsProfile>} />
         <Route path="/english/kelimeler" element={<NeedsProfile><EnglishWords /></NeedsProfile>} />
         <Route path="/english/kelimeler/:id" element={<NeedsProfile><EnglishTopic /></NeedsProfile>} />
         <Route path="/english/oyunlar" element={<NeedsProfile><EnglishGames /></NeedsProfile>} />

@@ -288,6 +288,70 @@ function MascotAct({ a }: { a: ActId }) {
 }
 
 // ------------------------------------------------------------------------------------------------
+// ABC: ders çizimi olmayan birkaç kelime için elle çizilmiş resim
+// ------------------------------------------------------------------------------------------------
+function AbcArt({ ch }: { ch: string }) {
+  if (ch === 'U') {
+    // umbrella
+    return (
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <path d="M20,112 A80,80 0 0,1 180,112 Z" fill="#ef4b4b" stroke="#3a2b27" strokeWidth="5" strokeLinejoin="round" />
+        <path d="M100,32 A80,80 0 0,1 180,112 L140,112 A40,80 0 0,0 100,32 Z" fill="#ffc83d" stroke="#3a2b27" strokeWidth="4" strokeLinejoin="round" />
+        <path d="M60,112 A40,80 0 0,1 100,32 A40,80 0 0,1 140,112" fill="#fff6e6" stroke="#3a2b27" strokeWidth="4" strokeLinejoin="round" />
+        <path d="M100,32 V26" stroke="#3a2b27" strokeWidth="6" strokeLinecap="round" />
+        <path d="M100,112 V158 A16,16 0 0,0 132,158" fill="none" stroke="#8c5a2b" strokeWidth="8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (ch === 'X') {
+    // xylophone
+    const bars: [string, number][] = [['#ef4b4b', 0], ['#ff8a2b', 1], ['#ffc83d', 2], ['#2bb673', 3], ['#3f7fe0', 4], ['#9b6bff', 5]];
+    return (
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        {bars.map(([c, i]) => {
+          const w = 150 - i * 15, y = 50 + i * 19;
+          return <rect key={i} x={(200 - w) / 2} y={y} width={w} height="14" rx="7" fill={c} stroke="#3a2b27" strokeWidth="3.5" />;
+        })}
+        <path d="M150,36 L178,22" stroke="#8c5a2b" strokeWidth="6" strokeLinecap="round" />
+        <circle cx="148" cy="38" r="9" fill="#ffc83d" stroke="#3a2b27" strokeWidth="3.5" />
+      </svg>
+    );
+  }
+  if (ch === 'Z') {
+    // zebra (ders çizimi yok, burada çizildi)
+    return (
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <g stroke="#3a2b27" strokeWidth="5" strokeLinejoin="round">
+          <path d="M62,60 L50,24 L82,44 Z" fill="#f7f3ec" />
+          <path d="M138,60 L150,24 L118,44 Z" fill="#f7f3ec" />
+          <path d="M66,52 A46,46 0 0,1 134,52 L128,118 A34,46 0 0,1 72,118 Z" fill="#f7f3ec" />
+          <path d="M72,118 A34,30 0 0,0 128,118 L122,152 A26,22 0 0,1 78,152 Z" fill="#f7f3ec" />
+        </g>
+        <g fill="#3a2b27">
+          <path d="M78,44 q10,20 4,42 l-13,-4 q8,-22 1,-40 Z" />
+          <path d="M100,38 q6,24 1,48 l-12,0 q6,-24 1,-48 Z" />
+          <path d="M122,44 q-10,20 -4,42 l13,-4 q-8,-22 -1,-40 Z" />
+          <path d="M64,86 q18,8 36,8 t36,-8 l3,14 q-20,9 -39,9 t-39,-9 Z" opacity="0.85" />
+        </g>
+        <g fill="#3a2b27">
+          <circle cx="84" cy="112" r="7" />
+          <circle cx="116" cy="112" r="7" />
+          <ellipse cx="88" cy="146" rx="6" ry="5" />
+          <ellipse cx="112" cy="146" rx="6" ry="5" />
+        </g>
+        <circle cx="86.5" cy="109.5" r="2.4" fill="#fff" />
+        <circle cx="118.5" cy="109.5" r="2.4" fill="#fff" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <text x="100" y="138" textAnchor="middle" fontSize="130" fontWeight="700" fill="#7c5cff" stroke="#3a2b27" strokeWidth="4" fontFamily="Fredoka, Nunito, sans-serif">{ch}</text>
+    </svg>
+  );
+}
+
+// ------------------------------------------------------------------------------------------------
 // Tek giriş noktası
 // ------------------------------------------------------------------------------------------------
 export function WordArt({ art, className = '' }: { art: Art; className?: string }) {
@@ -308,6 +372,7 @@ export function WordArt({ art, className = '' }: { art: Art; className?: string 
     case 'body': inner = <BodyArt p={art.p} />; break;
     case 'cloth': inner = <ClothArt patch={art.patch} region={art.region} />; break;
     case 'act': inner = <MascotAct a={art.a} />; break;
+    case 'abc': inner = <AbcArt ch={art.ch} />; break;
   }
   return <div className={`en-art ${className}`}>{inner}</div>;
 }

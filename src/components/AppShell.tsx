@@ -1,4 +1,4 @@
-import { BookA, BookOpen, Brush, Gamepad2, Images, LayoutGrid, LibraryBig, Settings, Shirt, Store, Sun } from 'lucide-react';
+import { BookA, BookOpen, Brush, Gamepad2, Images, LayoutGrid, LibraryBig, Settings, Shirt, Store, Sun, Type } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { FriendsButton } from '../online/OnlineHost';
@@ -35,6 +35,7 @@ export const WORLDS: Record<WorldId, { title: string; home: string; tabs: { to: 
     home: '/english',
     tabs: [
       { to: '/english', label: 'Bugün', Icon: Sun },
+      { to: '/english/abc', label: 'ABC', Icon: Type },
       { to: '/english/kelimeler', label: 'Kelimeler', Icon: BookA },
       { to: '/english/oyunlar', label: 'Oyunlar', Icon: Gamepad2 },
       { to: '/english/hikayeler', label: 'Hikayeler', Icon: BookOpen },
