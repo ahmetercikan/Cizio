@@ -14,7 +14,8 @@ import type { InteriorId } from './homestead';
 import { board, holdItem } from './places';
 import { Realm, type Hero, type RealmEvents } from './realms';
 import type { RealmData } from './worlds';
-import { byGroup, caseLine, emptyCaseLine, GROUPS, item as parca, TOTAL, type CollectGroup } from './collection';
+import { byGroup, caseLine, emptyCaseLine, GROUPS, item as parca, TOTAL, type Collectible, type CollectGroup } from './collection';
+import { collectModel } from './collectModels';
 import { fountain, waterSurface } from './water';
 import { FILM_MAX, FILM_MIN, filmLength, filmScenes, filmTheme, sceneAt, type FilmScene } from '../story/film';
 import type { ArtShot } from './textures';
@@ -2781,7 +2782,7 @@ export class InteriorRealm extends Realm {
     const { W, D } = this;
 
     /** Kaideli, camlı sergi dolabı. İçindeki parça bulunduysa renkli, bulunmadıysa soru işareti. */
-    const kutu = (c: { id: string; name: string; color: string; fact: string }, x: number, z: number, rot: number) => {
+    const kutu = (c: Collectible, x: number, z: number, rot: number) => {
       const bulundu = this.found.includes(c.id);
       const g = new THREE.Group();
       // kaide
@@ -2792,14 +2793,26 @@ export class InteriorRealm extends Realm {
       cam.position.y = 2;
       g.add(cam);
       for (const sx of [-0.65, 0.65]) g.add(this.box(0.07, 1.4, 0.07, '#9c8e78', sx, 2, 0.5, false));
-      // içindeki parça
+      // içindeki parça: balığın, fosilin, kabuğun ya da böceğin kendi modeli (src/world/collectModels.ts)
       if (bulundu) {
-        const p = outline(mesh(new THREE.IcosahedronGeometry(0.34, 1), toon(c.color)), 1.08);
+        const model = collectModel(c);
+        // modeli camekâna sığacak kadar küçült ve ortala (dönerken cama değmesin)
+        const kt = new THREE.Box3().setFromObject(model);
+        const boy = kt.getSize(new THREE.Vector3());
+        const orta = kt.getCenter(new THREE.Vector3());
+        model.position.sub(orta);
+        const yatay = Math.max(0.01, Math.hypot(boy.x, boy.z) / 2);
+        const donen = new THREE.Group();
+        donen.add(model);
+        const p = new THREE.Group();
+        p.add(donen);
+        p.scale.setScalar(Math.min(1.6, 0.46 / yatay, 0.62 / Math.max(0.01, boy.y)));
+        // hafif öne eğik durur: yassı parçalar (deniz yıldızı, kelebek) da seçilsin
+        p.rotation.x = 0.3;
         p.position.y = 1.78;
-        p.scale.set(1, c.id === 'inci' || c.id === 'amonit' ? 1 : 0.82, 1.15);
         g.add(p);
         this.ticks.push((_dt, t) => {
-          p.rotation.y = t * 0.7;
+          donen.rotation.y = t * 0.7;
           p.position.y = 1.78 + Math.sin(t * 1.6 + x) * 0.05;
         });
       } else {
