@@ -117,6 +117,12 @@ export interface ProfileData {
   online?: OnlineIdentity;
   /** Harf ve rakam izleme: harf kimliği → en iyi yıldız (src/trace). */
   trace?: Record<string, number>;
+  /** Günlük ekran süresi sınırı (dakika; 0 ya da yok = sınırsız). Ebeveyn bölümünden konur. */
+  limitMin?: number;
+  /** Güne göre uygulamada geçirilen dakika. */
+  used?: Record<string, number>;
+  /** Sınırın bugünlük uzatıldığı dakika (ebeveyn "15 dakika daha" dediğinde). */
+  bonusMin?: Record<string, number>;
 }
 
 export interface EnglishInput {
@@ -195,6 +201,12 @@ interface AppState {
   grantOwned(key: string): void;
   /** Bir harf / rakam izlendi: en iyi yıldızı saklar, yeni rekorsa kazanılan yıldızı döndürür. */
   recordTrace(id: string, stars: number): number;
+  /** Uygulamada geçen süre (dakika) eklenir. */
+  addUsage(min: number): void;
+  /** Günlük ekran süresi sınırı (dakika; 0 = sınırsız). */
+  setLimit(min: number): void;
+  /** Bugünlük sınırı uzat (ebeveyn). */
+  addBonus(min: number): void;
   buyChest(price: number): boolean;
   buyFrame(id: string, price: number): boolean;
   setFrame(id?: string): void;
@@ -549,6 +561,29 @@ export const useApp = create<AppState>()(
         const d = { ...emptyData(), ...data[activeId] };
         if ((d.owned ?? []).includes(key)) return;
         set({ data: { ...data, [activeId]: { ...d, owned: [...(d.owned ?? []), key] } } });
+      },
+
+      addUsage(min) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = { ...emptyData(), ...data[activeId] };
+        const k = dayKey();
+        set({ data: { ...data, [activeId]: { ...d, used: { ...d.used, [k]: (d.used?.[k] ?? 0) + min } } } });
+      },
+
+      setLimit(min) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = { ...emptyData(), ...data[activeId] };
+        set({ data: { ...data, [activeId]: { ...d, limitMin: min } } });
+      },
+
+      addBonus(min) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = { ...emptyData(), ...data[activeId] };
+        const k = dayKey();
+        set({ data: { ...data, [activeId]: { ...d, bonusMin: { ...d.bonusMin, [k]: (d.bonusMin?.[k] ?? 0) + min } } } });
       },
 
       recordTrace(id, stars) {

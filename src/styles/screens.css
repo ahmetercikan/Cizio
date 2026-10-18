@@ -3179,3 +3179,22 @@
 .letters-cta__text { display: grid; gap: 1px; flex: 1; min-width: 0; }
 .letters-cta__text b { font-family: var(--display); font-size: 19px; font-weight: 600; }
 .letters-cta__text small { color: var(--ink-2); font-weight: 700; }
+
+/* ------------------------------------------------------------------------------------------------
+   Ekran süresi: ayar ve mola ekranı (src/components/ScreenTime.tsx)
+   ------------------------------------------------------------------------------------------------ */
+.limit-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.limit-chip {
+  padding: 8px 15px; border-radius: 999px; font-weight: 800; color: var(--ink-2);
+  background: #fff; border: 2px solid var(--line);
+}
+.limit-chip.on { background: var(--teal-soft); border-color: var(--teal); color: var(--teal-dark); }
+.limit-used { font-weight: 700; color: var(--ink-2); display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+.breaktime { display: grid; place-items: center; min-height: 100dvh; padding: 24px; }
+.breaktime__card {
+  display: grid; justify-items: center; gap: 12px; text-align: center; max-width: 30rem;
+  padding: 28px 24px; border-radius: var(--radius-lg); background: var(--paper);
+  border: 2px solid var(--line); box-shadow: var(--shadow-card);
+}
+.breaktime__clock { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; color: var(--muted); }

@@ -53,6 +53,43 @@ export function Gate({ onPass, onCancel }: { onPass: () => void; onCancel: () =>
   );
 }
 
+/** Günlük ekran süresi sınırı (çocuk başına). */
+function ScreenTimeCard() {
+  const setLimit = useApp((x) => x.setLimit);
+  const addBonus = useApp((x) => x.addBonus);
+  const active = useApp((x) => x.activeId);
+  const d = useApp((x) => (x.activeId ? x.data[x.activeId] : undefined));
+  const name = useApp((x) => x.profiles.find((p) => p.id === x.activeId)?.name ?? '');
+  const k = dayKey();
+  const limit = d?.limitMin ?? 0;
+  const used = d?.used?.[k] ?? 0;
+  const bonus = d?.bonusMin?.[k] ?? 0;
+  if (!active) return null;
+  const secenekler = [0, 15, 30, 45, 60, 90];
+  return (
+    <section className="paper-card settings-card" style={{ marginTop: 16 }}>
+      <h2 className="card-title">Ekran süresi — {name}</h2>
+      <p className="muted" style={{ fontWeight: 600 }}>
+        Günlük sınır dolunca çocuğa nazik bir "mola zamanı" ekranı çıkar. Süre yalnızca uygulama açıkken işler;
+        ebeveyn bölümü sınırın dışındadır.
+      </p>
+      <div className="limit-row">
+        {secenekler.map((m) => (
+          <button key={m} className={`limit-chip ${limit === m ? 'on' : ''}`} onClick={() => setLimit(m)}>
+            {m === 0 ? 'Sınırsız' : `${m} dk`}
+          </button>
+        ))}
+      </div>
+      {limit > 0 && (
+        <p className="limit-used">
+          Bugün: <b>{used}</b> / {limit + bonus} dakika{bonus ? ` (${bonus} dk ek izin)` : ''}
+          <button className="btn-outline btn-outline--sm" style={{ marginLeft: 10 }} onClick={() => addBonus(15)}>Bugün 15 dk ekle</button>
+        </p>
+      )}
+    </section>
+  );
+}
+
 interface Backup {
   app: 'cizio' | 'ciziktir';
   version: 1;
@@ -210,6 +247,8 @@ export default function Parent() {
           </div>
         </section>
       )}
+
+      {active && <ScreenTimeCard />}
 
       <section className="paper-card settings-card" style={{ marginTop: 16 }}>
         <h2 className="card-title">Ses</h2>

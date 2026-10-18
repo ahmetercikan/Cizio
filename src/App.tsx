@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, type ComponentType, type ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ScreenTimeGuard } from './components/ScreenTime';
 import { setSfxEnabled } from './lib/sfx';
 import { setNaturalVoice, unlockAudio } from './lib/speech';
 import Learn, { CoursePage } from './pages/Learn';
@@ -58,7 +59,8 @@ function NeedsProfile({ children }: { children: ReactNode }) {
   const has = useApp((s) => !!s.activeId && s.profiles.some((p) => p.id === s.activeId));
   const any = useApp((s) => s.profiles.length > 0);
   if (!has) return <Navigate to={any ? '/profiller' : '/hosgeldin'} replace />;
-  return <>{children}</>;
+  // günlük ekran süresi sınırı dolduysa mola ekranı (ebeveyn bölümü sınırın dışında kalır)
+  return <ScreenTimeGuard>{children}</ScreenTimeGuard>;
 }
 
 export default function App() {
