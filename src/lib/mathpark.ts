@@ -126,10 +126,14 @@ export const MATH_UI = {
   done: 'Hepsini bildin! Matematikte çok iyisin!',
 };
 
-/** Seslendirilecek cümleler: oyun adları, ipuçları, sabit cümleler ve saat okunuşları. */
+/** Soru metni değişmeyen oyunların sesli hâli (toplama/çıkarma sayılarla değiştiği için cihazın sesiyle okunur). */
+const SABIT_SORULAR = ['Kaç tane var? Say bakalım!', 'Saat kaç?'];
+
+/** Seslendirilecek cümleler: oyun adları, ipuçları, sabit cümleler, sabit sorular ve saat okunuşları. */
 export const MATH_LINES: string[] = [...new Set([
   ...MATH_GAMES.flatMap((g) => [g.name, g.hint]),
   ...Object.values(MATH_UI),
+  ...SABIT_SORULAR,
   ...Array.from({ length: 12 }, (_, i) => clockText(i + 1, 0)),
   ...Array.from({ length: 12 }, (_, i) => clockText(i + 1, 30)),
 ])];
