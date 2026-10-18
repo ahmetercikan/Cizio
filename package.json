@@ -18,7 +18,8 @@
     "ios:sync": "npm run build && npx cap sync ios",
     "store-shots": "tsx scripts/store-shots.mts",
     "test:rules": "firebase emulators:exec --only firestore,database --project demo-cizio \"vitest run --dir rules-tests --pool=threads --poolOptions.threads.singleThread\"",
-    "emulators": "firebase emulators:start --only auth,firestore,database --project demo-cizio"
+    "emulators": "firebase emulators:start --only auth,firestore,database --project demo-cizio",
+    "voice:eksik": "tsx scripts/voice-missing.ts"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^8.0.2",

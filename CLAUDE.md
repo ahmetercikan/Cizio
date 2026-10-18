@@ -13,6 +13,10 @@
   - iOS: `npm run ios:sync`
 - **Sürüm:** `package.json` → `version`. Android: `android/app/build.gradle` (versionCode/versionName). iOS: Xcode
   Version/Build. Mağaza notları ve adımlar: `store/`.
+- **Seslendirme:** sesi olmayan cümleleri çıkarmak için `npm run voice:eksik` → `store/seslendirme/`
+  (dosya adı cümleden hesaplanır, değiştirilemez). MP3'ler `public/voice/` içine konup
+  `npm run voice -- --manifest-only --allow-partial` çalıştırılınca devreye girer. Dosyası olmayan cümleyi
+  telefonun kendi sesi okur, yani hiçbir bölüm sessiz kalmaz.
 - **Sesler:** `public/sfx/*.mp3` ElevenLabs ses efekti kütüphanesinden indirilmiş gerçek kayıtlardır
   (ücretli planda telifsiz, ticari kullanıma açık, atıf gerekmez). Dosya yüklenemezse `src/lib/sfx.ts`
   aynı sesi sentezleyerek çalar; yani ses hiçbir zaman kesilmez.
