@@ -13,6 +13,7 @@
 import type { DollState } from '../dressup/catalog';
 import { ABC_LINES } from './abc';
 import { SONG_LINES } from './songs';
+import { DRAW_LINES } from './draw';
 
 // ------------------------------------------------------------------------------------------------
 // Resimler
@@ -794,6 +795,6 @@ export function englishLines(): string[] {
       if (p.act) out.push(p.act.ask, p.act.yes);
     }
   }
-  out.push(...ABC_LINES, ...SONG_LINES);
+  out.push(...ABC_LINES, ...SONG_LINES, ...DRAW_LINES);
   return [...new Set(out)];
 }

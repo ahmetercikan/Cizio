@@ -9,7 +9,7 @@
 import confetti from 'canvas-confetti';
 import { ArrowLeft, ArrowRight, Check, Gamepad2, Hand, Heart, Monitor, NotebookPen, Pause, Play, RotateCcw, RotateCw, Settings2, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { withShading } from '../art/shading';
 import { buildTimeline, fmtTime, frameAt, type Timeline } from '../art/timeline';
 import { AliveStage } from '../components/AliveStage';
@@ -33,6 +33,7 @@ import { sfx } from '../lib/sfx';
 import { isSpeaking, preloadLines, speak, stopSpeaking } from '../lib/speech';
 import { uid } from '../lib/util';
 import { getSticker } from '../stickers';
+import { DRAW_UI, drawLesson } from '../english/draw';
 import { useApp, useProfile, useProfileData, type DrawMode, type LessonProgress, type Scaffold } from '../store/useApp';
 import { ChestNote } from '../components/Rewards';
 
@@ -85,7 +86,14 @@ function Player({ lesson }: { lesson: Lesson }) {
   const progress = pdata.lessons[lesson.id];
   const [mode, setMode] = useState<DrawMode>(settings.defaultMode);
   // Kâğıt modunda çizgilerden sonra kalemle gölgelendirme adımları eklenir; ekranda boyama yapılır.
-  const play = useMemo(() => (mode === 'paper' ? withShading(lesson) : lesson), [lesson, mode]);
+  // Draw in English: aynı çizim, Çizio'nun anlatımı İngilizce (English Club > Draw in English)
+  const [params] = useSearchParams();
+  const enDraw = params.get('dil') === 'en' ? drawLesson(lesson.id) : undefined;
+  const base = useMemo(
+    () => (enDraw ? { ...lesson, title: enDraw.title, steps: lesson.steps.map((st, i) => ({ ...st, say: enDraw.steps[i] ?? st.say })) } : lesson),
+    [lesson, enDraw],
+  );
+  const play = useMemo(() => (mode === 'paper' ? withShading(base) : base), [base, mode]);
   const tl = useMemo(() => buildTimeline(play), [play]);
   const last = play.steps.length - 1;
   const [scaffold, setScaffold] = useState<Scaffold>(() => suggestScaffold(progress));
@@ -113,9 +121,13 @@ function Player({ lesson }: { lesson: Lesson }) {
   const speed = settings.speed;
 
   const say = useCallback(
-    (text: string) => settings.narration && speak(text, { rate: settings.rate, voiceURI: settings.voiceURI }),
-    [settings.narration, settings.rate, settings.voiceURI],
+    (text: string) =>
+      settings.narration &&
+      (enDraw ? speak(text, { lang: 'en', rate: 0.9 }) : speak(text, { rate: settings.rate, voiceURI: settings.voiceURI })),
+    [settings.narration, settings.rate, settings.voiceURI, enDraw],
   );
+  /** Sabit cümle: İngilizce kipte İngilizcesi okunur. */
+  const L = useCallback((tr: string, en: string) => (enDraw ? en : tr), [enDraw]);
 
   useEffect(() => {
     preloadLines(play.steps.map((s) => s.say));
@@ -139,7 +151,9 @@ function Player({ lesson }: { lesson: Lesson }) {
         setPhase('turn');
         sfx.pop();
         if (curRef.current === 0 && !isSpeaking())
-          say(mode === 'paper' ? 'Şimdi sıra sende! Kâğıdına çiz, bitince devam et.' : 'Şimdi sıra sende! Turuncu çizginin üstünden geç.');
+          say(mode === 'paper'
+            ? L('Şimdi sıra sende! Kâğıdına çiz, bitince devam et.', DRAW_UI.yourTurnPaper)
+            : L('Şimdi sıra sende! Turuncu çizginin üstünden geç.', DRAW_UI.yourTurn));
         return;
       }
       raf = requestAnimationFrame(tick);
@@ -202,12 +216,12 @@ function Player({ lesson }: { lesson: Lesson }) {
     stopSpeaking();
     if (mode === 'paper') {
       setPhase('camera');
-      say('Çiziminin fotoğrafını çek!');
+      say(L('Çiziminin fotoğrafını çek!', DRAW_UI.photo));
     } else {
       setPhase('color');
       ts.setTool('fill');
       ts.setColor(lesson.palette?.[0] ?? '#ffc531');
-      say('Şimdi en eğlenceli kısım: boyama! Boya kovasıyla şekillerin içine dokun.');
+      say(L('Şimdi en eğlenceli kısım: boyama! Boya kovasıyla şekillerin içine dokun.', DRAW_UI.color));
     }
   };
 
@@ -216,7 +230,7 @@ function Player({ lesson }: { lesson: Lesson }) {
     const strokes = doc.strokes((s) => s.step === cur && s.tool !== 'eraser');
     if (!strokes.length) {
       showToast('Önce çizmeyi dene! Turuncu çizgiyi takip et.');
-      say('Önce çizmeyi dene!');
+      say(L('Önce çizmeyi dene!', DRAW_UI.tryFirst));
       return;
     }
     const context = lesson.steps.slice(0, cur + 1).flatMap((s) => s.shapes);
@@ -225,7 +239,7 @@ function Player({ lesson }: { lesson: Lesson }) {
     setPhase('feedback');
     if (r.stars >= 2) sfx.success();
     else sfx.soft();
-    say(feedbackText(r));
+    say(enDraw ? (r.stars >= 2 ? DRAW_UI.great : DRAW_UI.tryFirst) : feedbackText(r));
   };
 
   const retry = () => {
@@ -249,7 +263,7 @@ function Player({ lesson }: { lesson: Lesson }) {
     setPhase('done');
     sfx.fanfare();
     void confetti({ particleCount: 160, spread: 100, origin: { y: 0.55 }, colors: ['#ffd43b', '#ffffff', '#a58bff', '#ff7eb6', '#2ecf8a'], disableForReducedMotion: true });
-    say(stars >= 3 ? `Muhteşem! ${lesson.title} çok güzel oldu!` : 'Tebrikler! Dersi bitirdin!');
+    say(enDraw ? (stars >= 3 ? DRAW_UI.great : DRAW_UI.done) : stars >= 3 ? `Muhteşem! ${lesson.title} çok güzel oldu!` : 'Tebrikler! Dersi bitirdin!');
   };
 
   const finishScreen = async () => {
@@ -284,7 +298,7 @@ function Player({ lesson }: { lesson: Lesson }) {
           <ArrowLeft size={26} strokeWidth={2.6} />
         </button>
         <div className="player__title">
-          <b>{lesson.title}</b>
+          <b>{play.title}</b>
           {phase !== 'intro' && phase !== 'done' && (
             <span className="player__steps" aria-label={`Adım ${cur + 1} / ${play.steps.length}`}>
               {play.steps.map((_, i) => (
@@ -348,10 +362,15 @@ function Player({ lesson }: { lesson: Lesson }) {
         </div>
       )}
 
+      {/* İngilizce kipte adımın cümlesi ekranda da yazar: çocuk duyduğunu okuyarak takip eder */}
+      {enDraw && (phase === 'watch' || phase === 'turn') && play.steps[cur] && (
+        <div className="draw-sub rise">{play.steps[cur].say}</div>
+      )}
+
       {/* sıra sende */}
       {phase === 'turn' && (
         <div className="turn-banner rise">
-          <Hand size={22} /> {mode === 'paper' ? (play.steps[cur]?.hatch ? 'Sıra sende! Kalemle gölgelendir.' : 'Sıra sende! Kâğıdına çiz.') : scaffold === 'free' ? 'Sıra sende! Örneğe bakarak çiz.' : 'Sıra sende! Turuncu çizgiyi takip et.'}
+          <Hand size={22} /> {enDraw ? DRAW_UI.yourTurn : mode === 'paper' ? (play.steps[cur]?.hatch ? 'Sıra sende! Kalemle gölgelendir.' : 'Sıra sende! Kâğıdına çiz.') : scaffold === 'free' ? 'Sıra sende! Örneğe bakarak çiz.' : 'Sıra sende! Turuncu çizgiyi takip et.'}
         </div>
       )}
 
@@ -467,7 +486,7 @@ function Player({ lesson }: { lesson: Lesson }) {
       {phase === 'intro' && (
         <div className="intro rise">
           <div className="intro__head">
-            <h1 className="title-lg">{lesson.title}</h1>
+            <h1 className="title-lg">{play.title}</h1>
             <button className={`fav-btn ${pdata.favorites.includes(lesson.id) ? 'on' : ''}`} aria-label="Favori"
               onClick={() => { sfx.pop(); toggleFavorite(lesson.id); }}>
               <Heart size={22} fill={pdata.favorites.includes(lesson.id) ? 'currentColor' : 'none'} />

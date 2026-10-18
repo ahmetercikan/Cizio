@@ -624,3 +624,42 @@
 .say__mic:active { transform: translateY(3px); }
 @keyframes say-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 @media (prefers-reduced-motion: reduce) { .say__mic--on { animation: none; } }
+
+/* ------------------------------------------------------------------------------------------------
+   Draw in English (src/english/DrawPage.tsx)
+   ------------------------------------------------------------------------------------------------ */
+.en-draw__note {
+  padding: 12px 15px; border-radius: 18px; background: var(--sun-soft); border: 2px solid var(--line);
+  color: var(--ink-2); font-weight: 600; margin-bottom: 14px;
+}
+.en-draw__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 11px; }
+.en-draw__card {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; border-radius: 22px;
+  background: #fff; border: 2px solid var(--line); box-shadow: var(--shadow-card); color: var(--ink);
+}
+.en-draw__img { width: 64px; height: 64px; flex: none; border-radius: 16px; background: var(--cream); }
+.en-draw__text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.en-draw__text b { font-family: var(--display); font-size: 16px; font-weight: 600; line-height: 1.2; }
+.en-draw__text small { color: var(--muted); font-weight: 700; }
+.en-draw__new { font-size: 12px; font-weight: 800; color: var(--teal-dark); }
+.en-draw__card:active { transform: translateY(2px); }
+
+/* Draw in English: ders ekranındaki İngilizce altyazı */
+.draw-sub {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-bottom) + 108px);
+  max-width: min(92vw, 34rem); padding: 9px 16px; border-radius: 16px; z-index: 6;
+  background: rgba(28, 22, 48, 0.86); color: #fff; font-weight: 700; text-align: center; line-height: 1.35;
+}
+
+/* English Club ana sayfasındaki iki büyük kart (Şarkılar, Draw in English) */
+.en-two { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 14px; }
+.en-two__card {
+  display: grid; justify-items: center; gap: 2px; text-align: center; padding: 16px 12px;
+  border-radius: 24px; border: 2px solid var(--line); box-shadow: var(--shadow-card); color: var(--ink);
+}
+.en-two__card b { font-family: var(--display); font-size: 17px; font-weight: 600; line-height: 1.2; }
+.en-two__card small { color: var(--ink-2); font-weight: 700; font-size: 12.5px; }
+.en-two__card--song { background: linear-gradient(135deg, #efe6ff, #dff3ff); }
+.en-two__card--draw { background: linear-gradient(135deg, #fff1c7, #d4f3ee); }
+.en-two__card:active { transform: translateY(2px); }
+@media (max-width: 360px) { .en-two { grid-template-columns: 1fr; } }

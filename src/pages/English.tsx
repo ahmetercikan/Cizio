@@ -1,5 +1,5 @@
 /** English Club sayfaları. */
-import { BookOpen, Check, ChevronLeft, ChevronRight, Ear, Footprints, Gamepad2, Home, Palette, Search, Volume2, Mic } from 'lucide-react';
+import { BookOpen, Check, ChevronLeft, ChevronRight, Ear, Footprints, Gamepad2, Home, Palette, Search, Volume2, Mic, Music, Brush } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
@@ -107,6 +107,19 @@ export default function EnglishHome() {
           {doneToday ? 'Bir kez daha' : "Let's go!"} <ChevronRight size={26} strokeWidth={3} />
         </button>
       </section>
+
+      <div className="en-two rise">
+        <Link to="/english/sarkilar" className="en-two__card en-two__card--song" onClick={() => sfx.pop()}>
+          <Music size={30} strokeWidth={2.4} />
+          <b>Şarkılar</b>
+          <small>Dinle, söyle, hareket et</small>
+        </Link>
+        <Link to="/english/ciz" className="en-two__card en-two__card--draw" onClick={() => sfx.pop()}>
+          <Brush size={30} strokeWidth={2.4} />
+          <b>Draw in English</b>
+          <small>Çizerken İngilizce öğren</small>
+        </Link>
+      </div>
 
       <section className="en-stats rise">
         <div className="en-week" aria-label="Bu haftanın English Time günleri">
