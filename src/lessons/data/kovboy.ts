@@ -11,7 +11,7 @@ const kovboy: Lesson = {
   path: 'karakterler',
   title: 'Kovboy',
   emoji: '🤠',
-  order: 11,
+  order: 4,
   level: 2,
   skill: 'Geniş kovboy şapkası, boynundaki bandanası ve çizmeleriyle bir vahşi batı kahramanı çizmeyi öğrendin!',
   palette: ['#8b5a2b', '#ffe1cc', '#e63946', '#2563eb', '#ffd23f', '#fdf0d5', '#2d2d2d'],

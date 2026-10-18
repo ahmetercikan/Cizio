@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Dinozorlar 4: Minik kanatlı, çizgili karınlı, sırtı dikenli dost bir ejderha. */
 const ejderha: Lesson = {
   id: 'ejderha',
-  path: 'dinozor',
+  path: 'masal',
   title: 'Dost Ejderha',
   emoji: '🐉',
-  order: 4,
+  order: 10,
   level: 3,
   skill: 'Kanadı, karnı ve dikenleri gövdenin üstüne ve yanına ekledin. Üst üste binen şekillerle katman katman çizmeyi öğrendin!',
   palette: ['#b98cff', '#ffe9a8', '#ff9ecf', '#ffd166', '#2d2d2d', '#ffb3c1'],

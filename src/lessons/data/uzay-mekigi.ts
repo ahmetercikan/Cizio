@@ -2,10 +2,10 @@ import type { Lesson } from '../types';
 
 const uzayMekigi: Lesson = {
   id: 'uzay-mekigi',
-  path: 'tasitlar',
+  path: 'uzay',
   title: 'Uzay Mekiği',
   emoji: '🚀',
-  order: 16,
+  order: 5,
   level: 2,
   skill: 'Simetrik gövde, delta kanatlar ve fırlatma alevleriyle bir uzay mekiği çizmeyi öğrendin!',
   palette: ['#ffffff', '#2d2d2d', '#ff5a36', '#ffe066', '#4fa3ff', '#3a3a4a'],

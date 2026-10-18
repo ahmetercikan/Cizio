@@ -11,7 +11,7 @@ const sovalye: Lesson = {
   path: 'karakterler',
   title: 'Cesur Şövalye',
   emoji: '🛡️',
-  order: 8,
+  order: 5,
   level: 3,
   skill: 'Karakterin eline eşyalar vermeyi öğrendin! Kalkan ve kılıç, şövalyenin kim olduğunu hemen anlatır.',
   palette: ['#c9d3e0', '#ffe1cc', '#e63946', '#4f8df5', '#ffd23f', '#8d6e63', '#2d2d2d'],

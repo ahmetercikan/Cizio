@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 12: Büyük vizörlü kaskı ve oksijen tüpüyle sevimli uzay yolcusu. */
 const astronot: Lesson = {
   id: 'astronot',
-  path: 'karakterler',
+  path: 'uzay',
   title: 'Uzay Yolcusu',
   emoji: '👨‍🚀',
-  order: 12,
+  order: 4,
   level: 2,
   skill: 'Büyük kaskı, parlak vizörü ve oksijen tüpüyle uzayda süzülen bir astronot çizmeyi öğrendin!',
   palette: ['#f1f5f9', '#0284c7', '#64748b', '#fde047', '#ef4444', '#22c55e', '#2d2d2d'],

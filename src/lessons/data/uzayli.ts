@@ -18,7 +18,7 @@ const star = (cx: number, cy: number, R: number) => {
 /** Karakterler 3: Uzay gemisindeki uzaylı. Simetri: iki tarafı aynı çizmek. */
 const uzayli: Lesson = {
   id: 'uzayli',
-  path: 'karakterler',
+  path: 'uzay',
   title: 'Uzaylı ve Uzay Gemisi',
   emoji: '👽',
   order: 3,

@@ -5,10 +5,10 @@ const circle = (cx: number, cy: number, r: number) =>
 
 const ayYildizlar: Lesson = {
   id: 'ay-yildizlar',
-  path: 'doga',
+  path: 'uzay',
   title: 'Gece Gökyüzü',
   emoji: '🌙',
-  order: 16,
+  order: 2,
   level: 1,
   skill: 'Hilal ve yıldızlarla büyüleyici, masalsı bir gece manzarası kurdun!',
   palette: ['#ffd166', '#ffe66d', '#1d2a44', '#141d30', '#2b3a67', '#ffffff'],

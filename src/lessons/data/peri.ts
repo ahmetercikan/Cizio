@@ -17,10 +17,10 @@ const star = (cx: number, cy: number, R: number) => {
 /** Karakterler 4: Chibi peri kız. Kocaman kafa, minicik vücut. */
 const peri: Lesson = {
   id: 'peri',
-  path: 'karakterler',
+  path: 'masal',
   title: 'Peri Kız',
   emoji: '🧚',
-  order: 4,
+  order: 6,
   level: 3,
   skill: 'Chibi çizmeyi öğrendin! Kafa kocaman, vücut minicik olunca karakter çok tatlı görünür.',
   palette: ['#b07cf2', '#ffe1cc', '#ff8fc8', '#aee8ff', '#ffd23f', '#2d2d2d'],

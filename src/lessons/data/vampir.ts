@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 14: Dik yakalı pelerini, minik dişleri ve sevimli gülüşüyle şirin vampir. */
 const vampir: Lesson = {
   id: 'vampir',
-  path: 'karakterler',
+  path: 'masal',
   title: 'Şirin Vampir',
   emoji: '🧛',
-  order: 14,
+  order: 5,
   level: 2,
   skill: 'Görkemli pelerini, sivri kulakları ve sevimli vampir dişleriyle eğlenceli bir karakter çizmeyi öğrendin!',
   palette: ['#1e1e2d', '#e63946', '#f8fafc', '#ffd23f', '#ffb3c1', '#2d2d3a', '#ffffff'],

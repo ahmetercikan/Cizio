@@ -18,10 +18,10 @@ const star = (cx: number, cy: number, R: number) => {
 /** Karakterler 16: Yıldızlı cüppesi, sihirli asası ve büyü kitabıyla usta bir büyücü. */
 const buyucu: Lesson = {
   id: 'buyucu',
-  path: 'karakterler',
+  path: 'masal',
   title: 'Sihirbaz',
   emoji: '🧙',
-  order: 16,
+  order: 8,
   level: 3,
   skill: 'Yıldızlı cüppesi, elindeki büyü kitabı ve kıvılcımlar saçan sihirli asasıyla harika bir büyücü çizmeyi öğrendin!',
   palette: ['#312e81', '#ffd23f', '#38bdf8', '#ffe1cc', '#f1f5f9', '#854d0e', '#2d2d2d'],

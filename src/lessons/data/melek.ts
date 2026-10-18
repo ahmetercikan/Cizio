@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 15: Haresi, bembeyaz kanatları ve pofuduk bulutuyla minik melek. */
 const melek: Lesson = {
   id: 'melek',
-  path: 'karakterler',
+  path: 'masal',
   title: 'Minik Melek',
   emoji: '👼',
-  order: 15,
+  order: 2,
   level: 1,
   skill: 'Altındaki pofuduk buluttan başlayıp kanatları ve parlayan haresiyle sevimli bir melek çizmeyi öğrendin!',
   palette: ['#ffffff', '#ffe1cc', '#fde047', '#bae6fd', '#ffb3c1', '#facc15', '#2d2d2d'],

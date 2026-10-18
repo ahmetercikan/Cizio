@@ -8,7 +8,7 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 7: Chibi prenses. Uzun saç, taç ve kabarık bir elbise. */
 const prenses: Lesson = {
   id: 'prenses',
-  path: 'karakterler',
+  path: 'masal',
   title: 'Prenses',
   emoji: '👸',
   order: 7,

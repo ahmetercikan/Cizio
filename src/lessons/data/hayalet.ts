@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 5: Hiç korkutucu olmayan, el sallayan sevimli bir hayalet. */
 const hayalet: Lesson = {
   id: 'hayalet',
-  path: 'karakterler',
+  path: 'masal',
   title: 'Sevimli Hayalet',
   emoji: '👻',
-  order: 5,
+  order: 1,
   level: 1,
   skill: 'Yuvarlak bir tepe ve dalgalı bir etekle yumuşak, sevimli bir karakter çizmeyi öğrendin!',
   palette: ['#f1ecff', '#d9ccff', '#ff8fc8', '#ffb3c1', '#2d2d2d'],

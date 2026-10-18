@@ -29,6 +29,9 @@ const BY_PATH: Record<PathId, MotionProfile> = {
   tasitlar: { body: 'drive', scene: 'road', game: 'drive' },
   ismakineleri: { body: 'drive', scene: 'road', game: 'drive' },
   ozel: { body: 'wobble', scene: 'party', game: 'run' },
+  uzay: { body: 'rocket', scene: 'space', game: 'fly' },
+  masal: { body: 'float', scene: 'garden', game: 'fly' },
+  meslekler: { body: 'bounce', scene: 'meadow', game: 'run' },
 };
 
 const BY_LESSON: Record<string, Partial<MotionProfile>> = {

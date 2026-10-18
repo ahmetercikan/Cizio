@@ -11,7 +11,7 @@ const ninja: Lesson = {
   path: 'karakterler',
   title: 'Gizli Ninja',
   emoji: '🥷',
-  order: 10,
+  order: 3,
   level: 2,
   skill: 'Ninja maskesi, sarkan kuşakları ve arkasındaki kılıcıyla gizemli bir karakter çizmeyi öğrendin!',
   palette: ['#2d3142', '#ffe1cc', '#e63946', '#94a3b8', '#ffd23f', '#1a1a24', '#ffffff'],

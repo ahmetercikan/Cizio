@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Taşıtlar 22: Uzay Aracı - Kubbeli, renkli ışıklı ve ışık huzmeli sevimli uçan daire. */
 const uzayAraci: Lesson = {
   id: 'uzay-araci',
-  path: 'tasitlar',
+  path: 'uzay',
   title: 'Uzay Aracı',
   emoji: '🛸',
-  order: 22,
+  order: 6,
   level: 2,
   skill: 'Geniş bir daire gövde, şeffaf kubbe ve yere süzülen ışık huzmesiyle uzay gemisi çizmeyi öğrendin!',
   palette: ['#118ab2', '#06d6a0', '#ffd166', '#ef476f', '#a2d2ff', '#ffffff', '#2d2d2d'],

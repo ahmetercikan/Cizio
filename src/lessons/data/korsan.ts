@@ -11,7 +11,7 @@ const korsan: Lesson = {
   path: 'karakterler',
   title: 'Minik Korsan',
   emoji: '🏴‍☠️',
-  order: 6,
+  order: 2,
   level: 2,
   skill: 'Bir yüzün üstüne şapka, bant ve küpe ekleyerek karaktere kılık giydirmeyi öğrendin!',
   palette: ['#ffd9b8', '#3b3b4f', '#ffffff', '#e8474c', '#ffd23f', '#ffb3c1', '#2d2d2d'],

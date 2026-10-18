@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 2: Tek kocaman göz ve açık ağızla neşeli bir canavar. */
 const canavar: Lesson = {
   id: 'canavar',
-  path: 'karakterler',
+  path: 'masal',
   title: 'Sevimli Canavar',
   emoji: '👾',
-  order: 2,
+  order: 3,
   level: 1,
   skill: 'Kocaman bir göz ve açık bir ağızla karakterine duygu katmayı öğrendin! Yüz, karakteri canlandırır.',
   palette: ['#a88bff', '#ffe08a', '#ffffff', '#8a2a4a', '#ff8fb1', '#2d2d2d'],

@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 21: Topuz saçlı, kabarık tütülü ve parmak ucunda dans eden balerin. */
 const balerin: Lesson = {
   id: 'balerin',
-  path: 'karakterler',
+  path: 'meslekler',
   title: 'Balerin',
   emoji: '🩰',
-  order: 21,
+  order: 6,
   level: 3,
   skill: 'Topuz saçları, kabarık tütüsü ve parmak ucundaki zarif duruşuyla güzel bir balerin çizmeyi öğrendin!',
   palette: ['#f472b6', '#fbcfe8', '#ffe1cc', '#854d0e', '#ffffff', '#ffb3c1', '#2d2d2d'],

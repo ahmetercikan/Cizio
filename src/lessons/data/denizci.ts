@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 19: Çizgili tişörtlü, denizci şapkalı ve dümen tutan minik denizci. */
 const denizci: Lesson = {
   id: 'denizci',
-  path: 'karakterler',
+  path: 'meslekler',
   title: 'Minik Denizci',
   emoji: '⚓',
-  order: 19,
+  order: 4,
   level: 2,
   skill: 'Mavi-beyaz çizgili tişörtü, denizci şapkası ve gemi dümeniyle denizlere açılan sevimli bir denizci çizmeyi öğrendin!',
   palette: ['#1e3a8a', '#ffffff', '#b45309', '#ef4444', '#ffd23f', '#ffe1cc', '#2d2d2d'],

@@ -20,7 +20,7 @@ const kahraman: Lesson = {
   path: 'karakterler',
   title: 'Süper Kahraman',
   emoji: '🦸',
-  order: 9,
+  order: 6,
   level: 3,
   skill: 'Arkada kalan pelerini önce, önündeki gövdeyi sonra çizerek katman kurmayı öğrendin!',
   palette: ['#ffe1cc', '#5a3a22', '#e63946', '#4f8df5', '#ffd23f', '#ffb3c1', '#2d2d2d'],

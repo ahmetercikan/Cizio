@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 20: Havalı güneş gözlükleri, bröveli üniforması ve kasketiyle kaptan pilot. */
 const pilot: Lesson = {
   id: 'pilot',
-  path: 'karakterler',
+  path: 'meslekler',
   title: 'Kaptan Pilot',
   emoji: '✈️',
-  order: 20,
+  order: 5,
   level: 2,
   skill: 'Kaptan şapkası, havalı pilot gözlükleri ve altın apoletleriyle göklerde süzülen bir pilot çizmeyi öğrendin!',
   palette: ['#1e293b', '#ffffff', '#ffd23f', '#38bdf8', '#ffe1cc', '#0f172a', '#ffb3c1'],

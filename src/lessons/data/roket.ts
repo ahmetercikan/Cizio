@@ -16,7 +16,7 @@ const star = (cx: number, cy: number, R: number) => {
 /** Taşıtlar 1: Dikdörtgen, üçgen ve daireyi üst üste koyarak bir roket. */
 const roket: Lesson = {
   id: 'roket',
-  path: 'tasitlar',
+  path: 'uzay',
   title: 'Uzay Roketi',
   emoji: '🚀',
   order: 1,

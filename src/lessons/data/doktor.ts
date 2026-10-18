@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 17: Beyaz önlüklü, stetoskoplu ve ilk yardım çantalı sevimli doktor. */
 const doktor: Lesson = {
   id: 'doktor',
-  path: 'karakterler',
+  path: 'meslekler',
   title: 'Doktor',
   emoji: '👨‍⚕️',
-  order: 17,
+  order: 2,
   level: 2,
   skill: 'Beyaz hekim önlüğü, boynundaki stetoskopu ve acil çantasıyla sevimli bir doktor çizmeyi öğrendin!',
   palette: ['#f8fafc', '#b91c1c', '#0ea5e9', '#ffe1cc', '#334155', '#ffb3c1', '#2d2d2d'],

@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Özel Günler 8: Öğretmenler Günü için kitapların üstünde gülümseyen bir elma. */
 const ogretmenElma: Lesson = {
   id: 'ogretmen-elma',
-  path: 'ozel',
+  path: 'meslekler',
   title: 'Öğretmenime Elma',
   emoji: '🍎',
-  order: 8,
+  order: 1,
   level: 1,
   skill: 'Şekilleri üst üste koyarak bir yığın kurmayı öğrendin! Öğretmenine sevgiyle verebilirsin.',
   palette: ['#5aa9e6', '#ffd166', '#ff4d4d', '#6ccf7f', '#8d6e63', '#ffb3c1', '#2d2d2d'],

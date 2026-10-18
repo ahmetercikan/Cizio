@@ -8,10 +8,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 /** Karakterler 18: Kaskı, sarı çizmeleri ve su hortumuyla cesur itfaiyeci. */
 const itfaiyeciKarakter: Lesson = {
   id: 'itfaiyeci-karakter',
-  path: 'karakterler',
+  path: 'meslekler',
   title: 'Cesur İtfaiyeci',
   emoji: '👨‍🚒',
-  order: 18,
+  order: 3,
   level: 2,
   skill: 'Sağlam itfaiyeci kaskı, fosforlu şeritleri ve tazyikli su hortumuyla cesur bir kahraman çizmeyi öğrendin!',
   palette: ['#dc2626', '#facc15', '#1e293b', '#38bdf8', '#ffe1cc', '#ffb3c1', '#2d2d2d'],

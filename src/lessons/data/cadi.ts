@@ -18,10 +18,10 @@ const star = (cx: number, cy: number, R: number) => {
 /** Karakterler 13: Sivri şapkalı, süpürgeli ve yıldız asalı minik cadı. */
 const cadi: Lesson = {
   id: 'cadi',
-  path: 'karakterler',
+  path: 'masal',
   title: 'Minik Cadı',
   emoji: '🧙‍♀️',
-  order: 13,
+  order: 4,
   level: 2,
   skill: 'Sivri cadı şapkası, uçan süpürgesi ve yıldızlı asasıyla sevimli bir cadı çizmeyi öğrendin!',
   palette: ['#4a2574', '#ffe1cc', '#ffd23f', '#ff85a1', '#854d0e', '#a855f7', '#2d2d2d'],

@@ -7,10 +7,10 @@ const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
 
 const denizkizi: Lesson = {
   id: 'denizkizi',
-  path: 'deniz',
+  path: 'masal',
   title: 'Küçük Denizkızı',
   emoji: '🧜‍♀️',
-  order: 15,
+  order: 9,
   level: 3,
   skill: 'İnsan figürüyle balık kuyruğunu birleştirip dalgalı saçlar çizmeyi öğrendin!',
   palette: ['#ff758f', '#ffe5d9', '#48cae4', '#52b788', '#ffd166', '#2d2d2d', '#ffffff'],
