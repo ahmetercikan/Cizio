@@ -67,6 +67,8 @@ export interface IslandEvents {
   onStar: (id: string) => void;
   /** Bir görev / etkinlik tamamlandı (görev kimliği). */
   onDone: (quest: string) => void;
+  /** Koleksiyona bir parça eklendi (balık, fosil, kabuk, böcek). */
+  onCollect?: (id: string) => void;
   onBusy: (busy: boolean) => void;
   onMessage: (text: string) => void;
   /** Araç sürülüyor mu (İn düğmesi için). */
@@ -234,6 +236,11 @@ export class Island {
 
     this.wb = new WorldBuilder(this.scene, this.grid, this.sparkles, o.tex, o.art,
       (quest, msg) => {
+        if (quest.startsWith('koleksiyon:')) {
+          this.ev.onCollect?.(quest.slice(11));
+          if (msg) this.ev.onMessage(msg);
+          return;
+        }
         if (quest.startsWith('star:')) {
           this.ev.onStar(quest.slice(5));
           this.ev.sound.star(5);

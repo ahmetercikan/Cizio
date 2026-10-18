@@ -13,6 +13,7 @@ import { heightAt, isWater, LAKE, SNOW_PEAK, VOLCANO, zone } from './layout';
 import { fountain, waterSurface } from './water';
 import type { BlockGrid } from './terrain';
 import type { RealmId } from './homestead';
+import { roll, type CollectGroup } from './collection';
 
 export interface Actor {
   pos: THREE.Vector3;
@@ -141,6 +142,14 @@ export class WorldBuilder {
   reef = new THREE.Group();
   /** Bir dünyaya gir (bina içi, Mars). Adaya dönünce `back` noktasında, `h` yönüne bakarak durulur. */
   enter?: (id: RealmId, back?: { x: number; z: number; h: number }) => void;
+
+  /** Koleksiyona bir parça ekle: gruptan nadirlik ağırlıklı bir şey çıkar, müzeye gider. */
+  collect(group: CollectGroup) {
+    const c = roll(group);
+    this.sound.star(2);
+    this.done(`koleksiyon:${c.id}`, '');
+    return c;
+  }
 
   constructor(
     public scene: THREE.Scene,
@@ -599,6 +608,40 @@ function buildTown(b: WorldBuilder) {
     b.place(hs, -20, -14, b.facing(-20, -14, 0, 0));
     b.setHomeSign = (t) => signText(hs, t.trim() || 'Evim');
   }
+  // müze: adada bulunan balık, fosil, kabuk ve böceklerin sergilendiği küçük bina
+  {
+    const mx = -45, mz = 16;
+    const ang = b.facing(mx, mz, 0, 0);
+    const g = new THREE.Group();
+    const gov = outline(mesh(new THREE.BoxGeometry(11, 5.4, 8), toon('#efe6d4')), 1.02);
+    gov.position.y = 2.7;
+    g.add(gov);
+    // sütunlu giriş ve alınlık
+    for (const sx of [-3.6, -1.2, 1.2, 3.6]) {
+      const col = outline(mesh(new THREE.CylinderGeometry(0.42, 0.46, 4.4, 12), toon('#f7f2e6')), 1.03);
+      col.position.set(sx, 2.2, 4.4);
+      g.add(col);
+    }
+    const taban = outline(mesh(new THREE.BoxGeometry(11.6, 0.5, 9.6), toon('#ded3bd')), 1.02);
+    taban.position.y = 0.25;
+    const alin = outline(mesh(new THREE.ConeGeometry(6.6, 2, 3), toon('#e8dcc0')), 1.03);
+    alin.position.set(0, 5.6, 2.4);
+    alin.rotation.y = Math.PI / 2;
+    alin.scale.set(1, 1, 0.55);
+    const kapi = mesh(new THREE.BoxGeometry(2.4, 3.2, 0.2), toon('#9b6b43'), false);
+    kapi.position.set(0, 1.6, 4.05);
+    g.add(taban, alin, kapi);
+    // kapı kasabaya bakar: tabela ve giriş noktası da merkeze doğru konur
+    const mr = Math.hypot(mx, mz);
+    const ileri = (d: number): [number, number] => [(mx * (mr - d)) / mr, (mz * (mr - d)) / mr];
+    const tabela = sign('Müze', '#f0e2c8');
+    tabela.scale.setScalar(1.2);
+    b.place(tabela, ...ileri(8.4), ang);
+    b.place(g, mx, mz, ang);
+    b.block(mx, mz, 6.4);
+    b.spot({ id: 'museum', x: ileri(6.6)[0], z: ileri(6.6)[1], r: 3.2, label: 'Müzeye gir', page: true });
+  }
+
   // sanat galerisi
   const gx = 26, gz = -20;
   const g = new THREE.Group();
@@ -637,7 +680,8 @@ function buildTown(b: WorldBuilder) {
   b.tick((_dt, t) => (npc.position.y = b.h(6, 6) + Math.sin(t * 2) * 0.12));
   b.spot({ id: 'cizio', x: 6, z: 6, r: 3.2, label: 'Çizio ile konuş', page: true });
   // dondurma arabası: servis penceresi çocuğun geldiği yüze bakar (+z), tekerlekler iki yanda
-  const ix = 13, iz = 15;
+  // Oyun Çadırı'nın önünü kapatmasın diye meydanın güneyine alındı
+  const ix = 1, iz = -22;
   const truck = new THREE.Group();
   const body = outline(mesh(new THREE.BoxGeometry(3.6, 2.2, 2), toon('#9be7de')), 1.03);
   body.position.y = 1.6;
@@ -692,17 +736,8 @@ function buildTown(b: WorldBuilder) {
     b.place(l, Math.cos(a) * 10, Math.sin(a) * 10, 0, 3.5);
     b.lamps.push(l.position.clone());
   }
-  // yol tabelaları (bölgelere)
-  const placed: number[] = [];
-  for (const zid of ['fun', 'lake', 'beach', 'forest', 'farm', 'snow', 'dino', 'castle', 'rocket', 'city', 'village', 'zoo', 'airport', 'picnic']) {
-    const zn = zone(zid);
-    const a = Math.atan2(zn.z, zn.x);
-    // yönleri çok yakın olan tabelalar iç içe girmesin: ikinci halkaya
-    const near = placed.some((p) => Math.abs(Math.atan2(Math.sin(p - a), Math.cos(p - a))) < 0.3);
-    placed.push(a);
-    const [x, z] = b.polar(a, near ? 17.5 : 13.5);
-    b.place(sign(zn.name, '#fff1c7'), x, z, b.facing(x, z, 0, 0) + Math.PI);
-  }
+  // Eskiden kasabanın ortasında on dört yön tabelası vardı; başlangıç yerini kalabalık yapıyordu.
+  // Yön bulma artık haritadan (sağ üstteki mini harita) yapılıyor, her bölgenin kendi girişinde de adı yazıyor.
 }
 
 function buildGarden(b: WorldBuilder, x: number, z: number) {
@@ -1912,7 +1947,6 @@ function buildLake(b: WorldBuilder, taken: string[]) {
   stick.rotation.x = 1.1;
   stick.position.set(0, 0.5, 1.1);
   rod.add(stick);
-  const FISH = ['Minik Balık', 'Neşeli Yunus', 'Denizatı', 'Yengeç', 'Deniz Yıldızı', 'Sevimli Ahtapot'];
   b.spot({
     id: 'fish', x: fx, z: pz, r: 2.2, label: 'Balık tut',
     act: {
@@ -1925,7 +1959,9 @@ function buildLake(b: WorldBuilder, taken: string[]) {
       end: () => {
         rod.removeFromParent();
         b.sparkles.burst(new THREE.Vector3(fx - 3, 0.5, pz), 16, '#7ee0ff');
-        return `${FISH[Math.floor(Math.random() * FISH.length)]} yakaladın!`;
+        // yakalanan balık müzeye gider (src/world/collection.ts)
+        b.collect('balik');
+        return undefined;
       },
     },
   });
@@ -2205,7 +2241,11 @@ function buildBeach(b: WorldBuilder, taken: string[]) {
           a.pos.set(reefAt[0] + Math.sin(t * 0.4) * 8, -2 * k - 0.2, reefAt[1] + Math.cos(t * 0.3) * 5);
           a.heading = t * 0.4 + Math.PI / 2;
         },
-        end: () => { reef.visible = false; return 'Su altında rengarenk balıklar gördün!'; },
+        end: () => {
+          reef.visible = false;
+          b.collect('kabuk');
+          return undefined;
+        },
       },
     });
   }
@@ -2628,7 +2668,10 @@ function buildDino(b: WorldBuilder) {
         if (Math.floor(t * 5) !== Math.floor((t - 0.02) * 5)) b.sparkles.burst(new THREE.Vector3(fx, b.h(fx, fz) + 0.4, fz), 3, '#c4874f');
         if (u > 0.5) bones.visible = true;
       },
-      end: () => 'Bir dinozor iskeleti buldun!',
+      end: () => {
+        b.collect('fosil');
+        return undefined;
+      },
     },
   });
   // dev yumurta

@@ -202,6 +202,8 @@ export interface FarmState {
   miniDay?: { day: string; n: number; won?: string[] };
   /** Oyun Çadırı: oyun başına kazanma sayısı ve en iyi puan. */
   games?: Record<string, { w: number; best: number }>;
+  /** Müze: bulunan koleksiyon parçaları (src/world/collection.ts). */
+  museum?: string[];
   /** Hazine sandığı anahtarı (zor kazanılır, sandık açar). */
   keys?: number;
   /** Bugüne dek kazanılan toplam altın (koleksiyon rozetleri buna bakar). */

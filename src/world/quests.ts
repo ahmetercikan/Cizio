@@ -1,5 +1,6 @@
 /** Çizio Adası'nın günlük görevleri ve Çizio'nun cümleleri (seslendirilir: src/voice/lines.ts). */
 import { hashStr } from '../lib/util';
+import { COLLECT_LINES } from './collection';
 
 export type QuestId =
   | 'stars' | 'slide' | 'swing' | 'dance' | 'boat' | 'gallery' | 'home' | 'ferris' | 'carousel' | 'trampoline'
@@ -7,7 +8,7 @@ export type QuestId =
   | 'coaster' | 'waterslide' | 'swan' | 'swim' | 'jetski' | 'surf' | 'snorkel' | 'sandcastle' | 'lifeguard'
   | 'campfire' | 'tent' | 'treehouse' | 'harvest' | 'tractor' | 'snowman' | 'sled' | 'fossil' | 'egg' | 'castle' | 'rocket'
   | 'farm' | 'sell' | 'build' | 'maze' | 'sky' | 'candy' | 'decorate'
-  | 'tower' | 'mall' | 'cinema' | 'taxi' | 'pet';
+  | 'tower' | 'mall' | 'cinema' | 'taxi' | 'pet' | 'museum';
 
 export const STARS_GOAL = 5;
 /** Yıldız avı dışında her gün kaç görev. */
@@ -64,6 +65,7 @@ export const QUESTS: Record<QuestId, string> = {
   cinema: 'Şehir Merkezi’ndeki sinemada film izle',
   taxi: 'Şehir Merkezi’nde taksi sür',
   pet: 'Evcil Hayvan Parkı’nda dostlarınla ilgilen',
+  museum: 'Müzeye uğra, koleksiyonuna bak',
 };
 
 /** Bugünün görevleri: yıldız avı hep var, diğer üçü güne göre değişir. */
@@ -88,4 +90,4 @@ export const ISLAND_LINES = {
   star: 'Bir yıldız buldun!',
 };
 
-export const ISLAND_VOICE_LINES = [...Object.values(ISLAND_LINES), ...Object.values(QUESTS)];
+export const ISLAND_VOICE_LINES = [...Object.values(ISLAND_LINES), ...Object.values(QUESTS), ...COLLECT_LINES];

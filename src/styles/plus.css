@@ -194,7 +194,7 @@
 }
 
 /* Pazar ve listeler */
-.farm-modal { max-height: min(86vh, 760px); overflow-y: auto; }
+.farm-modal { max-height: min(86vh, 760px); overflow-y: auto; overscroll-behavior: contain; }
 .farm-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .farm-tabs button { padding: 8px 18px; border-radius: 99px; background: #f6f2ea; font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--ink); }
 .farm-tabs button.on { background: var(--ink); color: #fff; }
@@ -305,7 +305,7 @@
 }
 .home-name input:focus { outline: none; border-color: #b8b4e6; }
 .home-name small { flex: 1 0 100%; color: #8a84a0; font-size: 12px; }
-.home-finish { display: grid; gap: 8px; max-height: 34vh; overflow-y: auto; }
+.home-finish { display: grid; gap: 8px; }
 .home-finish__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 10px; border-radius: 16px; background: #fff; }
 .home-finish__row b { min-width: 110px; color: #4a4458; }
 .home-finish__sw { display: inline-flex; align-items: center; gap: 5px; }
@@ -555,3 +555,35 @@
   .badges { grid-template-columns: repeat(2, 1fr); }
   .streak { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* ------------------------------------------------------------------------------------------------
+   Müze (src/world/MuseumPanel.tsx)
+   ------------------------------------------------------------------------------------------------ */
+.museum { display: grid; gap: 10px; text-align: left; width: 100%; justify-items: stretch; }
+.museum__head { display: flex; align-items: center; gap: 12px; }
+.museum__head > div { flex: 1; min-width: 0; }
+.museum__count { font-family: var(--display); font-size: 20px; font-weight: 600; color: var(--teal-dark); }
+.museum__all { font-family: var(--display); font-size: 18px; color: var(--sun-dark); text-align: center; margin: 0; }
+.museum__body { display: grid; gap: 14px; width: 100%; }
+.museum__group { display: grid; gap: 7px; }
+.museum__title {
+  display: flex; align-items: center; gap: 8px; margin: 0;
+  font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--gc);
+}
+.museum__title small { margin-left: auto; font-family: var(--body); font-weight: 800; color: var(--muted); font-size: 13px; }
+.museum__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+.museum__case {
+  display: grid; justify-items: center; gap: 3px; padding: 9px 4px 7px; border-radius: 16px;
+  background: #f4efe6; border: 2px solid var(--line); color: var(--muted);
+}
+.museum__case .museum__shape {
+  width: 34px; height: 34px; border-radius: 10px; background: rgba(58, 43, 39, 0.1);
+  display: grid; place-items: center; font-family: var(--display); font-size: 19px; font-weight: 600;
+}
+.museum__case small { font-size: 11.5px; font-weight: 800; line-height: 1.1; text-align: center; }
+.museum__case.on { background: #fff; border-color: var(--cc); color: var(--ink); }
+.museum__case.on .museum__shape { background: var(--cc); }
+.museum__case.sel { outline: 3px solid var(--cc); outline-offset: -3px; }
+.museum__fact { font-weight: 700; color: var(--ink-2); margin: 2px 0 0; }
+.museum__fact b { color: var(--ink); }
+.museum__hint { font-size: 12.5px; margin: 0; }

@@ -15,6 +15,8 @@ import { normalizeDoll, PRESETS } from '../dressup/catalog';
 import { Doll } from '../dressup/Doll';
 import { listArtworks, type Artwork } from '../lib/gallery';
 import { saveFile } from '../lib/files';
+import { foundLine, item as parca } from '../world/collection';
+import { MuseumPanel } from '../world/MuseumPanel';
 import { engineSound, preloadSfx, rideSound, sfx } from '../lib/sfx';
 import { music } from '../lib/music';
 import { speak } from '../lib/speech';
@@ -162,7 +164,7 @@ function IslandPlay() {
   const [near, setNear] = useState<Spot | null>(null);
   const [busy, setBusy] = useState(false);
   const [driving, setDriving] = useState(false);
-  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | 'boutique' | 'games' | 'rewards' | null>(null);
+  const [panel, setPanel] = useState<'quests' | 'gallery' | 'map' | 'friends' | 'market' | 'orders' | 'kitchen' | 'journal' | 'seed' | 'blueprint' | 'boutique' | 'games' | 'rewards' | 'museum' | null>(null);
   /** Şu an oynanan mini oyun (Oyun Çadırı). */
   const [playing, setPlaying] = useState<MiniGameId | null>(null);
   const [prize, setPrize] = useState<{ prize: MiniPrize; coins: number; text: string } | null>(null);
@@ -344,6 +346,7 @@ function IslandPlay() {
             }
           },
           onDone: (q) => doneRef.current(q),
+          onCollect: (id) => collectRef.current(id),
           onBusy: setBusy,
           onDrive: setDriving,
           onMessage: flash,
@@ -465,6 +468,18 @@ function IslandPlay() {
     flash(`Görev tamam: ${QUESTS[q as QuestId]}`);
     say(ISLAND_LINES.questDone);
   };
+  /** Koleksiyona parça eklendi: müzeye yazılır, çocuğa ne bulduğu söylenir. */
+  const collect = (id: string) => {
+    const c = parca(id);
+    if (!c) return;
+    const once = (bridge.current.get().museum ?? []).includes(id);
+    if (!once) useApp.getState().farmApply((st) => ({ s: { ...st, museum: [...(st.museum ?? []), id] } }));
+    flash(foundLine(c, !once));
+    sfx.star(once ? 1 : 4);
+  };
+  const collectRef = useRef(collect);
+  collectRef.current = collect;
+
   const page = (id: string) => {
     if (id === 'gallery') {
       setPanel('gallery');
@@ -477,6 +492,9 @@ function IslandPlay() {
     } else if (id === 'market' || id === 'orders') {
       useApp.getState().farmApply((s) => ({ s: fillOrders(s) }));
       setPanel(id);
+    } else if (id === 'museum') {
+      setPanel('museum');
+      markDone('museum');
     } else if (id === 'kitchen' || id === 'journal' || id === 'boutique' || id === 'games') {
       setPanel(id);
     } else if (id === 'build') {
@@ -890,6 +908,8 @@ function IslandPlay() {
       )}
       </>}
       {toast && <div className="island__toast pop-in">{toast}</div>}
+      {panel === 'museum' && <MuseumPanel found={farm.museum ?? []} onClose={() => setPanel(null)} />}
+
       {panel === 'quests' && (
         <Modal onClose={() => setPanel(null)}>
           <div className="island__panel">

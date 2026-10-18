@@ -156,6 +156,36 @@ export function buildPetPark(b: WorldBuilder) {
       },
     });
 
+    // çiçek tarhı: böcekler burada bulunur
+    {
+      const tarh = new THREE.Group();
+      tarh.add(outline(mesh(new THREE.BoxGeometry(4.4, 0.4, 1.5), toon('#8a5a35')), 1.03).translateY(0.2));
+      for (let i = 0; i < 9; i++) {
+        const sap = mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.7, 5), toon('#4e9e4a'), false);
+        sap.position.set(-1.9 + i * 0.48, 0.72, (i % 2) * 0.5 - 0.25);
+        const bas = outline(mesh(new THREE.SphereGeometry(0.22, 10, 8), toon(['#ff8fb1', '#ffd43b', '#b98cff', '#ff8a65'][i % 4])), 1.07);
+        bas.position.set(sap.position.x, 1.1, sap.position.z);
+        tarh.add(sap, bas);
+      }
+      put(tarh, 4.4, 3.2, -0.5);
+      b.block(...L(4.4, 3.2), 1.6);
+      b.spot({
+        id: 'pet-bocek', x: L(3.2, 4.6)[0], z: L(3.2, 4.6)[1], r: 2.3, label: 'Böcek ara',
+        act: {
+          dur: 4.6, pose: (u) => (u < 0.7 ? 'dig' : 'clap'), quest: 'pet', cam: [9, 5],
+          step(t, _u, a, dt) {
+            a.pos.copy(G(3.6, 4.2));
+            a.heading = ang + Math.PI;
+            if (beat(t, dt, 0.5)) b.sparkles.burst(G(4.4, 3.2, 1.3), 4, '#d7f06a');
+          },
+          end: () => {
+            b.collect('bocek');
+            return undefined;
+          },
+        },
+      });
+    }
+
     b.spot({
       id: 'pet-oyna', x: L(1.6, 5)[0], z: L(1.6, 5)[1], r: 2.4, label: 'Topla oyna',
       act: {
