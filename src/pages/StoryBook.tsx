@@ -101,7 +101,8 @@ export default function StoryShelf() {
                 return (
                   <div key={b.id} className="shelf__book rise" style={{ ['--book' as string]: t.color }}>
                     <Link to={`/hikaye/${b.id}`} className="shelf__cover">
-                      {first && <img src={urls.get(first.id)} alt="" />}
+                      {/* resmi silinmiş kitapta kapak boş kalmasın: konunun çizimi gelir */}
+                      {first ? <img src={urls.get(first.id)} alt="" /> : <span className="shelf__art"><ThemeArt id={t.id} /></span>}
                       <b>{t.title}</b>
                     </Link>
                     <button className="round-btn round-btn--soft shelf__del" aria-label="Kitabı sil" onClick={() => setDel(b)}><Trash2 size={18} /></button>
@@ -194,6 +195,86 @@ function ThemeArt({ id }: { id: string }) {
           <path d="M52,22 q-3,4 0,6 q3,-2 0,-6 M68,22 q-3,4 0,6 q3,-2 0,-6" fill="#ffc83d" {...s} strokeWidth={2} />
           <circle cx="18" cy="26" r="9" fill="#14a89a" {...s} />
           <circle cx="102" cy="22" r="9" fill="#e9487d" {...s} />
+        </>
+      )}
+      {id === 'deniz' && (
+        <>
+          <path d="M8,15 q8,-7 16,0 t16,0 t16,0 t16,0 t16,0 t16,0" fill="none" {...s} stroke="#3f7fe0" />
+          <ellipse cx="56" cy="52" rx="26" ry="17" fill="#ffc83d" {...s} />
+          <path d="M80,52 L102,34 V70 Z" fill="#ff8a2b" {...s} />
+          <path d="M48,36 q10,-10 20,-1" fill="#ff8a2b" {...s} />
+          <circle cx="42" cy="46" r="3" fill={INK} />
+          <path d="M20,82 q-9,-12 0,-22 q9,-11 0,-20" fill="none" {...s} stroke="#2bb673" />
+          <circle cx="92" cy="22" r="4.5" fill="#cfefff" {...s} strokeWidth={2} />
+          <circle cx="103" cy="13" r="3" fill="#cfefff" {...s} strokeWidth={2} />
+          <path d="M8,82 H112" fill="none" {...s} />
+        </>
+      )}
+      {id === 'orman' && (
+        <>
+          <path d="M40,8 L24,34 H56 Z" fill="#2bb673" {...s} />
+          <path d="M40,24 L18,58 H62 Z" fill="#35c47e" {...s} />
+          <rect x="35" y="58" width="10" height="20" rx="2" fill="#9b6b43" {...s} />
+          <path d="M88,24 L74,46 H102 Z" fill="#2bb673" {...s} />
+          <path d="M88,38 L70,66 H106 Z" fill="#35c47e" {...s} />
+          <rect x="84" y="66" width="8" height="12" rx="2" fill="#9b6b43" {...s} />
+          <path d="M8,72 q9,-14 18,0 Z" fill="#ff6b4a" {...s} />
+          <rect x="13" y="72" width="8" height="7" rx="2" fill="#fff1c7" {...s} />
+          <path d="M8,79 H112" fill="none" {...s} />
+        </>
+      )}
+      {id === 'kar' && (
+        <>
+          <circle cx="60" cy="64" r="18" fill="#ffffff" {...s} />
+          <circle cx="60" cy="41" r="13" fill="#ffffff" {...s} />
+          <circle cx="60" cy="24" r="9.5" fill="#ffffff" {...s} />
+          <path d="M51,15 H69 L66,5 H54 Z" fill="#5b8def" {...s} />
+          <path d="M61,24 L75,27 L61,29 Z" fill="#ff8a2b" {...s} />
+          <circle cx="56" cy="21" r="1.8" fill={INK} />
+          <circle cx="63" cy="21" r="1.8" fill={INK} />
+          <path d="M48,40 L30,31 M72,40 L90,32" fill="none" {...s} />
+          <path d="M16,13 V25 M10,19 H22 M12,15 L20,23 M20,15 L12,23" fill="none" {...s} strokeWidth={2} stroke="#5b8def" />
+          <path d="M103,18 V30 M97,24 H109 M99,20 L107,28 M107,20 L99,28" fill="none" {...s} strokeWidth={2} stroke="#5b8def" />
+          <path d="M8,82 H112" fill="none" {...s} />
+        </>
+      )}
+      {id === 'sato' && (
+        <>
+          <rect x="22" y="28" width="18" height="54" rx="2" fill="#cdbcff" {...s} />
+          <rect x="80" y="28" width="18" height="54" rx="2" fill="#cdbcff" {...s} />
+          <path d="M19,28 L31,11 L43,28 Z" fill="#9b6bff" {...s} />
+          <path d="M77,28 L89,11 L101,28 Z" fill="#9b6bff" {...s} />
+          <path d="M40,82 V32 H47 V38 H56 V32 H64 V38 H73 V32 H80 V82 Z" fill="#e2d8ff" {...s} />
+          <path d="M52,82 V62 q8,-11 16,0 V82 Z" fill="#9b6b43" {...s} />
+          <path d="M31,11 V3 L41,6 L31,9" fill="#ff6b4a" {...s} strokeWidth={2} />
+          <path d="M89,11 V3 L99,6 L89,9" fill="#ff6b4a" {...s} strokeWidth={2} />
+          <path d="M8,82 H112" fill="none" {...s} />
+        </>
+      )}
+      {id === 'ciftlik' && (
+        <>
+          <circle cx="19" cy="19" r="8" fill="#ffc83d" {...s} />
+          <rect x="31" y="46" width="54" height="34" rx="3" fill="#ff6b4a" {...s} />
+          <path d="M25,46 L58,22 L91,46 Z" fill="#e04a2b" {...s} />
+          <rect x="48" y="56" width="20" height="24" rx="2" fill="#fff1c7" {...s} />
+          <path d="M48,56 L68,80 M68,56 L48,80" fill="none" {...s} strokeWidth={2} />
+          <circle cx="58" cy="39" r="5" fill="#fff1c7" {...s} strokeWidth={2} />
+          <path d="M92,62 V80 M104,62 V80 M88,67 H110 M88,74 H110" fill="none" {...s} stroke="#9b6b43" />
+          <path d="M8,80 H112" fill="none" {...s} />
+        </>
+      )}
+      {id === 'gokkusagi' && (
+        <>
+          <path d="M15,78 A45,45 0 0 1 105,78" fill="none" stroke="#ff4d4d" strokeWidth={8} strokeLinecap="round" />
+          <path d="M23,78 A37,37 0 0 1 97,78" fill="none" stroke="#ff8a2b" strokeWidth={8} strokeLinecap="round" />
+          <path d="M31,78 A29,29 0 0 1 89,78" fill="none" stroke="#ffc83d" strokeWidth={8} strokeLinecap="round" />
+          <path d="M39,78 A21,21 0 0 1 81,78" fill="none" stroke="#7fcf63" strokeWidth={8} strokeLinecap="round" />
+          <path d="M47,78 A13,13 0 0 1 73,78" fill="none" stroke="#3f7fe0" strokeWidth={8} strokeLinecap="round" />
+          <circle cx="16" cy="74" r="10" fill="#ffffff" {...s} />
+          <circle cx="28" cy="78" r="7" fill="#ffffff" {...s} />
+          <circle cx="104" cy="74" r="10" fill="#ffffff" {...s} />
+          <circle cx="92" cy="78" r="7" fill="#ffffff" {...s} />
+          <path d="M8,84 H112" fill="none" {...s} />
         </>
       )}
     </svg>
