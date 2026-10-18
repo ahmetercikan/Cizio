@@ -1377,6 +1377,22 @@ export class Island {
     this.sky.update(dt, this.pos, this.camera, !this.realm, this.underwater);
     this.realm?.beforeRender?.(this.camera, this.pos);
     this.renderer.render(this.stage, this.camera);
+    // fotoğraf modu: kare çizildikten hemen sonra tuval okunur (WebGL tamponu sonra temizlenir)
+    if (this.shot) {
+      const fn = this.shot;
+      this.shot = null;
+      this.canvas.toBlob((b) => fn(b), 'image/png');
+    }
+  }
+
+  /** Bir sonraki karede ekranın fotoğrafını çeker (arayüz çizimin dışında kaldığı için temiz çıkar). */
+  private shot: ((b: Blob | null) => void) | null = null;
+  photo(): Promise<Blob | null> {
+    return new Promise((res) => {
+      this.shot = res;
+      // oyun duruyorsa (örn. arka planda) bir kare zorla
+      if (!this.raf) this.renderer.render(this.stage, this.camera);
+    });
   }
 
   private resize() {

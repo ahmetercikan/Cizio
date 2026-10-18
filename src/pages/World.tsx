@@ -2,7 +2,7 @@
  * Çizio Adası (/ada): 3B oyun dünyası (src/world/island.ts). Şimdilik herkese açık (PLUS_ENABLED = false);
  * ücretli olursa abonelik yoksa tanıtım ve satın alma (ebeveyn kilidi arkasında) gösterilir.
  */
-import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Loader2, MessageCircle, Music, VolumeX, RotateCcw, Shirt, Sprout, Star, Store, X, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Loader2, MessageCircle, Music, VolumeX, RotateCcw, Shirt, Sprout, Star, Store, X, Map as MapIcon, Camera } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { create } from 'zustand';
@@ -14,6 +14,7 @@ import { Modal } from '../components/ui';
 import { normalizeDoll, PRESETS } from '../dressup/catalog';
 import { Doll } from '../dressup/Doll';
 import { listArtworks, type Artwork } from '../lib/gallery';
+import { saveFile } from '../lib/files';
 import { engineSound, preloadSfx, rideSound, sfx } from '../lib/sfx';
 import { music } from '../lib/music';
 import { speak } from '../lib/speech';
@@ -649,6 +650,23 @@ function IslandPlay() {
       </div>
     );
   }
+  /** Adanın fotoğrafını çek: arayüz çizimin dışında kaldığı için temiz çıkar. */
+  const [shooting, setShooting] = useState(false);
+  const cekFoto = async () => {
+    const w = world.current;
+    if (!w || shooting) return;
+    setShooting(true);
+    sfx.shutter();
+    try {
+      const blob = await w.photo();
+      if (blob) await saveFile(blob, `cizio-ada-${Date.now()}.png`, 'Çizio Adası');
+      else flash('Fotoğraf alınamadı, tekrar dene.');
+    } catch {
+      /* paylaşma iptal edildi */
+    }
+    setShooting(false);
+  };
+
   const claim = () => {
     const n = islandReward();
     if (n) {
@@ -839,6 +857,7 @@ function IslandPlay() {
               <button className="game__btn" aria-label="El salla" onClick={() => world.current?.emote('wave')}><GameIcon name="el" size={34} /></button>
               <button className="game__btn" aria-label="Dans et" onClick={() => world.current?.emote('dance')}><GameIcon name="nota" size={34} /></button>
               <button className="game__btn" aria-label="Alkışla" onClick={() => world.current?.emote('clap')}><GameIcon name="alkis" size={34} /></button>
+              <button className="game__btn" aria-label="Fotoğraf çek" disabled={shooting} onClick={cekFoto}><Camera size={30} strokeWidth={2.4} /></button>
             </div>
           )}
           {driving && (
