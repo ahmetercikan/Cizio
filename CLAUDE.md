@@ -24,7 +24,8 @@
     (`CAPE`, `COAST_MAX`); plaj, deniz feneri gibi eski kıyı yerleri yerinde kaldı.
   - `zones.ts` / `places.ts`: bölgeler
   - `city.ts`: Şehir Merkezi (gökdelenler, dönel kavşak, AVM, sinema, otel, taksi) ve ortak `tower()` modeli
-  - `interiors.ts`: binaların içi
+  - `interiors.ts`: binaların içi (okul, hastane, market, kütüphane, pastane, itfaiye + Şehir Merkezi'nin
+    AVM, sinema, otel, ofis ve apartman daireleri). Kapılar `places.ts` ve `city.ts`'te `door(...)` ile kurulur.
   - `mars.ts`: Mars
   - `home.ts`: Evim
   - `MiniGames.tsx` / `ArcadeGames.tsx`: Oyun Çadırı'nın 14 mini oyunu (lobi: `Shops.tsx` GamesPanel)

@@ -10,7 +10,7 @@ import { heightAt, ROADS, ROAD_START, ZONES, zone, type Zone } from './layout';
 import { ambulanceModel, firetruckModel, planeModel } from './vehicles';
 import { house, sign, type Activity, type Vehicle, type WorldBuilder } from './zones';
 import type { InteriorId } from './homestead';
-import { buildDowntown, tower } from './city';
+import { buildDowntown } from './city';
 
 const sm = (u: number) => u * u * (3 - 2 * u);
 const clamp01 = (u: number) => Math.min(1, Math.max(0, u));
@@ -428,20 +428,6 @@ function buildCity(b: WorldBuilder) {
   fire.scale.setScalar(1.35); // karaktere göre daha büyük
   put(fire, 20.75, -21, R_);
   blkRect(20.75, -21, 13.5, 18.9);
-
-  // arka sokaklar: apartmanlar ve ofisler (şehrin silueti, caddeden arkada durur)
-  for (const [lx, lz, rot, w, d, h, wall, glass] of [
-    [-37, 32, L_, 12, 12, 26, '#9fb6c9', '#d7f0ff'],
-    [-37, 8, L_, 11, 12, 20, '#f0b7a0', '#cfeaff'],
-    [-37, -16, L_, 12, 12, 30, '#b8c6a8', '#dff4ff'],
-    [37, 30, R_, 12, 12, 22, '#c9b6e8', '#e3f3ff'],
-    [37, 4, R_, 11, 12, 28, '#9ec6e8', '#e8f7ff'],
-    [37, -22, R_, 12, 12, 18, '#e3c88f', '#cfeaff'],
-  ] as const) {
-    const t = tower({ w, d, h, wall, glass, crown: h > 25 ? 4 : 0, antenna: h > 27 });
-    put(t, lx, lz, rot);
-    blkRect(lx, lz, w + 0.6, d + 0.6, rot);
-  }
 
   // otobüs durağı, banklar, ağaçlar, trafik ışıkları
   {

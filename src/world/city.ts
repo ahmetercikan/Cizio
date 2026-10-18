@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { canvasTexture, mesh, outline, toon, tree } from '../play3d/kit';
 import { zone } from './layout';
+import type { InteriorId } from './homestead';
 import { frame, board, bench, holdItem } from './places';
 import { sign, type WorldBuilder } from './zones';
 import { carModel } from './cars';
@@ -346,12 +347,12 @@ export function buildDowntown(b: WorldBuilder) {
   const blocks: [string, number, number, number, number, number, number, string, string, string | undefined][] = [
     // [ad, lx, lz, rot, w, d, h, duvar, cam, tabela]
     ['OTEL ÇİZİO', 30, 28, 0, 16, 14, 26, '#f3d9b0', '#bfe6ff', '#c0392b'],
-    ['OFİS', 50, -4, R_, 13, 13, 38, '#9fb6c9', '#d6f2ff', '#2b6cb0'],
-    ['', -50, 6, L_, 12, 14, 30, '#f0b7a0', '#cfeaff', undefined],
+    ['OFİS', 50, -17, 0, 13, 13, 38, '#9fb6c9', '#d6f2ff', '#2b6cb0'],
+    ['', -50, 18, L_, 12, 14, 30, '#f0b7a0', '#cfeaff', undefined],
     ['', -46, -46, 0, 13, 13, 24, '#a9d3b5', '#dff4ff', undefined],
     ['', 46, 46, 0, 12, 12, 22, '#c9b6e8', '#e3f3ff', undefined],
-    ['', 6, -52, 0, 14, 13, 44, '#8fa8bd', '#d7f0ff', undefined],
-    ['', -14, -52, 0, 12, 12, 34, '#e3c88f', '#cfeaff', undefined],
+    ['', 18, -52, 0, 14, 13, 44, '#8fa8bd', '#d7f0ff', undefined],
+    ['', -18, -52, 0, 12, 12, 34, '#e3c88f', '#cfeaff', undefined],
     ['', 26, 52, Math.PI, 13, 12, 28, '#9ec6e8', '#e8f7ff', undefined],
     ['', -44, 54, Math.PI, 12, 12, 20, '#f0a6b8', '#e8f7ff', undefined],
     ['', 52, 24, R_, 11, 12, 32, '#b8c6a8', '#dff4ff', undefined],
@@ -472,50 +473,33 @@ export function buildDowntown(b: WorldBuilder) {
     b.spot({ id: 'taxi', x: pos.x, z: pos.z, r: 3.6, label: 'Taksiyi sür', vehicle: v });
   }
 
-  // ---------------------------------------------------------------- AVM: alışveriş
+  // ---------------------------------------------------------------- binaların kapıları: içeri girilir
+  // (iç mekânlar src/world/interiors.ts: AVM, sinema, otel, ofis ve apartman daireleri)
   {
-    const [dx, dz] = [AX, AZ + 10.4];
-    b.spot({
-      id: 'avm', x: L(dx, dz)[0], z: L(dx, dz)[1], r: 2.8, label: 'AVM’de alışveriş yap',
-      act: {
-        dur: 6, pose: 'walk', quest: 'mall',
+    const door = (id: InteriorId, key: string, lx: number, lz: number, rot: number, d: number, label: string) => {
+      const off = d / 2 + 2.8;
+      const [sx, sz] = [lx + Math.sin(rot) * off, lz + Math.cos(rot) * off];
+      const [ix, iz] = [lx + Math.sin(rot) * (d / 2 + 0.4), lz + Math.cos(rot) * (d / 2 + 0.4)];
+      const [bx, bz] = L(lx + Math.sin(rot) * (off + 1.4), lz + Math.cos(rot) * (off + 1.4));
+      F.spot(`kapi-${key}`, sx, sz, 2.6, label, {
+        dur: 0.8, pose: 'walk',
         step(_t, u, a) {
-          const k = u < 0.25 ? sm(u / 0.25) : u < 0.75 ? 1 : 1 - sm((u - 0.75) / 0.25);
-          a.pos.lerpVectors(G(dx, dz), G(AX, AZ + 4), k);
-          a.heading = head(u < 0.5 ? 0 : Math.PI);
+          a.pos.lerpVectors(G(sx, sz), G(ix, iz), u);
+          a.heading = head(rot + Math.PI);
         },
-        end(a) {
-          const bag = new THREE.Group();
-          const bb = outline(mesh(new THREE.BoxGeometry(0.45, 0.5, 0.25), toon('#e9487d')), 1.05);
-          const hd = mesh(new THREE.TorusGeometry(0.14, 0.03, 6, 12), toon('#ffffff'), false);
-          hd.position.y = 0.3;
-          bag.add(bb, hd);
-          holdItem(a, bag);
-          b.sound.fx?.('yay');
-          return 'AVM’den alışveriş torbanı aldın!';
+        end: () => {
+          b.sound.fx?.('dooropen');
+          b.enter?.(id, { x: bx, z: bz, h: head(rot) });
         },
-      },
-    });
-  }
-
-  // ---------------------------------------------------------------- sinema: film izle
-  {
-    const [dx, dz] = [SX, SZ + 9];
-    b.spot({
-      id: 'sinema', x: L(dx, dz)[0], z: L(dx, dz)[1], r: 2.8, label: 'Sinemada film izle',
-      act: {
-        dur: 8, pose: 'sit', quest: 'cinema', cam: [14, 5],
-        start() {
-          b.sound.fx?.('yay');
-        },
-        step(t, _u, a) {
-          a.pos.copy(G(dx, dz - 1.2));
-          a.pos.y += 0.5 + Math.sin(t * 2) * 0.02;
-          a.heading = head(Math.PI);
-        },
-        end: () => 'Film çok güzeldi! Patlamış mısır da yedin.',
-      },
-    });
+      });
+    };
+    door('avm', 'avm', AX, AZ, 0, 18, 'AVM’ye gir');
+    door('sinema', 'sinema', SX, SZ, 0, 15, 'Sinemaya gir');
+    door('otel', 'otel', 30, 28, 0, 14, 'Otele gir');
+    door('ofis', 'ofis', 50, -17, 0, 13, 'Ofise gir');
+    door('apartman', 'apartman1', -50, 18, L_, 14, 'Apartmana gir');
+    door('apartman', 'apartman2', -46, -46, 0, 13, 'Apartmana gir');
+    door('apartman', 'apartman3', 46, 46, 0, 12, 'Apartmana gir');
   }
 
   // ---------------------------------------------------------------- Çizio Kulesi: asansörle tepeye
