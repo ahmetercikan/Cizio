@@ -3222,3 +3222,29 @@
 .weekcard__rows li:last-child { border-bottom: 0; }
 .weekcard__rows b { font-family: var(--display); font-size: 19px; font-weight: 600; color: var(--teal-dark); }
 .weekcard__stars { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; color: var(--ink-2); }
+
+/* ------------------------------------------------------------------------------------------------
+   Haftanın teması (src/components/ThemeCard.tsx)
+   ------------------------------------------------------------------------------------------------ */
+.themecard {
+  display: grid; gap: 10px; padding: 14px 16px; border-radius: var(--radius-lg); margin: 4px 0 16px;
+  background: #fff; border: 2px solid var(--line); box-shadow: var(--shadow-card);
+  border-left: 7px solid var(--tc);
+}
+.themecard.won { background: linear-gradient(135deg, var(--sun-soft), #fff); border-color: var(--sun-dark); }
+.themecard__head { display: flex; align-items: center; gap: 11px; }
+.themecard__emoji {
+  flex: none; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+  background: var(--tc); color: #fff; font-size: 24px;
+}
+.themecard__text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.themecard__label { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.themecard__count { font-family: var(--display); font-size: 20px; font-weight: 600; color: var(--tc); }
+.themecard__bar { height: 9px; border-radius: 6px; background: rgba(58, 43, 39, 0.1); overflow: hidden; }
+.themecard__bar span { display: block; height: 100%; border-radius: 6px; background: var(--tc); transition: width 0.4s ease; }
+.themecard__hint { font-weight: 700; color: var(--ink-2); font-size: 14px; }
+.themecard__row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.themecard__item { flex: none; width: 92px; display: grid; justify-items: center; gap: 3px; color: var(--ink); text-align: center; }
+.themecard__img { width: 82px; height: 82px; border-radius: 16px; background: var(--cream); }
+.themecard__item small { font-size: 12px; font-weight: 700; line-height: 1.15; }
+.themecard__item.done .themecard__img { outline: 3px solid var(--teal); outline-offset: -3px; }

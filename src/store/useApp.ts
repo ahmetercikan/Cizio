@@ -123,6 +123,8 @@ export interface ProfileData {
   used?: Record<string, number>;
   /** Sınırın bugünlük uzatıldığı dakika (ebeveyn "15 dakika daha" dediğinde). */
   bonusMin?: Record<string, number>;
+  /** Hafta teması rozeti alınan haftalar (src/lib/theme.ts). */
+  themeWeeks?: string[];
 }
 
 export interface EnglishInput {
@@ -205,6 +207,8 @@ interface AppState {
   addUsage(min: number): void;
   /** Günlük ekran süresi sınırı (dakika; 0 = sınırsız). */
   setLimit(min: number): void;
+  /** Hafta temasının rozetini al (bir kez): sandık ve yıldız verir. */
+  claimTheme(week: string): void;
   /** Bugünlük sınırı uzat (ebeveyn). */
   addBonus(min: number): void;
   buyChest(price: number): boolean;
@@ -569,6 +573,21 @@ export const useApp = create<AppState>()(
         const d = { ...emptyData(), ...data[activeId] };
         const k = dayKey();
         set({ data: { ...data, [activeId]: { ...d, used: { ...d.used, [k]: (d.used?.[k] ?? 0) + min } } } });
+      },
+
+      claimTheme(week) {
+        const { activeId, data } = get();
+        if (!activeId) return;
+        const d = { ...emptyData(), ...data[activeId] };
+        if ((d.themeWeeks ?? []).includes(week)) return;
+        const t = today(d);
+        const next: ProfileData = {
+          ...d,
+          themeWeeks: [...(d.themeWeeks ?? []), week],
+          chests: [...(d.chests ?? []), 'quest'],
+          days: { ...d.days, [dayKey()]: { ...t, stars: (t.stars ?? 0) + 5 } },
+        };
+        set({ data: { ...data, [activeId]: withChests(d, next) } });
       },
 
       setLimit(min) {
