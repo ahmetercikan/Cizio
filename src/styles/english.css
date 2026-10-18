@@ -663,3 +663,27 @@
 .en-two__card--draw { background: linear-gradient(135deg, #fff1c7, #d4f3ee); }
 .en-two__card:active { transform: translateY(2px); }
 @media (max-width: 360px) { .en-two { grid-template-columns: 1fr; } }
+
+/* ------------------------------------------------------------------------------------------------
+   Read With Me (src/english/games/ReadWithMe.tsx)
+   ------------------------------------------------------------------------------------------------ */
+.read { display: grid; justify-items: center; gap: 12px; text-align: center; }
+.read__art { width: min(38vw, 170px); height: min(38vw, 170px); }
+.read__line { display: flex; flex-wrap: wrap; gap: 6px 10px; justify-content: center; align-items: baseline; margin: 0; }
+.read__slot {
+  font-family: var(--display); font-size: clamp(20px, 5.4vw, 30px); font-weight: 600; color: var(--line-2);
+  min-width: 42px; border-bottom: 3px solid var(--line-2); padding: 0 4px;
+}
+.read__slot.on { color: var(--ink); border-color: var(--teal); }
+.read__dot { font-family: var(--display); font-size: clamp(20px, 5.4vw, 30px); font-weight: 600; }
+.read__hint { font-weight: 800; color: var(--ink-2); }
+.read__cards { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
+.read__card {
+  padding: 11px 17px; border-radius: 16px; background: #fff; border: 2px solid var(--line);
+  box-shadow: var(--shadow-card); font-family: var(--display); font-size: 20px; font-weight: 600; color: var(--ink);
+}
+.read__card.used { opacity: 0.32; box-shadow: none; }
+.read__card.wrong { animation: read-shake 0.42s ease; border-color: var(--coral); }
+.read__row { display: flex; align-items: center; gap: 16px; }
+@keyframes read-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+@media (prefers-reduced-motion: reduce) { .read__card.wrong { animation: none; } }

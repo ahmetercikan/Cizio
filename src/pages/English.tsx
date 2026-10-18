@@ -1,5 +1,5 @@
 /** English Club sayfaları. */
-import { BookOpen, Check, ChevronLeft, ChevronRight, Ear, Footprints, Gamepad2, Home, Palette, Search, Volume2, Mic, Music, Brush } from 'lucide-react';
+import { BookOpen, Check, ChevronLeft, ChevronRight, Ear, Footprints, Gamepad2, Home, Palette, Search, Volume2, Mic, Music, Brush, BookA } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
@@ -14,6 +14,7 @@ import { ChizioSays } from '../english/games/ChizioSays';
 import { ColorMe } from '../english/games/ColorMe';
 import { HomeHunt } from '../english/games/HomeHunt';
 import { SayIt } from '../english/games/SayIt';
+import { ReadWithMe } from '../english/games/ReadWithMe';
 import { ListenFind } from '../english/games/ListenFind';
 import { TreasureHunt } from '../english/games/TreasureHunt';
 import { EndCard, PlayFrame, shuffle, useEnglish, type Result } from '../english/kit';
@@ -175,6 +176,7 @@ const GAMES = [
   { id: 'hunt', title: 'Treasure Hunt', sub: 'Renkli şekilleri yakala', Icon: Search, art: { k: 'shape', s: 'star', c: '#ffc83d' } as const, tone: '#ffe1d8' },
   { id: 'home', title: 'Home Hunt', sub: 'Evde bul, Çizio’ya göster', Icon: Home, art: { k: 'lesson', id: 'ayi' } as const, tone: '#dff3ff' },
   { id: 'say', title: 'Say It!', sub: 'Söyle, kendini dinle', Icon: Mic, art: { k: 'body', p: 'mouth' } as const, tone: '#ffe9f1' },
+  { id: 'read', title: 'Read With Me', sub: 'Kelimelerle cümle kur', Icon: BookA, art: { k: 'lesson', id: 'kitap' } as const, tone: '#e6f2ff' },
 ];
 
 function GameCards() {
@@ -248,6 +250,7 @@ export function EnglishPlay() {
       case 'hunt': body = <TreasureHunt key={k} age={e.age} onDone={done} onStep={onStep} />; break;
       case 'home': body = <HomeHunt key={k} age={e.age} onDone={done} />; break;
       case 'say': body = <SayIt key={k} e={e} count={5} onDone={done} onStep={onStep} />; break;
+      case 'read': body = <ReadWithMe key={k} age={e.age} count={4} onDone={done} onStep={onStep} />; break;
       default: body = <ListenFind key={k} targets={findSet.targets} pool={findSet.pool} age={e.age} onDone={done} onStep={onStep} />;
     }
   }
