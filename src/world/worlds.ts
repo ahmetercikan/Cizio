@@ -6,11 +6,14 @@ import { INTERIORS, type InteriorId, type RealmId } from './homestead';
 import { InteriorRealm } from './interiors';
 import { MarsRealm } from './mars';
 import { CandyRealm, MazeRealm, SkyRealm, type Realm, type RealmEvents } from './realms';
+import type { ArtShot } from './textures';
 
-/** Dünyaya dışarıdan verilen veri (şimdilik yalnızca müzedeki koleksiyon). */
+/** Dünyaya dışarıdan verilen veri: müzedeki koleksiyon ve sinemada oynayacak çizimler. */
 export interface RealmData {
   /** Müzede sergilenecek, bulunmuş koleksiyon parçaları. */
   museum?: string[];
+  /** Sinemada film olarak oynayacak, galeriden gelen çizimler. */
+  film?: ArtShot[];
 }
 
 export function makeRealm(id: RealmId, ev: RealmEvents, seed: number, data: RealmData = {}): Realm {

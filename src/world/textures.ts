@@ -109,25 +109,36 @@ async function decode(blob: Blob): Promise<CanvasImageSource & { width: number; 
   }
 }
 
+/** Galeriden gelen bir resim: tuvali ve (varsa) hangi dersin çizimi olduğu. */
+export interface ArtShot {
+  canvas: HTMLCanvasElement;
+  /** Hangi ders (sinemadaki filmin cümlelerini seçer). Serbest çizimde yoktur. */
+  lessonId?: string;
+}
+
 /**
- * Galerideki son resimler (sanat galerisinin sehpaları için). Açılamayan resim (ör. eski bir yedekten gelen bozuk
- * dosya) atlanır; adanın açılmasını engellemez.
+ * Galerideki son resimler (sanat galerisinin sehpaları ve sinemadaki film için). Açılamayan resim
+ * (ör. eski bir yedekten gelen bozuk dosya) atlanır; adanın açılmasını engellemez.
  */
-export async function artCanvases(profileId: string, n = 5): Promise<HTMLCanvasElement[]> {
+export async function artShots(profileId: string, n = 5): Promise<ArtShot[]> {
+  const S = 384;
   const arts = (await listArtworks(profileId).catch(() => [])).filter((a) => a.kind !== 'style' && a.blob).slice(0, n + 4);
   const out = await Promise.allSettled(
     arts.map(async (a) => {
       const bmp = await decode(a.blob);
       const c = document.createElement('canvas');
-      c.width = c.height = 256;
+      c.width = c.height = S;
       const ctx = c.getContext('2d')!;
       ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, 256, 256);
-      const k = Math.min(256 / bmp.width, 256 / bmp.height);
-      ctx.drawImage(bmp, (256 - bmp.width * k) / 2, (256 - bmp.height * k) / 2, bmp.width * k, bmp.height * k);
+      ctx.fillRect(0, 0, S, S);
+      const k = Math.min(S / bmp.width, S / bmp.height);
+      ctx.drawImage(bmp, (S - bmp.width * k) / 2, (S - bmp.height * k) / 2, bmp.width * k, bmp.height * k);
       bmp.close?.();
-      return c;
+      return { canvas: c, lessonId: a.lessonId } as ArtShot;
     }),
   );
-  return out.filter((r): r is PromiseFulfilledResult<HTMLCanvasElement> => r.status === 'fulfilled').map((r) => r.value).slice(0, n);
+  return out.filter((r): r is PromiseFulfilledResult<ArtShot> => r.status === 'fulfilled').map((r) => r.value).slice(0, n);
 }
+
+/** Yalnızca tuvaller (sehpalar ve panolar için). */
+export const artCanvases = async (profileId: string, n = 5) => (await artShots(profileId, n)).map((s) => s.canvas);

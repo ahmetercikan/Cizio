@@ -16,6 +16,8 @@ import { Realm, type Hero, type RealmEvents } from './realms';
 import type { RealmData } from './worlds';
 import { byGroup, caseLine, emptyCaseLine, GROUPS, item as parca, TOTAL, type CollectGroup } from './collection';
 import { fountain, waterSurface } from './water';
+import { FILM_MAX, FILM_MIN, filmLength, filmScenes, filmTheme, sceneAt, type FilmScene } from '../story/film';
+import type { ArtShot } from './textures';
 import type { Activity } from './zones';
 
 const H = 5.5; // duvar yüksekliği
@@ -158,6 +160,53 @@ const FLOORS = {
   },
 } as const;
 
+/** İki rengin arası (perdenin arka planı masalın rengini alır). */
+const blend = (a: string, b: string, k: number) => new THREE.Color(a).lerp(new THREE.Color(b), k).getStyle();
+
+/** Yuvarlak köşeli dikdörtgen yolu (altyazı şeridi, resim çerçevesi). */
+function roundRect(cx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  cx.beginPath();
+  cx.moveTo(x + r, y);
+  cx.arcTo(x + w, y, x + w, y + h, r);
+  cx.arcTo(x + w, y + h, x, y + h, r);
+  cx.arcTo(x, y + h, x, y, r);
+  cx.arcTo(x, y, x + w, y, r);
+  cx.closePath();
+}
+
+/** Cümleyi verilen genişliğe sığacak satırlara böler. */
+function wrapLines(cx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const out: string[] = [];
+  let cur = '';
+  for (const w of text.split(' ')) {
+    const t = cur ? `${cur} ${w}` : w;
+    if (cur && cx.measureText(t).width > maxW) {
+      out.push(cur);
+      cur = w;
+    } else cur = t;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+/** Perdedeki bir çizim: beyaz çerçeve, hafif gölge, istenirse eğik. */
+function drawShot(cx: CanvasRenderingContext2D, img: HTMLCanvasElement, x: number, y: number, maxW: number, maxH: number, rot = 0) {
+  const k = Math.min(maxW / img.width, maxH / img.height);
+  const w = img.width * k, h = img.height * k;
+  cx.save();
+  cx.translate(x, y);
+  cx.rotate(rot);
+  cx.shadowColor = 'rgba(0,0,0,0.4)';
+  cx.shadowBlur = 14;
+  cx.shadowOffsetY = 5;
+  cx.fillStyle = '#ffffff';
+  roundRect(cx, -w / 2 - 7, -h / 2 - 7, w + 14, h + 14, 9);
+  cx.fill();
+  cx.shadowColor = 'transparent';
+  cx.drawImage(img, -w / 2, -h / 2, w, h);
+  cx.restore();
+}
+
 /** Nokta dizisi üstünde yürüyüş: u (0..1) → konum ve bakış yönü. */
 function along(pts: [number, number, number][], u: number) {
   const n = pts.length - 1;
@@ -189,11 +238,14 @@ export class InteriorRealm extends Realm {
   private npcs: Npc[] = [];
   /** Müzede sergilenecek, bulunmuş koleksiyon parçaları. */
   private found: string[] = [];
+  /** Sinemada film olarak oynayacak çizimler. */
+  private film: ArtShot[] = [];
 
   constructor(ev: RealmEvents, id: InteriorId, data: RealmData = {}) {
     super(ev, '#2f2a3d', [70, 140], 'none');
     this.id = id;
     this.found = data.museum ?? [];
+    this.film = data.film ?? [];
     this.leave = 'Dışarı çık';
     this.heroScale = 0.78;
     this.cam = [9.5, 7.5];
@@ -1818,33 +1870,136 @@ export class InteriorRealm extends Realm {
   // ----------------------------------------------------------------------------------------------
   private cinema() {
     const { D } = this;
-    // ---- perde: her karede çizilen minik çizgi film
+    // ---- perde: çocuğun kendi çizimlerinden kurulan film (yeterli resim yoksa minik bir çizgi film)
+    const FW = 640, FH = 284, LEAD = 1.6, OUTRO = 2.4;
     const cv = document.createElement('canvas');
-    cv.width = 256;
-    cv.height = 144;
+    cv.width = FW;
+    cv.height = FH;
     const cx = cv.getContext('2d')!;
     const filmTex = new THREE.CanvasTexture(cv);
     filmTex.colorSpace = THREE.SRGBColorSpace;
+    const theme = filmTheme();
+    const imgs = this.film.slice(0, FILM_MAX).map((a) => a.canvas);
+    const scenes: FilmScene[] = imgs.length >= FILM_MIN ? filmScenes(this.film, theme) : [];
+    const idleSub = scenes.length ? `bugün: ${theme.title}` : 'film birazdan başlıyor';
     let shown = -1;
-    const paint = (t: number, playing: boolean) => {
-      if (!playing) {
-        cx.fillStyle = '#121a2b';
-        cx.fillRect(0, 0, 256, 144);
-        cx.fillStyle = '#ffd43b';
-        cx.font = '700 26px Fredoka, Nunito, sans-serif';
-        cx.textAlign = 'center';
-        cx.fillText('ÇİZİO SİNEMA', 128, 66);
-        cx.font = '500 15px Fredoka, Nunito, sans-serif';
-        cx.fillStyle = '#cfeaff';
-        cx.fillText('film birazdan başlıyor', 128, 92);
-        filmTex.needsUpdate = true;
-        return;
+
+    /** Kapalı perde / başlık kartı. */
+    const cardPaint = (sub: string) => {
+      const g = cx.createLinearGradient(0, 0, 0, FH);
+      g.addColorStop(0, '#121a2b');
+      g.addColorStop(1, '#1f2b46');
+      cx.fillStyle = g;
+      cx.fillRect(0, 0, FW, FH);
+      cx.textAlign = 'center';
+      cx.fillStyle = '#ffd43b';
+      cx.font = '700 46px Fredoka, Nunito, sans-serif';
+      cx.fillText('ÇİZİO SİNEMA', FW / 2, FH / 2 - 2);
+      cx.fillStyle = '#cfeaff';
+      cx.font = '500 21px Fredoka, Nunito, sans-serif';
+      cx.fillText(sub, FW / 2, FH / 2 + 38);
+      filmTex.needsUpdate = true;
+    };
+
+    /** Filmin sonu. */
+    const endCard = () => {
+      cx.fillStyle = '#121a2b';
+      cx.fillRect(0, 0, FW, FH);
+      cx.textAlign = 'center';
+      cx.fillStyle = '#ffd43b';
+      cx.font = '700 58px Fredoka, Nunito, sans-serif';
+      cx.fillText('SON', FW / 2, FH / 2 + 8);
+      cx.fillStyle = '#cfeaff';
+      cx.font = '500 20px Fredoka, Nunito, sans-serif';
+      cx.fillText('bütün resimleri sen çizdin', FW / 2, FH / 2 + 46);
+      filmTex.needsUpdate = true;
+    };
+
+    /** Sahnenin arka planı: masalın renginde gökyüzü, akan bulutlar ve tepeler. */
+    const backdrop = (t: number) => {
+      const g = cx.createLinearGradient(0, 0, 0, FH);
+      g.addColorStop(0, blend(theme.color, '#101a30', 0.6));
+      g.addColorStop(1, blend(theme.color, '#ffffff', 0.5));
+      cx.fillStyle = g;
+      cx.fillRect(0, 0, FW, FH);
+      cx.globalAlpha = 0.45;
+      cx.fillStyle = blend(theme.color, '#ffffff', 0.8);
+      cx.beginPath();
+      cx.arc(FW - 96, 52, 30, 0, Math.PI * 2);
+      cx.fill();
+      cx.globalAlpha = 0.26;
+      cx.fillStyle = '#ffffff';
+      for (let k = 0; k < 4; k++) {
+        const bx = ((k * 190 + t * (9 + k * 3)) % (FW + 180)) - 90;
+        const by = 32 + ((k * 53) % 66);
+        for (const [dx, dy, r] of [[0, 0, 17], [20, -6, 13], [-20, 3, 11]] as const) {
+          cx.beginPath();
+          cx.arc(bx + dx, by + dy, r, 0, Math.PI * 2);
+          cx.fill();
+        }
       }
-      const g = cx.createLinearGradient(0, 0, 0, 144);
+      cx.globalAlpha = 1;
+      for (const [k, yy] of [[0, 166], [1, 188]] as const) {
+        cx.fillStyle = k ? theme.color : blend(theme.color, '#ffffff', 0.38);
+        cx.beginPath();
+        cx.moveTo(0, FH);
+        for (let x = 0; x <= FW; x += 20) cx.lineTo(x, yy + Math.sin(x / 90 + t * 0.12 + k * 2) * 13);
+        cx.lineTo(FW, FH);
+        cx.closePath();
+        cx.fill();
+      }
+    };
+
+    /** Bir sahne: masalın rengi, yavaşça yakınlaşan çizim ve altyazı. */
+    const scenePaint = (i: number, t: number) => {
+      const sc = scenes[i];
+      const u = clamp01((t - sc.at) / sc.dur);
+      backdrop(t);
+      const py = 90;
+      if (sc.art === 'all') {
+        const n = imgs.length;
+        imgs.forEach((img, k) => {
+          const off = (k - (n - 1) / 2) * (n > 2 ? 170 : 196);
+          drawShot(cx, img, FW / 2 + off, py + Math.sin(t * 1.4 + k) * 5, 152, 152, (k - (n - 1) / 2) * 0.09);
+        });
+      } else {
+        const img = imgs[Math.min(sc.art, imgs.length - 1)];
+        // yavaş yakınlaşma ve hafif kayma: duran resim bile film gibi görünsün
+        const z = 1 + sm(u) * 0.14;
+        drawShot(cx, img, FW / 2 + Math.sin(t * 0.45) * 9, py, 190 * z, 150 * z);
+      }
+      const fade = clamp01((t - sc.at) / 0.4);
+      let size = 21, lines: string[] = [];
+      for (const sz of [21, 19, 17, 15]) {
+        size = sz;
+        cx.font = `600 ${sz}px Fredoka, Nunito, sans-serif`;
+        lines = wrapLines(cx, sc.text, FW - 76);
+        if (lines.length <= 3) break;
+      }
+      const lh = size + 7;
+      const bh = lines.length * lh + 16;
+      const by = FH - bh - 10;
+      cx.globalAlpha = 0.5 * fade;
+      cx.fillStyle = '#0b1026';
+      roundRect(cx, 28, by, FW - 56, bh, 13);
+      cx.fill();
+      cx.globalAlpha = fade;
+      cx.fillStyle = '#ffffff';
+      cx.textAlign = 'center';
+      lines.forEach((ln, k) => cx.fillText(ln, FW / 2, by + 16 + k * lh + size * 0.28));
+      cx.globalAlpha = 1;
+      filmTex.needsUpdate = true;
+    };
+
+    /** Yeterli çizim yoksa oynayan minik çizgi film. */
+    const cartoon = (t: number) => {
+      const g = cx.createLinearGradient(0, 0, 0, FH);
       g.addColorStop(0, '#5fb8ff');
       g.addColorStop(1, '#d7f0ff');
       cx.fillStyle = g;
-      cx.fillRect(0, 0, 256, 144);
+      cx.fillRect(0, 0, FW, FH);
+      cx.save();
+      cx.scale(FW / 256, FH / 144);
       cx.fillStyle = '#ffe066';
       cx.beginPath();
       cx.arc(214, 30, 16, 0, Math.PI * 2);
@@ -1885,9 +2040,10 @@ export class InteriorRealm extends Realm {
       cx.lineTo(-18, 5);
       cx.fill();
       cx.restore();
+      cx.restore();
       filmTex.needsUpdate = true;
     };
-    paint(0, false);
+    cardPaint(idleSub);
     const screen = new THREE.Group();
     // perde: çerçevenin önünde durur (içine gömülürse ekran kapkara görünür)
     const panel = mesh(new THREE.PlaneGeometry(15.4, 6.8), new THREE.MeshBasicMaterial({ map: filmTex }), false);
@@ -1954,11 +2110,14 @@ export class InteriorRealm extends Realm {
     const hemi = this.scene.children.find((c) => (c as THREE.HemisphereLight).isHemisphereLight) as THREE.HemisphereLight | undefined;
     const h0 = hemi?.intensity ?? 1.2, s0 = this.sun.intensity;
     let playing = false;
+    let cur = -1;
+    // çizgi film kendi kendine döner; çizimlerden kurulan film karesini etkinliğin kendisi çizer
     this.ticks.push((_dt, t) => {
+      if (!playing || scenes.length) return;
       const k = Math.floor(t * 8);
       if (k !== shown) {
         shown = k;
-        paint(t, playing);
+        cartoon(t);
       }
     });
 
@@ -1994,10 +2153,13 @@ export class InteriorRealm extends Realm {
         return 'Kocaman bir patlamış mısır! Mis gibi kokuyor.';
       },
     });
-    this.spot('sinema-izle', 0, 7.2, 2.4, 'Koltuğa otur, filmi izle', {
-      dur: 12, pose: 'sit', quest: 'cinema', cam: [13, 5.5],
+    this.spot('sinema-izle', 0, 7.2, 2.4, scenes.length ? 'Koltuğa otur, kendi filmini izle' : 'Koltuğa otur, filmi izle', {
+      dur: scenes.length ? LEAD + filmLength(scenes) + OUTRO : 12,
+      pose: 'sit', quest: 'cinema', cam: [13, 5.5],
       start: () => {
         playing = true;
+        shown = -1;
+        cur = -1;
         if (hemi) hemi.intensity = 0.32;
         this.sun.intensity = 0.2;
         this.fx('yay');
@@ -2006,15 +2168,38 @@ export class InteriorRealm extends Realm {
         a.pos.set(0, 0.5, 1.9);
         a.heading = Math.PI;
         a.pos.y += Math.sin(t * 2) * 0.02;
+        if (!scenes.length) return;
+        const k = Math.floor(t * 22);
+        if (k === shown) return;
+        shown = k;
+        const ft = t - LEAD;
+        if (ft < 0) {
+          // açılış: perdede masalın adı
+          if (cur !== -2) {
+            cur = -2;
+            cardPaint(theme.title);
+          }
+          return;
+        }
+        const i = sceneAt(scenes, ft);
+        if (i < 0) return endCard();
+        if (i !== cur) {
+          cur = i;
+          this.ev.say?.(scenes[i].text);
+        }
+        scenePaint(i, ft);
       },
       end: () => {
         playing = false;
+        this.ev.hush?.();
         if (hemi) hemi.intensity = h0;
         this.sun.intensity = s0;
-        paint(0, false);
+        cardPaint(idleSub);
         this.fx('yay');
         this.sparkles.burst(new THREE.Vector3(0, 3, 0), 16, '#ffd43b');
-        return 'Film bitti! Roketli macera çok güzeldi.';
+        return scenes.length
+          ? `Film bitti! “${theme.title}” masalında senin çizimlerin oynadı.`
+          : 'Film bitti! Daha çok resim çizersen sinemada kendi filmin oynar.';
       },
     });
   }

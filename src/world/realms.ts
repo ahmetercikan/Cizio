@@ -25,6 +25,10 @@ export interface RealmEvents {
   sound: { star: (i: number) => void; pop: () => void; note?: (i: number) => void; fx?: (name: string, i?: number) => void; whoosh?: () => void };
   /** Bu dünyadan ayrıl (ör. Mars'tan roketle dönüş). */
   leave?: () => void;
+  /** Çizio'nun sesiyle oku (sinemadaki filmin anlatımı). Ayarlardan kapatılmışsa sessiz kalır. */
+  say?: (text: string) => void;
+  /** Okumayı hemen kes (film erken bitirildi). */
+  hush?: () => void;
 }
 
 export abstract class Realm {

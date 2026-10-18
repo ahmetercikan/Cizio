@@ -18,7 +18,7 @@ import { saveFile } from '../lib/files';
 import { foundLine, item as parca } from '../world/collection';
 import { engineSound, preloadSfx, rideSound, sfx } from '../lib/sfx';
 import { music } from '../lib/music';
-import { speak } from '../lib/speech';
+import { speak, stopSpeaking } from '../lib/speech';
 import { addDays, dayKey, hashStr } from '../lib/util';
 import { ISLAND_REWARD, useApp, useProfile, useProfileData } from '../store/useApp';
 import type { Island, RealmInfo, Spot } from '../world/island';
@@ -322,20 +322,23 @@ function IslandPlay() {
         const doll = normalizeDoll(data.doll);
         // resimlerden biri açılamazsa (eski yedek, bozuk dosya) o resim olmadan devam edilir
         const soft = <T,>(p: Promise<T>, fb: T) => p.catch((e) => (console.warn(e), fb));
-        const [pet, art, mascot, cards] = await Promise.all([
+        const [pet, shots, mascot, cards] = await Promise.all([
           doll.pet ? soft(tex.petCanvas(doll), null) : Promise.resolve(null),
-          soft(tex.artCanvases(profile.id), []),
+          soft(tex.artShots(profile.id), []),
           tex.mascotCanvas(),
           Promise.all(CARD_IDS.map(async (id) => [id, await soft(tex.lessonCanvas(id), null)] as const)).then((l) => l.filter((x): x is [string, HTMLCanvasElement] => !!x[1])),
         ]);
         if (import.meta.env.DEV) console.log(`[perf] resimler ${Math.round(performance.now() - T0)}ms`);
         if (!alive || !ref.current) return;
+        const art = shots.map((s) => s.canvas);
         media.current = { pet, art };
         world.current = new Island(ref.current, {
-          doll, pet, art, tex: { ...Object.fromEntries(cards), maskot: mascot }, taken: island.stars, starSeed: hashStr(`${day}|${profile.id}|yildiz`),
+          doll, pet, art, film: shots, tex: { ...Object.fromEntries(cards), maskot: mascot }, taken: island.stars, starSeed: hashStr(`${day}|${profile.id}|yildiz`),
           farm: bridge.current,
         }, {
           onNear: setNear,
+          onSay: (t) => say(t),
+          onHush: () => stopSpeaking(),
           onStar: (id) => {
             islandStar(id);
             const n = useApp.getState().data[profile.id]?.island?.stars.length ?? 0;

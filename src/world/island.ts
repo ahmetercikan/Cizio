@@ -21,6 +21,7 @@ import { buildZones, starPlaces, WorldBuilder, type Activity, type SpotDef, type
 import { buildMarket, buildPortals, buildShops, Homestead, realmName, type FarmBridge, type RealmId } from './homestead';
 import { type Hero, type Realm } from './realms';
 import { makeRealm } from './worlds';
+import type { ArtShot } from './textures';
 import { blockById, buyBlueprint, placedBlocks, placeStruct, removeStruct, struct, type FarmState, type PlaceKind } from './economy';
 import { blueprint as blueprintParts } from './build';
 import type { Cell } from './build';
@@ -79,6 +80,10 @@ export interface IslandEvents {
   onPage: (id: string) => void;
   /** Macera kapısından girildi / çıkıldı (null). */
   onRealm?: (r: RealmInfo | null) => void;
+  /** Çizio bir cümle okusun (sinemadaki filmin anlatımı). */
+  onSay?: (text: string) => void;
+  /** Okumayı kes. */
+  onHush?: () => void;
   /** Macera ilerlemesi ("2/6", "5/20 · 40 sn"). */
   onRealmProgress?: (text: string) => void;
   /** Macera bitti: ek altın ve mesaj. */
@@ -92,6 +97,8 @@ export interface IslandOptions {
   doll: DollState;
   pet: HTMLCanvasElement | null;
   art: HTMLCanvasElement[];
+  /** Galerideki resimler ders bilgisiyle (sinemadaki film bunlardan kurulur). */
+  film?: ArtShot[];
   /** Kâğıt kartlar: hayvanlar, dinozorlar, deniz canlıları, Çizio (ders çizimleri). */
   tex: Record<string, HTMLCanvasElement>;
   /** Bugün toplanmış yıldızlar ve kazılmış hazineler. */
@@ -880,7 +887,9 @@ export class Island {
       },
       sound: { star: (i) => this.ev.sound.star(i), pop: () => this.ev.sound.pop(), note: (i) => this.ev.sound.note(i), fx: (n, i) => this.ev.sound.fx?.(n, i), whoosh: () => this.ev.sound.whoosh?.() },
       leave: () => this.leaveRealm(),
-    }, this.seed, { museum: this.o.farm.get().museum ?? [] });
+      say: (t) => this.ev.onSay?.(t),
+      hush: () => this.ev.onHush?.(),
+    }, this.seed, { museum: this.o.farm.get().museum ?? [], film: this.o.film ?? [] });
     this.realm = realm;
     if (this.building) this.setBuildMode(false);
     this.moveActors(realm.scene);
