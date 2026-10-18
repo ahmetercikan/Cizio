@@ -23,11 +23,12 @@
   - `layout.ts`: haritanın verisi (kıyı, bölgeler, yollar). Ada kuzeydoğuda bir yarımadayla büyüdü
     (`CAPE`, `COAST_MAX`); plaj, deniz feneri gibi eski kıyı yerleri yerinde kaldı.
   - `zones.ts` / `places.ts`: bölgeler
+  - `water.ts`: dalgalanan havuz suyu ve kavis çizen fıskiye (kasaba çeşmesi, köy çeşmesi, AVM havuzu, ev havuzu)
   - `city.ts`: Şehir Merkezi (gökdelenler, dönel kavşak, AVM, sinema, otel, taksi) ve ortak `tower()` modeli
   - `interiors.ts`: binaların içi (okul, hastane, market, kütüphane, pastane, itfaiye + Şehir Merkezi'nin
     AVM, sinema, otel, ofis ve apartman daireleri). Kapılar `places.ts` ve `city.ts`'te `door(...)` ile kurulur.
   - `mars.ts`: Mars
-  - `home.ts`: Evim
+  - `home.ts`: Evim (Ev planı sekmesinden evine ad verilir; ad ada tabelasında yazar)
   - `MiniGames.tsx` / `ArcadeGames.tsx`: Oyun Çadırı'nın 14 mini oyunu (lobi: `Shops.tsx` GamesPanel)
   - `Rewards.tsx`: hazine sandıkları, günlük hediye serisi, koleksiyon rozetleri (hesap: `economy.ts`)
   - `carsData.ts` / `vehicles.ts`: araçlar (seviyeyle açılır, altınla alınır)

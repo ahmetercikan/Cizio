@@ -63,6 +63,8 @@ export class HomeScene {
   private sparkles: Sparkles;
   private lotG = new THREE.Group();
   private houseG = new THREE.Group();
+  /** Kendi kendine kıpırdayan eşyalar (havuzun suyu): her karede çağrılır. */
+  private animated: ((dt: number, t: number) => void)[] = [];
   private itemsG = new THREE.Group();
   private wallMeshes: WallMesh[] = [];
   private towers: { obj: THREE.Object3D; dx: number; dz: number }[] = [];
@@ -463,6 +465,7 @@ export class HomeScene {
   private buildItems() {
     this.clearGroup(this.itemsG);
     this.itemObjs = [];
+    this.animated = [];
     let art = 0;
     this.h.items.forEach((p, i) => {
       const it = item(p.id);
@@ -473,6 +476,8 @@ export class HomeScene {
       obj.userData.index = i;
       this.itemsG.add(obj);
       this.itemObjs[i] = obj;
+      // kendi canlandırması olan eşya (havuzun dalgalanan suyu gibi)
+      if (typeof obj.userData.tick === 'function') this.animated.push(obj.userData.tick as (dt: number, t: number) => void);
     });
     this.occ = occupied(this.h);
   }
@@ -1207,6 +1212,13 @@ export class HomeScene {
     this.build();
     this.ev.sound.pop();
   }
+  /** Evin adı: ada tabelasında yazar. Boş bırakılırsa "Evim" olur. */
+  setName(name: string) {
+    const next = { ...this.h, name: name.slice(0, 18) };
+    const e = this.bridge.save(next, 0);
+    if (e) return this.ev.onMessage(e);
+    this.h = next;
+  }
   /** Ev planı: sahip olunanlar bedava, yenisi altınla. */
   setPlan(id: string): string | null {
     const P = PLANS.find((p) => p.id === id);
@@ -1291,6 +1303,7 @@ export class HomeScene {
     this.dt = dt;
     this.last = now;
     this.clock += dt;
+    for (const f of this.animated) f(dt, this.clock);
     // kamera dönüşü
     if (Math.abs(this.yawGoal - this.yaw) > 0.0005) {
       this.yaw += (this.yawGoal - this.yaw) * Math.min(1, dt * 8);

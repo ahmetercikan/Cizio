@@ -10,6 +10,7 @@ import { cloud, mesh, outline, Sparkles, star, toon, tree } from '../play3d/kit'
 import type { Pose } from './avatar3d';
 import { boatModel, jetskiModel, tractorModel } from './vehicles';
 import { heightAt, isWater, LAKE, SNOW_PEAK, VOLCANO, zone } from './layout';
+import { fountain, waterSurface } from './water';
 import type { BlockGrid } from './terrain';
 import type { RealmId } from './homestead';
 
@@ -129,6 +130,10 @@ export class WorldBuilder {
   night: () => number = () => 0;
   /** Kendi adım (basket skor tabelası). */
   myName = 'Sen';
+  /** Evimin çocuğun verdiği adı (boşsa 'Evim'). Ev tabelası bunu yazar. */
+  homeName = '';
+  /** Ev tabelasının yazısını değiştir (çocuk evine yeni ad verince). */
+  setHomeSign?: (text: string) => void;
   /** Sokak lambalarının ampulleri (gece haleleri ve ışıkları için). */
   lamps: THREE.Vector3[] = [];
   musicTiles: { x: number; z: number; note: number; mesh: THREE.Mesh }[] = [];
@@ -231,40 +236,232 @@ export class WorldBuilder {
 // ================================================================================================
 // Ortak modeller
 // ================================================================================================
-export function house(color: string, s = 1, roof = '#e05a4f') {
+export interface HouseOpts {
+  /** Çatı biçimi: piramit (dört yöne), beşik (önü üçgen), kırma (yanları üçgen, geniş saçak), düz (teras), kemer (tonoz). */
+  roofKind?: 'piramit' | 'besik' | 'kirma' | 'duz' | 'kemer';
+  /** 2 = üst katlı ev. */
+  floors?: 1 | 2;
+  /** Taban ölçüsü (varsayılan 7 × 6). */
+  w?: number;
+  d?: number;
+  /** Bacadan duman tüter. */
+  chimney?: boolean;
+  /** Kapının üstünde direkli sundurma. */
+  porch?: boolean;
+  /** Üst katta korkuluklu balkon (floors: 2 ile). */
+  balcony?: boolean;
+  /** Pencerelere bu renkte panjur takılır. */
+  shutters?: string;
+  /** Çatıda küçük bir çatı penceresi. */
+  dormer?: boolean;
+  /** Kapı rengi. */
+  door?: string;
+  /** Alt kat kuşağı ve köşe direkleri (taş / ahşap görünümü). */
+  trim?: string;
+  /** Dükkân: küçük pencereler yerine geniş vitrin. */
+  shop?: boolean;
+}
+
+/**
+ * Kasaba ve köy evi.
+ *
+ * Her yapı aynı kalıptan çıkmasın diye çatısı, kat sayısı, sundurması, balkonu, bacası, panjurları ve
+ * kuşağı ayrı ayrı seçilir: Evim iki katlı balkonlu bir yuva, butik geniş vitrinli düz çatılı bir dükkân,
+ * köy evlerinin her biri başka bir çatıyla kurulur.
+ */
+export function house(color: string, s = 1, roof = '#e05a4f', o: HouseOpts = {}) {
   const g = new THREE.Group();
-  const body = outline(mesh(new THREE.BoxGeometry(7, 4.5, 6), toon(color)), 1.02);
-  body.position.y = 2.25;
-  const r = outline(mesh(new THREE.ConeGeometry(5.6, 3, 4), toon(roof)), 1.03);
-  r.position.y = 6;
-  r.rotation.y = Math.PI / 4;
-  const door = mesh(new THREE.BoxGeometry(1.4, 2.4, 0.15), toon('#9b6b43'), false);
-  door.position.set(0, 1.2, 3.05);
-  g.add(body, r, door);
-  for (const wx of [-2.2, 2.2]) {
-    const w = mesh(new THREE.BoxGeometry(1.3, 1.1, 0.12), toon('#fff6c9', { emissive: '#3a3000' }), false);
-    w.position.set(wx, 2.8, 3.05);
-    g.add(w);
+  const W = o.w ?? 7, D = o.d ?? 6;
+  const two = o.floors === 2;
+  const bh = two ? 6.4 : 4.5;
+  const rm = toon(roof);
+  const body = outline(mesh(new THREE.BoxGeometry(W, bh, D), toon(color)), 1.02);
+  body.position.y = bh / 2;
+  g.add(body);
+  if (o.trim) {
+    const band = outline(mesh(new THREE.BoxGeometry(W + 0.1, 1.3, D + 0.1), toon(o.trim)), 1.01);
+    band.position.y = 0.65;
+    g.add(band);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const post = mesh(new THREE.BoxGeometry(0.34, bh, 0.34), toon(o.trim), false);
+      post.position.set(sx * (W / 2 - 0.05), bh / 2, sz * (D / 2 - 0.05));
+      g.add(post);
+    }
+  }
+
+  // ---- çatı
+  /** Üçgen kesitli çatı (uzunluğu +z boyunca, tepesi yukarı). */
+  const prism = (w: number, h: number, d: number) => {
+    const sh = new THREE.Shape();
+    sh.moveTo(-w / 2, 0);
+    sh.lineTo(w / 2, 0);
+    sh.lineTo(0, h);
+    sh.closePath();
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false });
+    geo.translate(0, -h / 2, -d / 2);
+    return outline(mesh(geo, rm), 1.02);
+  };
+  const kind = o.roofKind ?? 'piramit';
+  let ridge = bh + 2.6; // bacanın oturacağı tepe
+  if (kind === 'piramit') {
+    const r = outline(mesh(new THREE.ConeGeometry(Math.max(W, D) * 0.8, 3, 4), rm), 1.03);
+    r.position.y = bh + 1.5;
+    r.rotation.y = Math.PI / 4;
+    g.add(r);
+    ridge = bh + 3;
+  } else if (kind === 'besik') {
+    const r = prism(W + 0.8, 2.9, D + 0.6);
+    r.position.y = bh + 1.45;
+    g.add(r);
+    ridge = bh + 2.9;
+  } else if (kind === 'kirma') {
+    const r = prism(D + 1.4, 2.5, W + 1.2);
+    r.rotation.y = Math.PI / 2;
+    r.position.y = bh + 1.25;
+    g.add(r);
+    ridge = bh + 2.5;
+  } else if (kind === 'duz') {
+    const slab = outline(mesh(new THREE.BoxGeometry(W + 0.9, 0.45, D + 0.9), rm), 1.02);
+    slab.position.y = bh + 0.22;
+    g.add(slab);
+    // korkuluk (teras kenarı)
+    for (const [bw, bd, x, z] of [[W + 0.9, 0.3, 0, (D + 0.9) / 2], [W + 0.9, 0.3, 0, -(D + 0.9) / 2], [0.3, D + 0.9, (W + 0.9) / 2, 0], [0.3, D + 0.9, -(W + 0.9) / 2, 0]] as const) {
+      const p = mesh(new THREE.BoxGeometry(bw, 0.7, bd), toon(color), false);
+      p.position.set(x, bh + 0.75, z);
+      g.add(p);
+    }
+    ridge = bh + 1.1;
+  } else {
+    // kemer: tonoz çatı
+    const geo = new THREE.CylinderGeometry(W * 0.56, W * 0.56, D + 0.6, 18, 1, false, Math.PI / 2, Math.PI);
+    geo.rotateX(Math.PI / 2);
+    const r = outline(mesh(geo, rm), 1.02);
+    r.position.y = bh;
+    g.add(r);
+    ridge = bh + W * 0.56;
+  }
+
+  // ---- kapı ve pencereler (ön yüz: +z)
+  const dz = D / 2 + 0.06;
+  const door = mesh(new THREE.BoxGeometry(1.5, 2.5, 0.16), toon(o.door ?? '#9b6b43'), false);
+  door.position.set(0, 1.25, dz);
+  const knob = mesh(new THREE.SphereGeometry(0.1, 8, 6), toon('#ffd43b'), false);
+  knob.position.set(0.5, 1.3, dz + 0.1);
+  g.add(door, knob);
+  const win = (x: number, y: number, w = 1.3, h = 1.1) => {
+    const m = mesh(new THREE.BoxGeometry(w, h, 0.12), toon('#fff6c9', { emissive: '#3a3000' }), false);
+    m.position.set(x, y, dz);
+    g.add(m);
+    const cross = mesh(new THREE.BoxGeometry(w + 0.1, 0.1, 0.14), toon('#ffffff'), false);
+    cross.position.set(x, y, dz + 0.02);
+    g.add(cross);
+    if (o.shutters) for (const sx of [-1, 1]) {
+      const sh = mesh(new THREE.BoxGeometry(0.3, h + 0.2, 0.1), toon(o.shutters), false);
+      sh.position.set(x + sx * (w / 2 + 0.2), y, dz + 0.02);
+      g.add(sh);
+    }
+  };
+  if (o.shop) {
+    // vitrin: geniş cam ve altında tezgâh kuşağı
+    const glass = mesh(new THREE.BoxGeometry(W - 2.6, 2.1, 0.14), toon('#d9f2ff', { emissive: '#19303a' }), false);
+    glass.position.set(-1.3, 2, dz);
+    g.add(glass);
+    const sill = mesh(new THREE.BoxGeometry(W - 2.4, 0.22, 0.3), toon(o.trim ?? roof), false);
+    sill.position.set(-1.3, 0.85, dz + 0.06);
+    g.add(sill);
+    door.position.x = W / 2 - 1.1;
+    knob.position.x = W / 2 - 0.6;
+  } else {
+    for (const wx of [-W / 4 - 0.4, W / 4 + 0.4]) win(wx, 2.8);
+  }
+  if (two) for (const wx of [-W / 4 - 0.4, 0, W / 4 + 0.4]) win(wx, 4.9);
+
+  // ---- sundurma, balkon, baca, çatı penceresi
+  if (o.porch) {
+    const roofS = outline(mesh(new THREE.BoxGeometry(3.4, 0.25, 1.8), toon(roof)), 1.03);
+    roofS.position.set(door.position.x, 3.1, dz + 0.8);
+    g.add(roofS);
+    for (const sx of [-1, 1]) {
+      const post = mesh(new THREE.CylinderGeometry(0.13, 0.15, 3, 8), toon(o.trim ?? '#9b6b43'), false);
+      post.position.set(door.position.x + sx * 1.5, 1.5, dz + 1.6);
+      g.add(post);
+    }
+    const step = outline(mesh(new THREE.BoxGeometry(3.4, 0.3, 1.6), toon('#d8d0c0')), 1.02);
+    step.position.set(door.position.x, 0.15, dz + 0.8);
+    g.add(step);
+  }
+  if (o.balcony && two) {
+    const slab = outline(mesh(new THREE.BoxGeometry(W - 1, 0.25, 1.6), toon('#efe6d4')), 1.02);
+    slab.position.set(0, 4.05, dz + 0.7);
+    g.add(slab);
+    for (let i = 0; i < Math.round(W - 1); i++) {
+      const bar = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.9, 6), toon(o.trim ?? '#9b6b43'), false);
+      bar.position.set(-(W - 1) / 2 + 0.5 + i, 4.6, dz + 1.45);
+      g.add(bar);
+    }
+    const rail = mesh(new THREE.BoxGeometry(W - 1, 0.12, 0.12), toon(o.trim ?? '#9b6b43'), false);
+    rail.position.set(0, 5.1, dz + 1.45);
+    g.add(rail);
+  }
+  if (o.chimney) {
+    const ch = outline(mesh(new THREE.BoxGeometry(0.9, 2.2, 0.9), toon(o.trim ?? '#a8553f')), 1.03);
+    ch.position.set(W / 2 - 1.3, ridge - 0.4, -D / 4);
+    g.add(ch);
+    const cap = mesh(new THREE.BoxGeometry(1.2, 0.2, 1.2), toon('#8d939e'), false);
+    cap.position.set(W / 2 - 1.3, ridge + 0.75, -D / 4);
+    g.add(cap);
+    // tüten duman
+    for (let i = 0; i < 3; i++) {
+      const p = mesh(new THREE.SphereGeometry(0.3 + i * 0.12, 10, 8), toon('#ffffff', { transparent: true, opacity: 0.55 - i * 0.12 }), false);
+      p.position.set(W / 2 - 1.3 + i * 0.25, ridge + 1.3 + i * 0.7, -D / 4);
+      g.add(p);
+    }
+  }
+  if (o.dormer && (kind === 'besik' || kind === 'kirma' || kind === 'piramit')) {
+    const box = outline(mesh(new THREE.BoxGeometry(1.7, 1.3, 1.4), toon(color)), 1.02);
+    box.position.set(-W / 4, bh + 1.1, D / 4);
+    const w2 = mesh(new THREE.BoxGeometry(1, 0.8, 0.12), toon('#fff6c9', { emissive: '#3a3000' }), false);
+    w2.position.set(-W / 4, bh + 1.15, D / 4 + 0.75);
+    const cap = outline(mesh(new THREE.ConeGeometry(1.3, 0.9, 4), rm), 1.03);
+    cap.position.set(-W / 4, bh + 2.1, D / 4);
+    cap.rotation.y = Math.PI / 4;
+    g.add(box, w2, cap);
   }
   g.scale.setScalar(s);
   return g;
 }
 
-export function sign(text: string, color = '#ffffff') {
-  const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 160;
+/** Tabelanın yüzünü çiz (yazı sonradan değişebilsin diye ayrı). */
+function paintSign(c: HTMLCanvasElement, text: string, color: string) {
   const x = c.getContext('2d')!;
+  x.clearRect(0, 0, 512, 160);
   x.fillStyle = color;
   x.fillRect(0, 0, 512, 160);
   x.strokeStyle = '#3a2b27';
   x.lineWidth = 12;
   x.strokeRect(6, 6, 500, 148);
   x.fillStyle = '#3a2b27';
-  x.font = '600 64px Fredoka, Nunito, sans-serif';
+  let size = 64;
   x.textAlign = 'center';
   x.textBaseline = 'middle';
+  x.font = `600 ${size}px Fredoka, Nunito, sans-serif`;
+  while (x.measureText(text).width > 452 && size > 22) x.font = `600 ${(size -= 4)}px Fredoka, Nunito, sans-serif`;
   x.fillText(text, 256, 84);
+}
+
+/** Tabelanın yazısını değiştir (ev adı gibi sonradan değişenler için). */
+export function signText(g: THREE.Group, text: string) {
+  const u = g.userData as { canvas?: HTMLCanvasElement; color?: string; tex?: THREE.CanvasTexture };
+  if (!u.canvas || !u.tex) return;
+  paintSign(u.canvas, text, u.color ?? '#ffffff');
+  u.tex.needsUpdate = true;
+}
+
+export function sign(text: string, color = '#ffffff') {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 160;
+  paintSign(c, text, color);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   const g = new THREE.Group();
@@ -279,6 +476,9 @@ export function sign(text: string, color = '#ffffff') {
   const post = mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.4, 6), toon('#9b6b43'));
   post.position.y = 1.2;
   g.add(post);
+  g.userData.canvas = c;
+  g.userData.color = color;
+  g.userData.tex = t;
   return g;
 }
 
@@ -362,26 +562,43 @@ function buildTown(b: WorldBuilder) {
   b.place(plaza, 0, 0, 0, 0.02);
   const pool = outline(mesh(new THREE.CylinderGeometry(2.8, 3, 0.8, 24), toon('#d8d0c0')), 1.03);
   b.place(pool, 0, 0, 0, 0.4);
-  const water = mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.1, 24), toon('#7ee0ff'), false);
-  b.place(water, 0, 0, 0, 0.78);
+  // dalgalanan su yüzeyi ve gerçekten fışkıran fıskiye (water.ts)
+  const surf = waterSurface({ r: 2.45, color: '#49c4ea', wave: 0.04 });
+  b.place(surf.group, 0, 0, 0, 0.89);
   const col = mesh(new THREE.CylinderGeometry(0.3, 0.4, 2, 10), toon('#d8d0c0'));
   b.place(col, 0, 0, 0, 1.6);
+  const bowl = outline(mesh(new THREE.CylinderGeometry(1.1, 0.45, 0.4, 18), toon('#d8d0c0')), 1.04);
+  b.place(bowl, 0, 0, 0, 2.7);
+  // üst kâseden taşıp havuza dökülen su
+  const jets = fountain({ h: 1.7, arms: 9, r: 2.1, fall: -2.1, color: '#cdf1ff' });
+  b.place(jets.group, 0, 0, 0, 2.95);
   b.block(0, 0, 3.4);
-  // fıskiye damlaları
-  b.tick((_dt, t) => {
-    if (Math.floor(t * 4) !== Math.floor((t - 0.016) * 4)) b.sparkles.burst(new THREE.Vector3(0, b.h(0, 0) + 3, 0), 2, '#7ee0ff');
+  b.tick((dt, t) => {
+    surf.tick(dt, t);
+    jets.tick(dt, t);
+    if (Math.floor(t * 3) !== Math.floor((t - 0.016) * 3)) b.sparkles.burst(new THREE.Vector3(0, b.h(0, 0) + 4.2, 0), 2, '#cdf1ff');
   });
   // Kasabada yalnızca girilebilen yapılar var: süs evleri meydanı kalabalık ettiği için kaldırıldı,
   // boşalan yer çocuğun blokla inşa etmesine kalsın (köydeki evler yerinde duruyor).
   const homeAt: [number, number] = [-28, -22];
-  b.place(house('#ffd166', 1.35), ...homeAt, b.facing(...homeAt, 0, 0));
+  // Evim: adadaki en özel yapı — iki katlı, balkonlu, sundurmalı, bacası tüten yuva
+  b.place(house('#ffd166', 1.05, '#c0563f', {
+    floors: 2, roofKind: 'kirma', w: 8, d: 7, chimney: true, porch: true, balcony: true,
+    shutters: '#c0563f', trim: '#b9773f', door: '#8e5b3a',
+  }), ...homeAt, b.facing(...homeAt, 0, 0));
   b.block(...homeAt, 5.8);
   {
     // kapının önü (evin kasabaya bakan yüzü)
     const l = Math.hypot(...homeAt), dx = -homeAt[0] / l, dz = -homeAt[1] / l;
     b.spot({ id: 'home', x: homeAt[0] + dx * 6.4, z: homeAt[1] + dz * 6.4, r: 3.2, label: 'Evime gir', page: true });
   }
-  b.place(sign('Evim', '#fff1c7'), -20, -14, b.facing(-20, -14, 0, 0));
+  {
+    // ev tabelası: çocuk evine ad verebilir (Evim > Ev planı > "Evinin adı")
+    const hs = sign(b.homeName || 'Evim', '#fff1c7');
+    hs.scale.setScalar(1.25);
+    b.place(hs, -20, -14, b.facing(-20, -14, 0, 0));
+    b.setHomeSign = (t) => signText(hs, t.trim() || 'Evim');
+  }
   // sanat galerisi
   const gx = 26, gz = -20;
   const g = new THREE.Group();

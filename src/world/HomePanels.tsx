@@ -72,6 +72,8 @@ export function Catalog({ home, coins, onPick, onHint }: { home: HomeScene; coin
           ))}
         </div>
       ) : tab === 'plan' ? (
+        <>
+        <HomeName home={home} />
         <div className="home-cat__cards">
           {PLANS.map((p) => {
             const own = home.state.plans.includes(p.id) || (!!p.premium && premium.includes(p.premium)), now = home.state.plan === p.id;
@@ -90,6 +92,7 @@ export function Catalog({ home, coins, onPick, onHint }: { home: HomeScene; coin
             );
           })}
         </div>
+        </>
       ) : (
         <div className="home-cat__cards">
           {(tab === 'store' ? stored.map((id) => item(id)!).filter(Boolean) : items).map((it, k) => (
@@ -103,6 +106,27 @@ export function Catalog({ home, coins, onPick, onHint }: { home: HomeScene; coin
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Evinin adı: ada tabelasında yazar (boş bırakılırsa "Evim"). */
+function HomeName({ home }: { home: HomeScene }) {
+  const [name, setName] = useState(home.state.name ?? '');
+  const [saved, setSaved] = useState(false);
+  const save = () => {
+    home.setName(name);
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 1600);
+  };
+  return (
+    <div className="home-name">
+      <label htmlFor="home-name-input"><GameIcon name="ev" size={22} /> Evinin adı</label>
+      <input id="home-name-input" value={name} maxLength={18} placeholder="Evim"
+        onChange={(e) => setName(e.target.value)} onBlur={save}
+        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+      <button className="pill pill--sm" onClick={save}><Check size={18} /> {saved ? 'Kaydedildi' : 'Kaydet'}</button>
+      <small>Adanda evinin önündeki tabelada yazacak.</small>
     </div>
   );
 }

@@ -360,6 +360,8 @@ export interface HomeState {
   stored: string[];
   /** Kayıt sürümü (2: büyük odalı planlar). */
   v?: number;
+  /** Çocuğun evine verdiği ad (ada tabelasında yazar; boşsa "Evim"). */
+  name?: string;
 }
 
 /** Başlangıç evi: boş değil, sıcak bir yuva (arsa koordinatları). */

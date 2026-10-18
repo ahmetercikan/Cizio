@@ -1043,13 +1043,16 @@ export const sfx = {
   },
   /** Topa vuruş: kısa, tok bir tık. */
   kick: () => fm(140, 0, 0.12, 0.2, 1.5, 3, 0.2),
-  /** Başarı (oyun bitti, sipariş tamam): kısa kutlama stingi. */
+  /**
+   * Başarı (oyun bitti, sipariş tamam): kısa, yukarı çıkan kutlama stingi.
+   * (Eski `win.mp3` örneği tizden pese iniyordu: çocuk kazandığında kaybetmiş gibi duyuluyordu, kaldırıldı.)
+   */
   success: () => {
-    if (playSample('win', 0.5)) return;
-    riser(0, 0.22, 0.05);
-    arpeggio(523.25, [0, 4, 7, 12], 0.2, 0.085, 0.1);
-    bell(2093, 0.52, 1.4, 0.07, 1);
-    sparkle(0.6, 4, 0.03);
+    riser(0, 0.26, 0.05);
+    // do–mi–sol–do: hep yukarı çıkan neşeli dörtlü
+    arpeggio(523.25, [0, 4, 7, 12], 0.16, 0.09, 0.11);
+    for (const s of [12, 16, 19]) bell(523.25 * 2 ** (s / 12), 0.52, 1.5, 0.05, 1);
+    sparkle(0.6, 6, 0.032);
   },
   /** Küçük olumsuzluk / nazik uyarı: iki inen yumuşak nota. */
   soft: () => [659.3, 523.25].forEach((f, i) => {
@@ -1058,7 +1061,8 @@ export const sfx = {
   }),
   /** Büyük ödül (hediye, sandık, seviye): parıltılı kutlama. */
   fanfare: () => {
-    if (playSample('reward', 0.5)) return;
+    // örneğin sonundaki boğuk uğultu kesilsin: yalnızca parlak kutlama bölümü çalar
+    if (playSample('reward', 0.5, { dur: 1.6 })) return;
     riser(0, 0.3, 0.05);
     boom(0.26, 0.2);
     arpeggio(523.25, [0, 4, 7, 12, 16], 0.28, 0.09, 0.075);

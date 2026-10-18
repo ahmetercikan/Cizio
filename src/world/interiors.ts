@@ -13,6 +13,7 @@ import { Avatar3D, type Pose } from './avatar3d';
 import type { InteriorId } from './homestead';
 import { board, holdItem } from './places';
 import { Realm, type Hero, type RealmEvents } from './realms';
+import { fountain, waterSurface } from './water';
 import type { Activity } from './zones';
 
 const H = 5.5; // duvar yüksekliği
@@ -1686,16 +1687,17 @@ export class InteriorRealm extends Realm {
     {
       const pool = new THREE.Group();
       pool.add(outline(mesh(new THREE.CylinderGeometry(3, 3.2, 0.9, 24), toon('#dfd8c8')), 1.03).translateY(0.45));
-      const water = mesh(new THREE.CylinderGeometry(2.7, 2.7, 0.1, 24), toon('#6fc7e8', { transparent: true, opacity: 0.8 }), false);
-      water.position.y = 0.92;
-      pool.add(water);
-      const jet = outline(mesh(new THREE.CylinderGeometry(0.22, 0.34, 1.6, 10), toon('#eef6fb')), 1.05);
-      jet.position.y = 1.7;
-      pool.add(jet);
+      // dalgalanan su ve fışkıran fıskiye (water.ts)
+      const surf = waterSurface({ r: 2.7, color: '#49c4ea', wave: 0.04 });
+      surf.group.position.y = 0.99;
+      const jets = fountain({ h: 2.2, arms: 9, r: 2.3, color: '#cdf1ff' });
+      jets.group.position.y = 0.98;
+      pool.add(surf.group, jets.group);
       this.add(pool, 0, 2);
       this.solid(0, 2, 6.4, 6.4, 1.1);
-      this.ticks.push((_dt, t) => {
-        water.position.y = 0.92 + Math.sin(t * 2) * 0.03;
+      this.ticks.push((dt, t) => {
+        surf.tick(dt, t);
+        jets.tick(dt, t);
         if (Math.floor(t * 2) !== Math.floor((t - 0.016) * 2)) this.sparkles.burst(new THREE.Vector3((Math.random() - 0.5) * 2, 2.6, 2 + (Math.random() - 0.5) * 2), 2, '#bfe9ff');
       });
       for (let i = 0; i < 4; i++) {

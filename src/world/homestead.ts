@@ -272,7 +272,7 @@ export class Homestead {
         continue;
       }
       if (p.k === 'mutfak') {
-        const kitchen = house('#fff1c7', 0.7, '#ff8f6b');
+        const kitchen = house('#fff1c7', 0.7, '#ff8f6b', { roofKind: 'besik', chimney: true, shutters: '#ff8f6b', w: 6.4, d: 5.4 });
         const chimney = outline(mesh(new THREE.BoxGeometry(0.9, 2.4, 0.9), toon('#c8553d')), 1.04);
         chimney.position.set(1.8, 6, -1);
         kitchen.add(chimney);
@@ -290,7 +290,7 @@ export class Homestead {
       const a = animal(k);
       const w = 9, d = 8;
       this.add(fence(w, d, '#f4f1ea', 2.4), x, z, Math.PI);
-      if (k === 'tavuk') this.add(house('#ffcc80', 0.35, '#e05a4f'), x + 2.6, z + 2.2, Math.PI);
+      if (k === 'tavuk') this.add(house('#ffcc80', 0.35, '#e05a4f', { roofKind: 'kemer', w: 6, d: 5, door: '#8e5b3a' }), x + 2.6, z + 2.2, Math.PI);
       else if (k !== 'ari') this.add(outline(mesh(new THREE.BoxGeometry(2.2, 0.5, 0.7), toon('#8a5a35')), 1.05), x - 2.4, z + 3, 0, 0.25);
       this.add(sign(a.name, '#fff1c7'), x - 3, z - 4.6, Math.PI);
       this.pens.push({ k, x, z, w, d, models: [], bub: null, key: '' });
@@ -686,7 +686,7 @@ export function buildShops(b: WorldBuilder) {
   {
     const x = -2, z = 27;
     const ang = b.facing(x, z, 0, 0);
-    const g = house('#ffd1e8', 0.75, '#e9487d');
+    const g = house('#ffd1e8', 0.75, '#e9487d', { roofKind: 'duz', w: 8, d: 5.4, shop: true, trim: '#e9487d', door: '#9b6bff' });
     for (let i = 0; i < 6; i++) {
       const s = mesh(new THREE.BoxGeometry(1, 0.12, 2.2), toon(i % 2 ? '#ffffff' : '#ff8fb1'));
       s.position.set(-2.5 + i, 3.7, 3.4);

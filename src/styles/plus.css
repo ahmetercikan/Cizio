@@ -294,6 +294,17 @@
 .home-card--plan { width: 170px; padding: 14px 10px; gap: 6px; }
 .home-card--plan.on { border-color: #b8b4e6; background: #f6f3ff; }
 .home-card__plan { font-size: 12px; font-weight: 800; color: #8a84a0; }
+.home-name {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 2px 8px; padding: 10px 12px;
+  border-radius: 18px; background: #fff; border: 2px solid #eee7f7;
+}
+.home-name label { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: #4a4458; }
+.home-name input {
+  flex: 1 1 140px; min-width: 120px; padding: 9px 12px; border-radius: 14px; border: 2px solid #ded6f6;
+  background: #faf7ff; font: inherit; font-weight: 700; color: #3f3577;
+}
+.home-name input:focus { outline: none; border-color: #b8b4e6; }
+.home-name small { flex: 1 0 100%; color: #8a84a0; font-size: 12px; }
 .home-finish { display: grid; gap: 8px; max-height: 34vh; overflow-y: auto; }
 .home-finish__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 10px; border-radius: 16px; background: #fff; }
 .home-finish__row b { min-width: 110px; color: #4a4458; }

@@ -8,7 +8,8 @@ import * as THREE from 'three';
 import { flowers, mesh, outline, toon, tree } from '../play3d/kit';
 import { heightAt, ROADS, ROAD_START, ZONES, zone, type Zone } from './layout';
 import { ambulanceModel, firetruckModel, planeModel } from './vehicles';
-import { house, sign, type Activity, type Vehicle, type WorldBuilder } from './zones';
+import { house, sign, type Activity, type HouseOpts, type Vehicle, type WorldBuilder } from './zones';
+import { fountain, waterSurface } from './water';
 import type { InteriorId } from './homestead';
 import { buildDowntown } from './city';
 
@@ -285,23 +286,23 @@ function buildCity(b: WorldBuilder) {
     const fount = new THREE.Group();
     const pool = outline(mesh(new THREE.CylinderGeometry(4.2, 4.4, 0.8, 28), toon('#c9c3d6')), 1.02);
     pool.position.y = 0.4;
-    const water = mesh(new THREE.CylinderGeometry(3.8, 3.8, 0.1, 28), toon('#6cc8f0', { emissive: '#0b2a3a' }), false);
-    water.position.y = 0.76;
     const col = mesh(new THREE.CylinderGeometry(0.5, 0.7, 2.4, 12), toon('#c9c3d6'));
     col.position.y = 1.6;
     const bowl = outline(mesh(new THREE.CylinderGeometry(1.6, 0.6, 0.6, 18), toon('#c9c3d6')), 1.03);
     bowl.position.y = 2.9;
-    const jet = mesh(new THREE.ConeGeometry(0.5, 1.6, 10), toon('#a8e4ff', { transparent: true, opacity: 0.8 }), false);
-    jet.position.y = 3.9;
-    fount.add(pool, water, col, bowl, jet);
+    // dalgalanan su ve kavis çizerek düşen fıskiye kolları (water.ts)
+    const surf = waterSurface({ r: 3.75, color: '#49c4ea', wave: 0.04 });
+    surf.group.position.y = 0.89;
+    const jets = fountain({ h: 2, arms: 10, r: 3.2, fall: -2.4, color: '#cdf1ff' });
+    jets.group.position.y = 3.25;
+    fount.add(pool, col, bowl, surf.group, jets.group);
     put(fount, 0, 0);
     blk(0, 0, 4.6);
-    b.tick((_dt, t) => {
-      jet.scale.y = 1 + Math.sin(t * 6) * 0.15;
-    });
-    const top = G(0, 0, 4.6);
-    b.tick(() => {
-      if (Math.random() < 0.05) b.sparkles.burst(top, 1, '#bfeaff');
+    const top = G(0, 0, 5.6);
+    b.tick((dt, t) => {
+      surf.tick(dt, t);
+      jets.tick(dt, t);
+      if (Math.random() < 0.07) b.sparkles.burst(top, 1, '#cdf1ff');
     });
   }
 
@@ -798,10 +799,20 @@ function buildVillage(b: WorldBuilder) {
 
   // köy evleri (meydana bakar)
   const HC = [['#fff1c7', '#c0392b'], ['#ffd6a5', '#8e5b3a'], ['#e3f2fd', '#c0392b'], ['#fde2e4', '#a8662e'], ['#f1f8e9', '#c0392b'], ['#ffe8cc', '#7b4b2a'], ['#ede7f6', '#c0392b']];
+  // her köy evi başka: çatısı, boyu, bacası, panjuru, sundurması ayrı (hepsi birbirine benzemesin)
+  const HS: HouseOpts[] = [
+    { roofKind: 'besik', chimney: true, shutters: '#c0392b', w: 7, d: 6 },
+    { roofKind: 'kirma', porch: true, trim: '#8e5b3a', w: 7.6, d: 6.4 },
+    { roofKind: 'piramit', dormer: true, shutters: '#5b8def', w: 6.6, d: 6 },
+    { roofKind: 'besik', floors: 2, balcony: true, trim: '#a8662e', w: 7, d: 5.8 },
+    { roofKind: 'kemer', chimney: true, trim: '#7b4b2a', w: 6.8, d: 6.2 },
+    { roofKind: 'kirma', chimney: true, dormer: true, shutters: '#7b4b2a', w: 7.4, d: 6 },
+    { roofKind: 'besik', porch: true, shutters: '#c0392b', trim: '#9b6b43', w: 6.6, d: 5.6 },
+  ];
   const angs = [0.55, 1.15, 1.75, 2.35, -0.55, -1.15, -1.75];
   angs.forEach((a, i) => {
     const r = 24, lx = Math.sin(a) * r, lz = Math.cos(a) * r;
-    const h = house(HC[i][0], 1.0, HC[i][1]);
+    const h = house(HC[i][0], 1.0, HC[i][1], HS[i]);
     put(h, lx, lz, a + Math.PI);
     blk(lx, lz, 4.6);
     // bahçe: çit ve lahanalar

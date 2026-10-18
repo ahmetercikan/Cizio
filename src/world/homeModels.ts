@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { item } from './homeData';
+import { waterSurface } from './water';
 
 const mats = new Map<string, THREE.MeshStandardMaterial>();
 export function soft(color: string, opts: { emissive?: string; opacity?: number; rough?: number } = {}) {
@@ -355,7 +356,12 @@ export function furniture(id: string, color: string, art?: HTMLCanvasElement): T
     }
     case 'havuz': {
       add(rbox(2.9, 0.35, 1.9, 0.15), '#ffffff', 0, 0.17, 0);
-      add(rbox(2.6, 0.04, 1.6, 0.1), soft(color, { opacity: 0.9, rough: 0.15, emissive: shade(color, 0.15) }), 0, 0.3, 0, false).name = 'water';
+      // gerçek su: dalgalanan, güneşte parıldayan yüzey (water.ts)
+      const surf = waterSurface({ w: 2.6, d: 1.6, color, wave: 0.02, rep: 1 });
+      surf.group.position.y = 0.37;
+      surf.group.name = 'water';
+      g.add(surf.group);
+      g.userData.tick = surf.tick;
       add(new THREE.TorusGeometry(0.22, 0.08, 8, 16), '#ff8fb1', 0.6, 0.34, 0.2, false).rotation.x = Math.PI / 2;
       break;
     }

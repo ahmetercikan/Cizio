@@ -813,6 +813,11 @@ export class Island {
   farmChanged() {
     this.home.refresh();
   }
+  /** Evin çocuğun verdiği adı: evin önündeki tabelaya yazılır (boşsa "Evim"). */
+  setHomeName(name: string) {
+    this.wb.homeName = name;
+    this.wb.setHomeSign?.(name);
+  }
   /** Evim açılınca ada durur (aynı çizici evde kullanılır). */
   get gl() {
     return this.renderer;

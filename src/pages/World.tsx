@@ -361,8 +361,9 @@ function IslandPlay() {
         // geliştirirken tarayıcı konsolundan dünyaya erişim (yayına girmez)
         if (import.meta.env.DEV) (window as unknown as { w?: unknown }).w = world.current;
         world.current.setSeed(hashStr(`${profile.id}|${day}|labirent`));
+        world.current.setHomeName(normalizeFarm(useApp.getState().data[profile.id]?.farm).home?.name ?? '');
         // gerçek ses kayıtlarını arka planda hazırla (hazır olana dek sentez sesler çalar)
-        preloadSfx(['tap', 'pop', 'coin', 'reward', 'win', 'chest', 'horn', 'door', 'engine-car', 'siren', 'engine-plane']);
+        preloadSfx(['tap', 'pop', 'coin', 'reward', 'chest', 'horn', 'door', 'engine-car', 'siren', 'engine-plane']);
         setReady(true);
         // evdeki bir eşyadan (gardırop, şövale…) başka sayfaya gidip dönünce eve geri gel
         let backHome = false;
@@ -492,7 +493,12 @@ function IslandPlay() {
     const h = new HomeScene(w.gl, ref.current, { doll: normalizeDoll(data.doll), pet: media.current.pet, art: media.current.art }, {
       get: () => normalizeFarm(useApp.getState().data[profile.id]?.farm).home ?? newHome(),
       coins: () => bridge.current.get().coins,
-      save: (next, coins) => applyQuiet((s) => (coins < 0 && s.coins < -coins ? { s, err: `Bunun için ${-coins} altın gerekiyor. Çiftlikte ürün yetiştirip pazarda satabilirsin!` } : { s: { ...s, coins: s.coins + coins, home: next } })).err ?? null,
+      save: (next, coins) => {
+        const e = applyQuiet((s) => (coins < 0 && s.coins < -coins ? { s, err: `Bunun için ${-coins} altın gerekiyor. Çiftlikte ürün yetiştirip pazarda satabilirsin!` } : { s: { ...s, coins: s.coins + coins, home: next } })).err ?? null;
+        // ev adı değişmiş olabilir: adadaki tabela hemen güncellensin
+        if (!e) world.current?.setHomeName(next.name ?? '');
+        return e;
+      },
     }, {
       onMessage: flash,
       onPage: (pg) => {
