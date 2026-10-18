@@ -40,6 +40,8 @@ const FreeDraw = lazy(loadFree);
 const Friends = lazy(() => import('./pages/Friends'));
 const Journal = lazy(() => import('./pages/Journal'));
 const Letters = lazy(() => import('./pages/Letters'));
+const MusicRoom = lazy(() => import('./pages/MusicRoom'));
+const MathPark = lazy(() => import('./pages/MathPark'));
 const League = lazy(() => import('./pages/League'));
 const LiveDuel = lazy(() => import('./pages/LiveDuel'));
 const LessonPage = lazy(loadLesson);
@@ -119,6 +121,8 @@ export default function App() {
         <Route path="/yol/:id" element={<NeedsProfile><CoursePage /></NeedsProfile>} />
         <Route path="/dergi" element={<NeedsProfile><Journal /></NeedsProfile>} />
         <Route path="/harfler" element={<NeedsProfile><Letters /></NeedsProfile>} />
+        <Route path="/muzik" element={<NeedsProfile><MusicRoom /></NeedsProfile>} />
+        <Route path="/matematik" element={<NeedsProfile><MathPark /></NeedsProfile>} />
         <Route path="/ders/:id" element={<NeedsProfile><LessonPage /></NeedsProfile>} />
         <Route path="/ciz" element={<NeedsProfile><FreeDraw /></NeedsProfile>} />
         <Route path="/duello" element={<NeedsProfile><Duel /></NeedsProfile>} />

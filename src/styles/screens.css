@@ -3248,3 +3248,96 @@
 .themecard__img { width: 82px; height: 82px; border-radius: 16px; background: var(--cream); }
 .themecard__item small { font-size: 12px; font-weight: 700; line-height: 1.15; }
 .themecard__item.done .themecard__img { outline: 3px solid var(--teal); outline-offset: -3px; }
+
+/* ------------------------------------------------------------------------------------------------
+   Müzik Odası ve Matematik Parkı (ana sayfa kartları + sayfalar)
+   ------------------------------------------------------------------------------------------------ */
+/* Altı kart: dar ekranda tek sütun (ortak kural), orta ekranda iki, geniş ekranda üç sütun. */
+@media (min-width: 861px) and (max-width: 1279px) {
+  .worlds__grid--6 { grid-template-columns: repeat(2, 1fr); max-height: none; }
+  .worlds__grid--6 .world-card { flex-direction: row; align-items: center; padding: 12px 70px 12px 12px; }
+  .worlds__grid--6 .world-art { flex: none; width: 44%; min-height: 0; aspect-ratio: 1; }
+  .worlds__grid--6 .world-card__go { top: 50%; bottom: auto; transform: translateY(-50%); }
+}
+@media (min-width: 1280px) { .worlds__grid--6 { grid-template-columns: repeat(3, 1fr); max-height: none; } }
+.world-card--muzik { --world: #9b6bff; }
+.world-card--matematik { --world: #2bb673; }
+.world-card__mini {
+  flex: none; width: 92px; height: 92px; border-radius: 24px; display: grid; place-items: center;
+  background: var(--world, var(--coral)); color: #fff;
+}
+
+/* Müzik Odası */
+.music-insts { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; margin-bottom: 12px; }
+.music-inst {
+  flex: none; display: grid; justify-items: center; gap: 3px; padding: 10px 16px; border-radius: 18px;
+  background: #fff; border: 2px solid var(--line); box-shadow: var(--shadow-card); color: var(--ic);
+}
+.music-inst b { font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--ink); }
+.music-inst.on { background: var(--ic); color: #fff; border-color: var(--ic); }
+.music-inst.on b { color: #fff; }
+.music-modes { display: flex; gap: 8px; margin-bottom: 14px; }
+.music-modes button {
+  flex: 1; padding: 10px 12px; border-radius: 16px; font-family: var(--display); font-weight: 600;
+  background: #fff; border: 2px solid var(--line); color: var(--ink-2);
+}
+.music-modes button.on { background: var(--teal-soft); border-color: var(--teal); color: var(--teal-dark); }
+.music-keys { display: grid; grid-auto-flow: column; gap: 6px; margin-bottom: 14px; }
+.music-keys.pasif { opacity: 0.6; }
+.music-key {
+  min-height: clamp(130px, 30vh, 240px); border-radius: 16px; display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 12px; border: 2px solid var(--line); box-shadow: var(--shadow-card);
+  background: color-mix(in srgb, var(--ic) calc(14% + 0.09 * 100%), #fff);
+  transition: transform 0.08s ease, filter 0.08s ease;
+}
+.music-key span { font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--ink); }
+.music-key.hit { transform: translateY(5px); filter: brightness(0.86); }
+.music-key:disabled { pointer-events: none; }
+.music-state { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; color: var(--ink-2); margin-bottom: 10px; }
+.music-state.dogru { color: var(--teal-dark); }
+.music-state.yanlis { color: var(--coral-dark); }
+.music-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.music-best { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; color: var(--muted); }
+.music-songs { display: grid; gap: 8px; }
+.music-songs__row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Matematik Parkı */
+.math-level { display: flex; gap: 8px; margin-bottom: 14px; }
+.math-level button {
+  flex: 1; padding: 9px 12px; border-radius: 16px; font-family: var(--display); font-weight: 600;
+  background: #fff; border: 2px solid var(--line); color: var(--ink-2);
+}
+.math-level button.on { background: var(--sun-soft); border-color: var(--sun-dark); color: var(--ink); }
+.math-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 11px; }
+.math-card {
+  display: grid; justify-items: center; gap: 3px; padding: 14px 10px; border-radius: 22px;
+  background: #fff; border: 2px solid var(--line); box-shadow: var(--shadow-card); color: var(--ink);
+}
+.math-card__icon { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; background: var(--mc); color: #fff; }
+.math-card b { font-family: var(--display); font-size: 16px; font-weight: 600; }
+.math-card small { color: var(--muted); font-weight: 700; font-size: 12.5px; text-align: center; }
+.math-bar { height: 9px; border-radius: 6px; background: rgba(58, 43, 39, 0.1); overflow: hidden; margin-bottom: 14px; }
+.math-bar span { display: block; height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+.math-stage {
+  display: grid; justify-items: center; gap: 10px; padding: 18px 14px; border-radius: var(--radius-lg);
+  background: #fff; border: 2px solid var(--line); box-shadow: var(--shadow-card); margin-bottom: 14px;
+}
+.math-q { font-family: var(--display); font-size: clamp(26px, 7vw, 40px); font-weight: 600; margin: 0; }
+.math-items { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.math-group { display: flex; align-items: center; gap: 12px; }
+.math-dots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+.math-dots i { width: 26px; height: 26px; border-radius: 50%; border: 3px solid; display: block; }
+.math-op { font-family: var(--display); font-size: 30px; font-weight: 600; color: var(--muted); }
+.math-clock { width: min(52vw, 210px); height: auto; }
+.math-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.math-opt {
+  padding: 18px 10px; border-radius: 20px; font-family: var(--display); font-size: 30px; font-weight: 600;
+  background: #fff; border: 3px solid var(--line); box-shadow: var(--shadow-card); color: var(--ink);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.math-opt.dogru { background: var(--teal-soft); border-color: var(--teal); color: var(--teal-dark); }
+.math-opt.yanlis { background: var(--coral-soft); border-color: var(--coral); }
+.math-done { display: grid; justify-items: center; gap: 10px; text-align: center; padding-top: 10px; }
+.math-done__row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.math-won { font-family: var(--display); font-size: 24px; color: var(--sun-dark); }
+@media (prefers-reduced-motion: reduce) { .music-key.hit { transform: none; } }

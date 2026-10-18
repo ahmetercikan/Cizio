@@ -34,7 +34,13 @@
     AVM, sinema, otel, ofis ve apartman daireleri). Kapılar `places.ts` ve `city.ts`'te `door(...)` ile kurulur.
   - `mars.ts`: Mars
   - `home.ts`: Evim (Ev planı sekmesinden evine ad verilir; ad ada tabelasında yazar)
+  - `collection.ts` / `MuseumPanel.tsx`: koleksiyon (balık, fosil, kabuk, böcek) ve kasabadaki Müze
+  - `petpark.ts`: Evcil Hayvan Parkı (besle, yıka, topla oyna, böcek ara)
   - `MiniGames.tsx` / `ArcadeGames.tsx`: Oyun Çadırı'nın 14 mini oyunu (lobi: `Shops.tsx` GamesPanel)
   - `Rewards.tsx`: hazine sandıkları, günlük hediye serisi, koleksiyon rozetleri (hesap: `economy.ts`)
   - `carsData.ts` / `vehicles.ts`: araçlar (seviyeyle açılır, altınla alınır)
+- **Müzik Odası** (`/muzik`, `src/lib/instruments.ts`): beş çalgı ve ezgi tekrarlama oyunu; sesler Web Audio ile
+  üretilir, ses dosyası gerekmez.
+- **Matematik Parkı** (`/matematik`, `src/lib/mathpark.ts`): say, topla, çıkar, saati oku; sorular her
+  seferinde üretilir, üç zorluk.
 - **Yatay telefon düzeni:** `src/styles/landscape.css` (yalnızca yatay ve kısa ekranlarda devreye girer).

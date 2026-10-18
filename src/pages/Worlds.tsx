@@ -2,7 +2,7 @@
  * Açılış: üç dünyadan birini seç — Çizim Atölyesi, Giydirme Stüdyosu, English Club.
  * Seçilen dünyanın kendi sekmeleri gelir; üst çubuktaki dünya adına dokununca buraya dönülür.
  */
-import { Check, ChevronRight, Crown } from 'lucide-react';
+import { Check, ChevronRight, Crown, Music, Calculator } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppBar, WORLDS, type WorldId } from '../components/AppShell';
 import { Doodles } from '../components/Doodles';
@@ -106,7 +106,7 @@ export default function Worlds() {
           <p className="sub">{greeting()}, {profile.name}!</p>
           <h1 className="title-xl">Bugün nereye gidelim?</h1>
         </header>
-        <div className="worlds__grid worlds__grid--4">
+        <div className="worlds__grid worlds__grid--6">
           {CARDS.map(({ id, sub, Art }, i) => (
             <Link key={id} to={WORLDS[id].home} className={`world-card world-card--${id} rise`} style={{ animationDelay: `${0.08 * i}s` }} onClick={() => sfx.pop()}>
               <Art />
@@ -128,6 +128,24 @@ export default function Worlds() {
               <span className={`world-card__status ${plus ? '' : 'world-card__status--plus'}`}>
                 {plus ? 'Adada bugünkü görevler hazır' : <><Crown size={15} /> Çizio Plus</>}
               </span>
+            </span>
+            <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
+          </Link>
+          <Link to="/muzik" className="world-card world-card--muzik rise" style={{ animationDelay: '0.3s' }} onClick={() => sfx.pop()}>
+            <span className="world-card__mini" aria-hidden="true"><Music size={46} strokeWidth={2.2} /></span>
+            <span className="world-card__text">
+              <b>Müzik Odası</b>
+              <small>Çalgı çal, ezgiyi tekrarla</small>
+              <span className="world-card__status">Beş çalgı seni bekliyor</span>
+            </span>
+            <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
+          </Link>
+          <Link to="/matematik" className="world-card world-card--matematik rise" style={{ animationDelay: '0.36s' }} onClick={() => sfx.pop()}>
+            <span className="world-card__mini" aria-hidden="true"><Calculator size={46} strokeWidth={2.2} /></span>
+            <span className="world-card__text">
+              <b>Matematik Parkı</b>
+              <small>Say, topla, çıkar, saati oku</small>
+              <span className="world-card__status">Dört oyun hazır</span>
             </span>
             <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
           </Link>
