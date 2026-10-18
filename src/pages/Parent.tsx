@@ -353,6 +353,20 @@ export default function Parent() {
         </label>
       </section>
 
+      <section className="paper-card settings-card" style={{ marginTop: 16 }}>
+        <h2 className="card-title">Erişilebilirlik</h2>
+        <p className="muted" style={{ fontWeight: 600 }}>Yazılar küçük geliyorsa ya da ekranı görmek zorsa buradan büyütün.</p>
+        <div className="limit-row">
+          {([[0, 'Normal'], [1, 'Büyük'], [2, 'Daha büyük']] as const).map(([v, ad]) => (
+            <button key={v} className={`limit-chip ${(s.settings.zoom ?? 0) === v ? 'on' : ''}`} onClick={() => s.updateSettings({ zoom: v })}>{ad}</button>
+          ))}
+        </div>
+        <label className="toggle-row">
+          <span>Yüksek karşıtlık<br /><small className="muted">Yazılar daha koyu, kenarlar daha belirgin</small></span>
+          <input type="checkbox" className="switch" checked={s.settings.contrast ?? false} onChange={(e) => s.updateSettings({ contrast: e.target.checked })} />
+        </label>
+      </section>
+
       {PLUS_ENABLED && <ParentPlus />}
         <ParentPremium />
       {active && <ParentOnline profile={active} toast={showToast} />}

@@ -67,7 +67,17 @@ function NeedsProfile({ children }: { children: ReactNode }) {
 export default function App() {
   const sfxOn = useApp((s) => s.settings.sfx);
   const natural = useApp((s) => s.settings.naturalVoice);
+  const zoom = useApp((s) => s.settings.zoom ?? 0);
+  const contrast = useApp((s) => s.settings.contrast ?? false);
   useEffect(() => setSfxEnabled(sfxOn), [sfxOn]);
+  // erişilebilirlik: yazı büyüklüğü ve yüksek karşıtlık belgeye işlenir (CSS theme.css'te)
+  useEffect(() => {
+    const r = document.documentElement;
+    if (zoom) r.dataset.zoom = String(zoom);
+    else delete r.dataset.zoom;
+    if (contrast) r.dataset.contrast = '1';
+    else delete r.dataset.contrast;
+  }, [zoom, contrast]);
   useEffect(() => setNaturalVoice(natural !== false), [natural]);
   // Çizio Plus (Google Play aboneliği) yalnızca Android uygulamasında başlatılır
   useEffect(() => void initPlus().catch(() => {}), []);

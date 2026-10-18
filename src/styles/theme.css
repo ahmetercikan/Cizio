@@ -334,3 +334,29 @@ img, svg { max-width: 100%; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------------------------------------------
+   Erişilebilirlik: yazı büyüklüğü ve yüksek karşıtlık (Ebeveyn > Erişilebilirlik)
+   ------------------------------------------------------------------------------------------------ */
+/* `zoom` yazıyı da düzeni de birlikte büyütür: hiçbir şey taşmaz, dokunma alanları da büyür.
+   3B ada kendi tam ekran tuvalini kullandığı için ölçekten muaf tutulur. */
+:root[data-zoom="1"] body { zoom: 1.12; }
+:root[data-zoom="2"] body { zoom: 1.26; }
+:root[data-zoom] .island { zoom: 1; }
+
+:root[data-contrast] {
+  --ink: #241a16;
+  --ink-2: #3c2d27;
+  --muted: #5d4c45;
+  --line: #9ec6ba;
+  --line-2: #7fb3a3;
+}
+:root[data-contrast] .sub,
+:root[data-contrast] .muted,
+:root[data-contrast] .hint { font-weight: 700; }
+:root[data-contrast] .btn-outline,
+:root[data-contrast] .limit-chip,
+:root[data-contrast] .letter-card,
+:root[data-contrast] .abc-card { border-width: 3px; }
+:root[data-contrast] .tabbar__item { font-weight: 700; }
+:root[data-contrast] .tabbar__item.active { outline: 3px solid var(--ink); outline-offset: -3px; }

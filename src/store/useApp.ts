@@ -153,6 +153,10 @@ export interface Settings {
   speed: number;
   /** Yeni ders varsayılanı: kâğıtta mı ekranda mı? */
   defaultMode: 'paper' | 'screen';
+  /** Yazı ve düğme büyüklüğü: 0 normal, 1 büyük, 2 daha büyük (erişilebilirlik). */
+  zoom?: 0 | 1 | 2;
+  /** Yüksek karşıtlık: yazılar daha koyu, çizgiler daha kalın. */
+  contrast?: boolean;
 }
 
 export interface CompleteInput {
