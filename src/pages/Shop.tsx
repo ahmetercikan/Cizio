@@ -3,7 +3,7 @@
  * hazine sandığı, avatar çerçeveleri ve her gün değişen "günün fırsatı" (yarı fiyatına bir nadir eşya).
  * Harcamak deneyimi (seviyeyi) düşürmez, yalnızca cüzdanı.
  */
-import confetti from 'canvas-confetti';
+import { kutla } from '../lib/confetti';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -17,7 +17,7 @@ import { useApp, useProfile, useProfileData } from '../store/useApp';
 
 const celebrate = () => {
   sfx.fanfare();
-  void confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 }, colors: ['#ffc83d', '#ff6b4a', '#14a89a', '#9b6bff'], disableForReducedMotion: true });
+  kutla({ particleCount: 120, spread: 90, origin: { y: 0.5 }, colors: ['#ffc83d', '#ff6b4a', '#14a89a', '#9b6bff'] });
 };
 
 function Price({ n, old }: { n: number; old?: number }) {

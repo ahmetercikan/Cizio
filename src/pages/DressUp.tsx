@@ -4,7 +4,7 @@
  * rengi paletten seçilir. Ek olarak: "Şaşırt beni", fotoğraf çekip Galerim'e kaydetme, kombin dolabı ve
  * günün stil görevi (temaya uygun giydirince 2 yıldız, lige sayılır).
  */
-import confetti from 'canvas-confetti';
+import { kutla } from '../lib/confetti';
 import { Camera, Check, Heart, RefreshCw, Shuffle, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { AppShell } from '../components/AppShell';
@@ -238,7 +238,7 @@ function Studio({ d, onChangeCharacter }: { d: DollState; onChangeCharacter: () 
     if (doneToday || matches.length < THEME_GOAL) return;
     recordStyle();
     sfx.fanfare();
-    void confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, disableForReducedMotion: true });
+    kutla({ particleCount: 120, spread: 80, origin: { y: 0.4 } });
     showToast('Harika kombin! 2 yıldız kazandın ⭐⭐');
   };
 

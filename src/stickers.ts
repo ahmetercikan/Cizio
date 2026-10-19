@@ -1,4 +1,4 @@
-import { lessons, lessonsByPath } from './lessons';
+import { LESSON_META } from './lessons/meta';
 import { chapterStates } from './lib/adventure';
 import type { ProfileData } from './store/useApp';
 
@@ -39,7 +39,7 @@ const MILESTONES: Sticker[] = [
 export function allStickers(): Sticker[] {
   return [
     ...MILESTONES,
-    ...lessons.map((l) => ({ id: `lesson:${l.id}`, emoji: l.emoji, title: l.title, hint: `"${l.title}" dersini bitir` })),
+    ...LESSON_META.map((l) => ({ id: `lesson:${l.id}`, emoji: l.emoji, title: l.title, hint: `"${l.title}" dersini bitir` })),
   ];
 }
 
@@ -75,7 +75,7 @@ export function milestoneStickers(d: ProfileData, streak: number): string[] {
   if (chapters.length && complete === chapters.length) out.push('adventure-all');
   if ((d.styled?.length ?? 0) >= 1) out.push('style-first');
   if ((d.styled?.length ?? 0) >= 5) out.push('style-5');
-  const tem = lessonsByPath('temeller');
+  const tem = LESSON_META.filter((l) => l.path === 'temeller');
   if (tem.length && tem.every((l) => d.lessons[l.id])) out.push('temeller-all');
   return out;
 }

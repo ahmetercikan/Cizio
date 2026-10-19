@@ -36,22 +36,6 @@ export const SketchImg = memo(function SketchImg({ lesson, mode = 'graphite', pa
   );
 });
 
-/** Düz renkli, konturlu çizim (avatarlar ve illüstrasyonlar için). */
-export function FlatArt({ shapes, stroke = '#1d1740', width = 7, recolor }: {
-  shapes: Shape[]; stroke?: string; width?: number; recolor?: (fill: string) => string;
-}) {
-  return (
-    <>
-      {shapes.map((s, i) =>
-        s.guide ? null : (
-          <path key={i} d={s.d} fill={s.fill ? (recolor ? recolor(s.fill) : s.fill) : 'none'} stroke={stroke} strokeWidth={width}
-            strokeLinecap="round" strokeLinejoin="round" />
-        ),
-      )}
-    </>
-  );
-}
-
 const esc = (d: string) => d.replace(/"/g, '&quot;');
 
 /** Tamamlanmış çizgiler (yalnızca kontur; gölgeyi kalem gölgelendirme adımlarında kendisi yapar). */

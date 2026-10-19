@@ -5,7 +5,7 @@
  *   oneline — kalemi hiç kaldırmadan tek çizgiyle çiz
  * Sonuç, konum ve boyuttan bağımsız biçim benzerliğiyle (scoreFreehand) yıldıza çevrilir.
  */
-import confetti from 'canvas-confetti';
+import { kutla } from '../lib/confetti';
 import { ArrowLeft, Check, Play, RotateCcw, Shuffle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -138,7 +138,7 @@ function ChallengeRun({ kind, lesson, onAnother, sendTo, answerId }: { kind: Cha
     setResult({ stars, percent, record: prevRecord !== undefined && percent > prevRecord, image: URL.createObjectURL(blob), earned, quest });
     setPhase('result');
     sfx.fanfare();
-    void confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, disableForReducedMotion: true });
+    kutla({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
     if (quest) say(CHALLENGE_LINES.questDone);
   };
 

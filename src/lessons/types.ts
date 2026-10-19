@@ -75,3 +75,6 @@ export interface LearningPath {
   color: string;
   description: string;
 }
+
+/** Dersin künyesi: çizim adımları olmadan (bkz. src/lessons/meta.ts). */
+export type LessonMeta = Pick<Lesson, 'id' | 'path' | 'title' | 'emoji' | 'order' | 'level'>;

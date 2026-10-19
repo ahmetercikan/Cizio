@@ -181,10 +181,16 @@ export class Sparkles {
  */
 export const shadowSize = () => (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 1024 : 2048);
 
-/** Ekran boyutuna uyan, çözünürlüğü telefonu yormayacak kadar sınırlı WebGL çizici. */
+/**
+ * Ekran boyutuna uyan, çözünürlüğü telefonu yormayacak kadar sınırlı WebGL çizici.
+ *
+ * Dokunmatik cihazlarda sınır 1,5'e iner (Çizio Adası'ndaki ile aynı): üç kat yoğun ekranlarda
+ * çizilen piksel sayısı dörtte bir azalır, görüntü aynı kalır.
+ */
 export function makeRenderer(canvas: HTMLCanvasElement) {
+  const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const r = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  r.setPixelRatio(Math.min(1.75, window.devicePixelRatio || 1));
+  r.setPixelRatio(Math.min(coarse ? 1.5 : 1.75, window.devicePixelRatio || 1));
   r.shadowMap.enabled = true;
   r.shadowMap.type = THREE.PCFSoftShadowMap;
   r.outputColorSpace = THREE.SRGBColorSpace;

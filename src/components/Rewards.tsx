@@ -5,7 +5,7 @@
  * RewardsHost (uygulama kabuğunda) pencereleri sırayla açar: önce günün hediyesi (günde bir kez; profil
  * bugün oluşturulduysa hiç), sonra bekleyen sandıklar.
  */
-import confetti from 'canvas-confetti';
+import { kutla } from '../lib/confetti';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PRESETS, type DollState } from '../dressup/catalog';
@@ -217,7 +217,7 @@ export function ChestModal({ onClose }: { onClose: () => void }) {
       if (!r) return onClose();
       setResult({ ...r, fromXp, fromWallet });
       sfx.fanfare();
-      void confetti({ particleCount: 160, spread: 110, origin: { y: 0.42 }, colors: ['#ffc83d', '#ff6b4a', '#14a89a', '#9b6bff', '#ffffff'], disableForReducedMotion: true });
+      kutla({ particleCount: 160, spread: 110, origin: { y: 0.42 }, colors: ['#ffc83d', '#ff6b4a', '#14a89a', '#9b6bff', '#ffffff'] });
     }, 750);
   };
 
@@ -313,7 +313,7 @@ export function DailyGiftModal({ onDone }: { onDone: (openChest: boolean) => voi
       setResult({ ...r, fromXp, fromWallet });
       setPhase('opened');
       sfx.success();
-      void confetti({ particleCount: 110, spread: 90, origin: { y: 0.45 }, colors: ['#ffc83d', '#ff6b4a', '#ff8fb1', '#14a89a'], disableForReducedMotion: true });
+      kutla({ particleCount: 110, spread: 90, origin: { y: 0.45 }, colors: ['#ffc83d', '#ff6b4a', '#ff8fb1', '#14a89a'] });
     }, 700);
   };
 

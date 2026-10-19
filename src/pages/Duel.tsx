@@ -3,7 +3,7 @@
  * (konum ve boyuttan bağımsız biçim benzerliği, scoreFreehand) ve % benzerliği yüksek olan kazanır.
  * Modlar: bakarak (örnek görünür) ya da hafızadan (örneğe kısa süre bakılır, sonra saklanır).
  */
-import confetti from 'canvas-confetti';
+import { kutla } from '../lib/confetti';
 import { ArrowLeft, Check, Eye, Home, RotateCcw, Shuffle, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -366,7 +366,7 @@ export function Reveal({ lesson, players, results, actions }: {
   useEffect(() => {
     if (!done) return;
     sfx.fanfare();
-    if (winner >= 0) void confetti({ particleCount: 140, spread: 80, origin: { x: winner === 0 ? 0.3 : 0.7, y: 0.5 }, disableForReducedMotion: true });
+    if (winner >= 0) kutla({ particleCount: 140, spread: 80, origin: { x: winner === 0 ? 0.3 : 0.7, y: 0.5 } });
   }, [done, winner]);
 
   const ease = 1 - (1 - k) ** 3;

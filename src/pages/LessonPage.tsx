@@ -6,7 +6,7 @@
  *  - Ekran modu: çocuk aynı kâğıdın üstüne parmak/kalemle çizer; her adım puanlanır; sonunda boyama.
  * Altta yatay zaman çubuğu (ileri/geri sarma, hız), ortada ⟲ ⏸ ⟳ düğmeleri.
  */
-import confetti from 'canvas-confetti';
+import { kutla } from '../lib/confetti';
 import { ArrowLeft, ArrowRight, Check, Gamepad2, Hand, Heart, Monitor, NotebookPen, Pause, Play, RotateCcw, RotateCw, Settings2, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -262,7 +262,7 @@ function Player({ lesson }: { lesson: Lesson }) {
     setFinal({ stars, image: blob ? URL.createObjectURL(blob) : undefined, prev, earned, art: profile ? art : undefined });
     setPhase('done');
     sfx.fanfare();
-    void confetti({ particleCount: 160, spread: 100, origin: { y: 0.55 }, colors: ['#ffd43b', '#ffffff', '#a58bff', '#ff7eb6', '#2ecf8a'], disableForReducedMotion: true });
+    kutla({ particleCount: 160, spread: 100, origin: { y: 0.55 }, colors: ['#ffd43b', '#ffffff', '#a58bff', '#ff7eb6', '#2ecf8a'] });
     say(enDraw ? (stars >= 3 ? DRAW_UI.great : DRAW_UI.done) : stars >= 3 ? `Muhteşem! ${lesson.title} çok güzel oldu!` : 'Tebrikler! Dersi bitirdin!');
   };
 

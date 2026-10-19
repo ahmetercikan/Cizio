@@ -1,9 +1,10 @@
 /**
- * Resimli avatarlar — ders çizimlerinden türetilir,
- * böylece uygulamanın tüm görselleri tek bir çizim dilini paylaşır.
+ * Resimli avatarlar — ders çizimlerinin aynısı, böylece uygulamanın tüm görselleri
+ * tek bir çizim dilini paylaşır. Çizimler `AvatarShapes.ts`e yazılmıştır (bkz. scripts/bake-art.ts):
+ * profil seçimi bu yüzden açılışta bütün ders verisini indirmiyor.
  */
-import { getLesson } from '../lessons';
-import { FlatArt } from './Sketch';
+import { AVATAR_SHAPES } from './AvatarShapes';
+import { FlatArt } from './FlatArt';
 
 export interface AvatarDef {
   id: string;
@@ -29,8 +30,8 @@ export const AVATARS: AvatarDef[] = [
 
 export function AvatarArt({ id, size = 96, ring = false }: { id: string; size?: number; ring?: boolean }) {
   const a = AVATARS.find((x) => x.id === id);
-  const lesson = a ? getLesson(a.lesson) : undefined;
-  if (!a || !lesson) {
+  const shapes = a ? AVATAR_SHAPES[a.lesson] : undefined;
+  if (!a || !shapes) {
     // Eski sürümden kalan emoji avatarlar
     return (
       <span className="avatar-emoji" style={{ width: size, height: size, fontSize: size * 0.55 }}>
@@ -38,7 +39,6 @@ export function AvatarArt({ id, size = 96, ring = false }: { id: string; size?: 
       </span>
     );
   }
-  const shapes = lesson.steps.flatMap((s) => s.shapes);
   return (
     <svg width={size} height={size} viewBox="0 0 400 400" className="avatar-art" role="img" aria-label={a.label}>
       <circle cx="200" cy="200" r={ring ? 188 : 200} fill={a.bg} />

@@ -5,9 +5,6 @@ import { ScreenTimeGuard } from './components/ScreenTime';
 import { MUZIK_MATEMATIK_ACIK } from './lib/flags';
 import { setSfxEnabled } from './lib/sfx';
 import { setNaturalVoice, unlockAudio } from './lib/speech';
-import Learn, { CoursePage } from './pages/Learn';
-import Onboarding from './pages/Onboarding';
-import Playground from './pages/Playground';
 import Profiles from './pages/Profiles';
 import Worlds from './pages/Worlds';
 
@@ -15,6 +12,10 @@ import Worlds from './pages/Worlds';
 const named = <M extends Record<string, unknown>, K extends keyof M>(load: () => Promise<M>, key: K) =>
   lazy(() => load().then((m) => ({ default: m[key] as ComponentType })));
 const loadEnglish = () => import('./pages/English');
+// Ders verisi (yarım megabayt) bu üç sayfadan geliyor: ana sayfa onu artık indirmiyor, bunlar boşta hazırlanıyor.
+const loadLearn = () => import('./pages/Learn');
+const loadPlayground = () => import('./pages/Playground');
+const loadOnboarding = () => import('./pages/Onboarding');
 const loadWorld = () => import('./pages/World');
 const loadLesson = () => import('./pages/LessonPage');
 const loadFree = () => import('./pages/FreeDraw');
@@ -46,6 +47,10 @@ const MathPark = lazy(() => import('./pages/MathPark'));
 const League = lazy(() => import('./pages/League'));
 const LiveDuel = lazy(() => import('./pages/LiveDuel'));
 const LessonPage = lazy(loadLesson);
+const Learn = lazy(loadLearn);
+const CoursePage = named(loadLearn, 'CoursePage');
+const Onboarding = lazy(loadOnboarding);
+const Playground = lazy(loadPlayground);
 const Parent = lazy(() => import('./pages/Parent'));
 const Shop = lazy(() => import('./pages/Shop'));
 const StoryShelf = lazy(() => import('./pages/StoryBook'));
@@ -89,7 +94,7 @@ export default function App() {
   // Ada burada yok: paketi ağır, kartına dokununca hazırlanıyor (src/lib/preload.ts).
   useEffect(() => {
     const idle = (f: () => void) => ('requestIdleCallback' in window ? (window as Window & { requestIdleCallback: (f: () => void) => number }).requestIdleCallback(f) : setTimeout(f, 1500));
-    const t = setTimeout(() => idle(() => void Promise.all([loadLesson(), loadFree(), loadDress(), loadEnglish()]).catch(() => {})), 2500);
+    const t = setTimeout(() => idle(() => void Promise.all([loadPlayground(), loadLearn(), loadLesson(), loadFree(), loadDress(), loadEnglish()]).catch(() => {})), 2500);
     return () => clearTimeout(t);
   }, []);
   // iOS: ses ancak bir dokunuştan sonra çalabilir; ilk dokunuşta ses öğesinin kilidini aç.

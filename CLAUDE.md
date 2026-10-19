@@ -9,6 +9,7 @@
   - geliştirme: `npx vite --port 5288` (5173/5199 portlarını kullanma)
   - test: `npm test`
   - tip kontrolü ve derleme: `npm run build`
+  - ders eklenince/çizimi değişince: `npm run art` (aşağıya bak)
   - Android: `npm run android:aab`
   - iOS: `npm run ios:sync`
 - **Sürüm:** `package.json` → `version`. Android: `android/app/build.gradle` (versionCode/versionName). iOS: Xcode
@@ -46,4 +47,10 @@
   `src/lib/instruments.ts`) ve Matematik Parkı (`/matematik`, `src/lib/mathpark.ts`). Kod duruyor; ana sayfada
   kart yok, adresleri ana sayfaya döner, cümleleri seslendirme listesine girmez. Açmak için bayrağı `true` yap.
   Ana sayfa bu yüzden dört kartla açılır.
+- **Açılış yükü:** ders verisi (`src/lessons/data/*`, ~0,5 MB) artık ana sayfada inmiyor; yalnızca Öğren/Atölye
+  açılınca yükleniyor (uygulama boştayken arka planda hazırlanıyor). Ana sayfanın, profil avatarlarının ve
+  günün görevinin ihtiyaç duyduğu küçük parçalar `npm run art` ile üretiliyor:
+  `src/lessons/meta.ts` (ders künyeleri), `src/components/HomeArt.tsx` (ana sayfadaki iki çizim),
+  `src/components/AvatarShapes.ts` (avatar çizimleri). **Ders eklenince, çıkarılınca ya da bir dersin adı/çizimi
+  değişince `npm run art` çalıştırılır**; unutulursa `npm test` uyarır. Üretici: `scripts/bake-art.ts`.
 - **Yatay telefon düzeni:** `src/styles/landscape.css` (yalnızca yatay ve kısa ekranlarda devreye girer).

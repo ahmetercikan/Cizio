@@ -4,7 +4,8 @@
  * kıyafetini kazanır (gardıroptan giydirilir). Yolun kalan dersleri yine yapılabilir, sayılır.
  * Dersler başka yerlerden (Dersler, Bugün) de yapılabilir; sayılırlar ama kıyafet ancak durağa ulaşınca açılır.
  */
-import { lessonsByPath, paths } from '../lessons';
+import { LESSON_META } from '../lessons/meta';
+import { paths } from '../lessons/paths';
 import type { PathId } from '../lessons/types';
 import type { ProfileData } from '../store/useApp';
 
@@ -45,7 +46,7 @@ export interface ChapterState extends Chapter {
 export function chapterStates(data: ProfileData): ChapterState[] {
   let prevComplete = true;
   return CHAPTERS.map((c) => {
-    const ls = lessonsByPath(c.path);
+    const ls = LESSON_META.filter((l) => l.path === c.path);
     const done = ls.filter((l) => data.lessons[l.id]).length;
     const open = prevComplete;
     const goal = Math.min(ls.length, CHAPTER_GOAL);

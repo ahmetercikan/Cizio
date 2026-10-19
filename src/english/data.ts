@@ -11,11 +11,15 @@
  * "Çizio"ya çevrilir.
  */
 import type { DollState } from '../dressup/catalog';
+import { known, seen, type Age, type EnglishData } from './progress';
 import { ABC_LINES } from './abc';
 import { SONG_LINES } from './songs';
 import { DRAW_LINES } from './draw';
 import { MORE_STORIES } from './stories';
 import { READ_LINES } from './reading';
+
+// İlerleme parçası progress.ts'te durur; buradan da erişilebilsin diye yeniden yayınlanır.
+export { DAILY_GAME_CAP, emptyEnglish, GAME_STARS, known, seen, SESSION_STARS, type Age, type EnglishData } from './progress';
 
 // ------------------------------------------------------------------------------------------------
 // Resimler
@@ -340,7 +344,6 @@ export const show = (t: string) => t.replace(/Chizio/g, 'Çizio');
 // Yaş grupları (çalışmalardaki tablo: 5–6 hareket ve ses, yazı yok; 7–8 resimli kitap ve kısa görev;
 // 8–9 içerikle öğrenme, daha uzun cümleler ve kurallı oyunlar)
 // ------------------------------------------------------------------------------------------------
-export type Age = 'mini' | 'junior' | 'star';
 export const AGES: { id: Age; label: string; years: string; note: string }[] = [
   { id: 'mini', label: 'Minik', years: '5–6 yaş', note: 'Dinle, hareket et, dokun. Yazı yok.' },
   { id: 'junior', label: 'Kaşif', years: '7–8 yaş', note: 'Resimli hikayeler, kelimeler yazıyla.' },
@@ -727,26 +730,6 @@ export const getStory = (id: string) => STORIES.find((s) => s.id === id);
 // ------------------------------------------------------------------------------------------------
 // İlerleme ve English Time planı
 // ------------------------------------------------------------------------------------------------
-export interface EnglishData {
-  age?: Age;
-  /** Kelime: kaç kez görüldü, kaç kez ilk denemede bulundu. */
-  words: Record<string, { seen: number; got: number }>;
-  /** English Time'ın tamamlandığı günler. */
-  sessions: string[];
-  stories: string[];
-  /** Gün → İngilizce'den kazanılan yıldız (günlük üst sınır için). */
-  stars: Record<string, number>;
-}
-export const emptyEnglish = (): EnglishData => ({ words: {}, sessions: [], stories: [], stars: {} });
-
-/** Bir kelime "biliniyor": en az iki kez ilk denemede bulundu. */
-export const known = (e: EnglishData, id: string) => (e.words[id]?.got ?? 0) >= 2;
-export const seen = (e: EnglishData, id: string) => (e.words[id]?.seen ?? 0) > 0;
-
-/** English Time'dan günde bir kez kazanılan yıldız; oyunlardan günlük üst sınır. */
-export const SESSION_STARS = 5;
-export const GAME_STARS = 2;
-export const DAILY_GAME_CAP = 10;
 
 /** Bugünün konusu: sırayla, görülmemiş kelimesi kalan ilk konu (hepsi görüldüyse en az bilinen). */
 export function topicOfDay(e: EnglishData): Topic {

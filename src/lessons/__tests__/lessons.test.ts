@@ -3,6 +3,7 @@ import { samplePath } from '../../engine/pathSampler';
 import { scoreStep } from '../../engine/scoring';
 import type { StrokeAction } from '../../engine/types';
 import { lessons, paths } from '..';
+import { LESSON_COUNT, LESSON_META } from '../meta';
 import type { Shape } from '../types';
 
 const trace = (shapes: Shape[], dx = 0): StrokeAction[] =>
@@ -17,6 +18,14 @@ const trace = (shapes: Shape[], dx = 0): StrokeAction[] =>
     }));
 
 describe('ders içeriği', () => {
+  it('künye dosyası ders listesiyle birebir aynı', () => {
+    // meta.ts ana sayfada ve günün görevinde kullanılır; uyuşmazsa `npm run art` yeniden üretir
+    expect(LESSON_COUNT).toBe(lessons.length);
+    expect(LESSON_META).toEqual(
+      lessons.map((l) => ({ id: l.id, path: l.path, title: l.title, emoji: l.emoji, level: l.level, ...(l.order === undefined ? {} : { order: l.order }) })),
+    );
+  });
+
   it('en az 20 ders var ve her yolda ders bulunuyor', () => {
     expect(lessons.length).toBeGreaterThanOrEqual(20);
     for (const p of paths) expect(lessons.some((l) => l.path === p.id)).toBe(true);

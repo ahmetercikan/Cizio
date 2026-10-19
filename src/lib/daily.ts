@@ -2,7 +2,7 @@
  * Günlük sürprizler: özel günler (bayramlar, mevsimler), günün görevi ve mini meydan okumalar.
  * Her şey tarih + profil kimliğinden belirleyici olarak seçilir: aynı gün aynı çocuk aynı görevi görür.
  */
-import type { Lesson } from '../lessons/types';
+import type { LessonMeta } from '../lessons/types';
 import type { Profile, ProfileData } from '../store/useApp';
 import { dayKey } from './util';
 
@@ -82,7 +82,7 @@ function hash(s: string): number {
 }
 
 /** Bugünün görevi: ders ya da meydan okuma. Özel gün varsa o günün dersi. */
-export function todayQuest(profile: Profile, data: ProfileData, lessons: Lesson[], now = new Date()): Quest {
+export function todayQuest(profile: Profile, data: ProfileData, lessons: LessonMeta[], now = new Date()): Quest {
   const sp = specialDay(now);
   const byId = (id: string) => lessons.find((l) => l.id === id);
   if (sp && byId(sp.lessonId)) return { kind: 'lesson', lessonId: sp.lessonId, text: `${byId(sp.lessonId)!.title} dersini bitir` };

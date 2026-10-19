@@ -7,13 +7,13 @@ import { persist } from 'zustand/middleware';
 import type { PathId } from '../lessons/types';
 import { dayKey, streakOf, uid } from '../lib/util';
 import { milestoneStickers } from '../stickers';
-import { lessons as allLessons } from '../lessons';
+import { LESSON_META } from '../lessons/meta';
 import { questDone, todayQuest, type ChallengeKind } from '../lib/daily';
 import { STATE_KEY } from '../lib/legacy';
 import type { DollState } from '../dressup/catalog';
 import type { OnlineIdentity } from '../online/types';
 import { normalizeFarm, type FarmState, type Result as FarmResult } from '../world/economy';
-import { DAILY_GAME_CAP, emptyEnglish, GAME_STARS, SESSION_STARS, type Age, type EnglishData } from '../english/data';
+import { DAILY_GAME_CAP, emptyEnglish, GAME_STARS, SESSION_STARS, type Age, type EnglishData } from '../english/progress';
 import { chestsEarned, earnedSum, giftStatus, GIFT_DAYS, pickReward, rareKey, walletOf, xpOf, type ChestReason, type GiftState, type Reward } from '../lib/rewards';
 
 export type DrawMode = 'screen' | 'paper';
@@ -251,7 +251,7 @@ function withQuest(profile: Profile | undefined, d: ProfileData): ProfileData {
   if (!profile) return d;
   const k = dayKey();
   if (d.quests?.includes(k)) return d;
-  return questDone(todayQuest(profile, d, allLessons), d) ? { ...d, quests: [...(d.quests ?? []), k] } : d;
+  return questDone(todayQuest(profile, d, LESSON_META), d) ? { ...d, quests: [...(d.quests ?? []), k] } : d;
 }
 
 function withStickers(d: ProfileData, extra: string[]): { data: ProfileData; earned: string[] } {

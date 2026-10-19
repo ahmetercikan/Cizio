@@ -11,7 +11,6 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
         name: 'Çizio — Çizim Öğren',
         short_name: 'Çizio',
@@ -29,6 +28,8 @@ export default defineConfig({
           { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
+      // favicon ve simgeler ayrıca yazılmaz: globPatterns onları zaten alıyor (iki kez indirilmesinler).
+      includeManifestIcons: false,
       workbox: {
         // Seslendirme dosyaları (public/voice) kuruluma dahil edilmez; çalındıkça önbelleğe alınır.
         // Yalnızca ince ses listesi (voice/index.json, ~68 KB) dahildir: açılışta hiç ağ beklenmesin.
@@ -42,7 +43,7 @@ export default defineConfig({
             // Ders eskizleri (public/thumbs): bir kez inince hep önbellekten (atölyede kaydırırken beklemesin).
             urlPattern: ({ url }) => url.pathname.includes('/thumbs/'),
             handler: 'CacheFirst',
-            options: { cacheName: 'thumbs', expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 60 } },
+            options: { cacheName: 'thumbs', expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 60 }, cacheableResponse: { statuses: [200] } },
           },
           {
             // Ses listesi: önbellekten hemen verilir, arka planda tazelenir (açılış ağ beklemez).
@@ -63,12 +64,6 @@ export default defineConfig({
             urlPattern: ({ url }) => /\/assets\/client-[\w-]+\.js$/.test(url.pathname),
             handler: 'CacheFirst',
             options: { cacheName: 'online-client', expiration: { maxEntries: 3 }, cacheableResponse: { statuses: [200] } },
-          },
-          {
-            // Önceden üretilmiş ders eskizleri (scripts/build-thumbs.ts): görüldükçe önbelleğe alınır.
-            urlPattern: ({ url }) => url.pathname.includes('/thumbs/'),
-            handler: 'CacheFirst',
-            options: { cacheName: 'thumbs', expiration: { maxEntries: 400 }, cacheableResponse: { statuses: [200] } },
           },
         ],
       },

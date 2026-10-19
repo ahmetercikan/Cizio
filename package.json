@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "render-lessons": "tsx scripts/render-lessons.ts",
     "icons": "tsx scripts/make-icons.tsx",
+    "art": "tsx scripts/bake-art.ts",
     "voice": "tsx scripts/generate-voice.ts",
     "android:sync": "npm run build && npx cap sync android",
     "android:apk": "npm run android:sync && cd android && gradlew.bat assembleRelease",

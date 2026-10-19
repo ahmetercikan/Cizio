@@ -6,12 +6,12 @@ import { Check, ChevronRight, Crown, Music, Calculator } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppBar, WORLDS, type WorldId } from '../components/AppShell';
 import { Doodles } from '../components/Doodles';
+import { GunesArt, KediArt } from '../components/HomeArt';
 import { Mascot } from '../components/Mascot';
 import { RewardsHost } from '../components/Rewards';
 import { PRESETS } from '../dressup/catalog';
 import { Doll } from '../dressup/Doll';
-import { LessonArt } from '../english/Art';
-import { lessons } from '../lessons';
+import { LESSON_COUNT } from '../lessons/meta';
 import { MUZIK_MATEMATIK_ACIK } from '../lib/flags';
 import { preloadWorld } from '../lib/preload';
 import { sfx } from '../lib/sfx';
@@ -29,8 +29,8 @@ function greeting() {
 function AtolyeArt() {
   return (
     <div className="world-art world-art--atolye">
-      <span className="world-art__paper"><LessonArt id="kedi" /></span>
-      <span className="world-art__paper world-art__paper--2"><LessonArt id="gunes-bulut" /></span>
+      <span className="world-art__paper"><KediArt /></span>
+      <span className="world-art__paper world-art__paper--2"><GunesArt /></span>
       <Mascot size={96} mood="cheer" outfit="none" className="world-art__mascot" />
     </div>
   );
@@ -94,7 +94,7 @@ export default function Worlds() {
   const data = useProfileData();
   const today = dayKey();
   const status: Record<WorldId, { text: string; done?: boolean }> = {
-    atolye: data.days[today]?.lessons ? { text: 'Bugün çizdin!', done: true } : { text: `${lessons.length} çizim dersi` },
+    atolye: data.days[today]?.lessons ? { text: 'Bugün çizdin!', done: true } : { text: `${LESSON_COUNT} çizim dersi` },
     studyo: data.styled?.includes(today) ? { text: 'Bugünün stili tamam!', done: true } : { text: 'Günün stil görevi seni bekliyor' },
     english: data.english?.sessions.includes(today) ? { text: 'English Time tamam!', done: true } : { text: 'Bugünün English Time’ı hazır' },
   };
