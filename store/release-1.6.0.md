@@ -1,4 +1,4 @@
-# Çizio 1.6.0 (versionCode 9) — Google Play yayın rehberi
+# Çizio 1.6.0 (versionCode 10) — Google Play yayın rehberi
 
 Play'deki son sürüm 1.5.0 (versionCode 8, yayında). 1.6.0, 1.5.0'dan sonraki bütün yenilikleri içerir.
 
@@ -25,11 +25,13 @@ Not: `npm run android:apk` ile çıkan tek APK'da ek paket yoktur; o APK'da cüm
 English Club → Say It! için `RECORD_AUDIO` eklendi. Kayıt telefonda kalır, hiçbir yere gönderilmez ve dinlendikten
 sonra silinir. Bu yüzden **Veri güvenliği formunda değişiklik gerekmez** (yalnızca cihazda işlenen veri "toplanan veri"
 sayılmaz).
+Mikrofon `required="false"`: yoksa Play, mikrofonsuz 20 cihazı (TV, bazı tabletler) dışarıda bırakıyordu.
+Bu yüzden ilk yüklenen paket 9 taslaktan çıkarıldı, yerine 10 yüklendi.
 
 ## Yükleme
 
 1. Play Console → Çizio → **Test ve yayınla → Üretim** → **Yeni sürüm oluştur**.
-2. **Yükle** → `cizio-1.6.0.aab`. Sürüm adı otomatik gelir: `9 (1.6.0)`.
+2. **Yükle** → `cizio-1.6.0.aab`. Sürüm adı otomatik gelir: `10 (1.6.0)`.
 3. **Sürüm notları** → aşağıdaki metin.
 4. **Sonraki** → **Kaydet** → **Sürümü incelemeye gönder**.
 

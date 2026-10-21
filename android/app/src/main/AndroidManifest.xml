@@ -38,4 +38,6 @@
     <!-- English Club: konuşma pratiğinde çocuk kendi sesini kaydedip dinler (kayıt cihazdan çıkmaz) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Mikrofonsuz cihazlar (TV, bazı tabletler) dışarıda kalmasın: Say It! mikrofon yoksa sesli tekrarla oynanır -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 </manifest>
