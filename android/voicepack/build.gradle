@@ -1,0 +1,9 @@
+// Seslendirme dosyaları: kurulumla gelen ek paket (bkz. scripts/android-voicepack.ts)
+apply plugin: 'com.android.asset-pack'
+
+assetPack {
+    packName = "voicepack"
+    dynamicDelivery {
+        deliveryType = "install-time"
+    }
+}

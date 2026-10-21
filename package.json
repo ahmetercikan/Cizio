@@ -1,7 +1,7 @@
 {
   "name": "cizio",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,7 @@
     "icons": "tsx scripts/make-icons.tsx",
     "art": "tsx scripts/bake-art.ts",
     "voice": "tsx scripts/generate-voice.ts",
-    "android:sync": "npm run build && npx cap sync android",
+    "android:sync": "npm run build && npx cap sync android && tsx scripts/android-voicepack.ts",
     "android:apk": "npm run android:sync && cd android && gradlew.bat assembleRelease",
     "android:aab": "npm run android:sync && cd android && gradlew.bat bundleRelease",
     "ios:sync": "npm run build && npx cap sync ios",

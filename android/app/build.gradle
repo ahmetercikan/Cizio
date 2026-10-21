@@ -7,13 +7,14 @@ if (keystorePropsFile.exists()) keystorePropsFile.withInputStream { keystoreProp
 
 android {
     namespace = "com.ahmetercikan.cizio"
+    assetPacks = [":voicepack"]
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.ahmetercikan.cizio"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 8
-        versionName "1.5.0"
+        versionCode 9
+        versionName "1.6.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
