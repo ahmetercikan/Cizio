@@ -14,7 +14,7 @@ import { spaceHelmet, Avatar3D, type Pose } from './avatar3d';
 import type { DollState } from '../dressup/catalog';
 import { isWater, WORLD_R } from './layout';
 import { petCard } from './puppet';
-import { BlockGrid, buildHorizon, buildTerrain, buildVegetation } from './terrain';
+import { BlockGrid, blockerDist, buildHorizon, buildTerrain, buildVegetation, pushOut, type Blocker } from './terrain';
 import { Sky, weatherOf } from './weather';
 import { buildPlaces } from './places';
 import { buildZones, starPlaces, WorldBuilder, type Activity, type SpotDef, type Vehicle } from './zones';
@@ -23,7 +23,7 @@ import { type Hero, type Realm } from './realms';
 import { makeRealm } from './worlds';
 import type { ArtShot } from './textures';
 import { blockById, buyBlueprint, placedBlocks, placeStruct, removeStruct, struct, type FarmState, type PlaceKind } from './economy';
-import { blueprint as blueprintParts } from './build';
+import { blueprint as blueprintParts, handTool } from './build';
 import type { Cell } from './build';
 import { car as carDef, carModel } from './cars';
 import { DayNight } from './daynight';
@@ -414,7 +414,39 @@ export class Island {
     const cx = s.vehicle ? s.vehicle.pos.x : s.x, cz = s.vehicle ? s.vehicle.pos.z : s.z;
     let d = Math.hypot(cx - x, cz - z) / s.r;
     if (s.body) d = Math.min(d, Math.max(0, Math.hypot(s.body.x - x, s.body.z - z) - s.body.r) / 1.8);
+    // araç: gövdesinin içine girilemediği için gövdenin kenarına yakınlık yeter (uzun uçağın yanından da binilir)
+    if (s.vehicle) d = Math.min(d, blockerDist(this.vehicleBlocker(s.vehicle), x, z) / 1.8);
     return d;
+  }
+  /** Aracın kapladığı yer (dikdörtgen): içinden geçilmez. Ölçüsü modelden bir kez çıkarılır. */
+  private feet = new WeakMap<Vehicle, { cx: number; cz: number; hw: number; hd: number }>();
+  private vehicleBlocker(v: Vehicle): Blocker {
+    let f = this.feet.get(v);
+    if (!f) {
+      const m = v.model, pos = m.position.clone(), rot = m.rotation.clone(), parent = m.parent;
+      m.removeFromParent();
+      m.position.set(0, 0, 0);
+      m.rotation.set(0, 0, 0);
+      m.updateMatrixWorld(true);
+      const b = new THREE.Box3().setFromObject(m);
+      m.position.copy(pos);
+      m.rotation.copy(rot);
+      parent?.add(m);
+      m.updateMatrixWorld(true);
+      // aynalar, kanat uçları gibi çıkıntılar için biraz içeriden
+      f = b.isEmpty() ? { cx: 0, cz: 0, hw: 0.5, hd: 0.5 } : { cx: (b.min.x + b.max.x) / 2, cz: (b.min.z + b.max.z) / 2, hw: (b.max.x - b.min.x) * 0.42, hd: (b.max.z - b.min.z) * 0.42 };
+      this.feet.set(v, f);
+    }
+    const c = Math.cos(v.heading), s = Math.sin(v.heading);
+    return { x: v.pos.x + f.cx * c + f.cz * s, z: v.pos.z - f.cx * s + f.cz * c, r: Math.hypot(f.hw, f.hd), hw: f.hw, hd: f.hd, rot: v.heading };
+  }
+  /** Yakındaki duran araçlar (sürülen hariç): kahraman içlerinden geçmesin. */
+  private pushFromVehicles(p: THREE.Vector3, r = 0.6) {
+    for (const s of this.spots) {
+      const v = s.vehicle;
+      if (!v || v === this.drive || Math.abs(v.pos.x - p.x) > 30 || Math.abs(v.pos.z - p.z) > 30) continue;
+      pushOut(this.vehicleBlocker(v), p, r);
+    }
   }
   /** Dokunulan noktanın yakınındaki mekân (arazi ya da gökyüzü değilse). */
   private spotUnderTap(): SpotDef | null {
@@ -754,9 +786,28 @@ export class Island {
       this.target = null;
       this.pending = null;
     }
+    this.showTool();
   }
   setTool(t: Tool) {
     this.tool = t;
+    this.showTool();
+  }
+  /** İnşa ederken seçili blok (ya da kazma, çekiç) karakterin elinde durur; inşa bitince elden çıkar. */
+  private showTool() {
+    const old = this.avatar.hand.getObjectByName('held');
+    if (old && (this.building || old.userData.buildTool)) {
+      old.removeFromParent();
+      if (old.userData.buildTool) old.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        m.geometry.dispose();
+        for (const x of ([] as THREE.Material[]).concat(m.material)) x.dispose();
+      });
+    }
+    if (!this.building || this.realm) return;
+    const t = this.tool;
+    const b = 'block' in t ? blockById(t.block) : undefined;
+    this.avatar.hand.add(handTool('erase' in t ? 'erase' : 'struct' in t ? 'struct' : b ?? 'struct'));
   }
   /** Buraya yapı (blok, çiftlik) kurulabilir mi? Kurulamazsa nedeni. */
   canBuildAt(x: number, z: number, farm = false): string | null {
@@ -1111,6 +1162,7 @@ export class Island {
       const next = this.pos.clone().addScaledVector(this.vel, dt);
       if (!this.realm) {
         this.grid.push(next);
+        this.pushFromVehicles(next);
         const R = Math.hypot(next.x, next.z);
         if (R > WORLD_R) next.multiplyScalar(WORLD_R / R);
       }

@@ -167,14 +167,18 @@
   .realm-hud__goal b { font-size: 15px; }
   .realm-hud__goal span { font-size: 12px; }
   .realm-hud__prog { padding: 5px 12px; font-size: 16px; }
-  /* inşa çubuğu joystick'in sağında, alçak */
-  .build-bar { left: calc(var(--safe-left) + 128px); padding: 6px 10px calc(var(--safe-bottom) + 6px); border-radius: 18px 0 0 0; }
-  .build-bar__tabs { margin-bottom: 4px; }
-  .build-bar__tabs button { padding: 4px 10px; font-size: 13px; }
-  .build-tool { width: 60px; padding: 4px 3px; }
-  .build-tool small { font-size: 11px; }
-  .build-bar__row { padding-bottom: 4px; }
-  .build-bar__actions .pill, .build-bar__actions .btn-outline { min-height: 40px; min-width: 0; height: 40px; padding: 0 14px; font-size: 15px; }
+  /* inşa: hızlı çubuk alçak, düğmeler küçük */
+  .hotbar { --slot: 46px; bottom: calc(var(--safe-bottom) + 8px); gap: 4px; }
+  .hotbar__name { padding: 2px 10px; }
+  .hotbar__name b { font-size: 14px; }
+  .hotbar__name span { font-size: 11px; }
+  .hotbar__slots { padding: 4px; gap: 3px; }
+  .hotbar__slot .build-swatch { width: 26px; height: 24px; }
+  .build-side { right: calc(var(--safe-right) + 10px); bottom: calc(var(--safe-bottom) + 10px); gap: 8px; }
+  .build-round { width: 60px; height: 60px; }
+  .build-round--sm { width: 44px; height: 44px; }
+  .build-done { top: calc(var(--safe-top) + 94px); right: calc(var(--safe-right) + 12px); min-height: 40px; height: 40px; }
+  .build-bag { max-height: 46vh; }
 
   /* Evim */
   .home-top { top: calc(var(--safe-top) + 8px); left: calc(var(--safe-left) + 10px); right: calc(var(--safe-right) + 10px); }

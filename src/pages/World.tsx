@@ -45,6 +45,7 @@ import { RARE, rareKey } from '../lib/rewards';
 import { ISLAND_ONLINE } from '../online/config';
 import { useOnlineView } from '../online/OnlineHost';
 import type { Presence, RoomHandle } from '../online/rt';
+import { lockLandscape, unlockOrientation } from '../lib/orientation';
 
 export default function World() {
   const owned = usePlus((s) => s.owned);
@@ -217,6 +218,11 @@ function IslandPlay() {
       return !o;
     });
   };
+  // ada yatay oynanır: açılınca ekran yan döner, çıkınca serbest kalır
+  useEffect(() => {
+    void lockLandscape();
+    return () => void unlockOrientation();
+  }, []);
   useEffect(() => {
     if (!ready || !musicOn || !settings.sfx) return;
     music.start();

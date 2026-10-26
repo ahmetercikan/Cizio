@@ -573,5 +573,43 @@ export class WorldBlocks {
   }
 }
 
+/**
+ * İnşa ederken karakterin elindeki şey (Minecraft'taki gibi): seçili bloğun küçüğü, silerken kazma,
+ * yapı kurarken çekiç. Adı 'held' olduğu için karakter onu tutuyormuş gibi kolunu kaldırır.
+ */
+export function handTool(b: BlockDef | 'erase' | 'struct'): THREE.Object3D {
+  const g = new THREE.Group();
+  g.name = 'held';
+  g.userData.buildTool = true;
+  if (b === 'erase' || b === 'struct') {
+    const handle = mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.62, 6), toon('#a8662e'), false);
+    handle.position.y = -0.12;
+    const head = b === 'erase'
+      ? outline(mesh(new THREE.TorusGeometry(0.2, 0.045, 6, 12, Math.PI), toon('#9aa3ad')), 1.08)
+      : outline(mesh(new THREE.BoxGeometry(0.32, 0.13, 0.13), toon('#7a8591')), 1.08);
+    head.position.y = b === 'erase' ? 0.06 : 0.2;
+    g.add(handle, head);
+    g.rotation.x = 0.5;
+    g.position.set(0, -0.12, 0.12);
+    return g;
+  }
+  let o: THREE.Object3D;
+  if (b.kind === 'model') {
+    o = model(b, 0, { x: false, z: false });
+    o.position.y = -CELL / 2;
+  } else {
+    const side = new THREE.MeshToonMaterial({ map: texture(), color: b.color, gradientMap: toonGradient(), ...(b.kind === 'glass' ? { transparent: true, opacity: 0.6 } : {}) });
+    const top = b.top ? new THREE.MeshToonMaterial({ map: texture(), color: b.top, gradientMap: toonGradient() }) : side;
+    o = outline(new THREE.Mesh(new THREE.BoxGeometry(CELL, CELL, CELL), [side, side, top, side, side, side]), 1.05);
+  }
+  const box = new THREE.Group();
+  box.add(o);
+  box.scale.setScalar(0.22);
+  box.rotation.set(0.3, 0.6, 0);
+  g.add(box);
+  g.position.set(0, -0.18, 0.16);
+  return g;
+}
+
 /** Palet sırası: paketlere göre. */
 export const paletteFor = (packs: string[]) => BLOCKS.filter((b) => packs.includes(b.pack));

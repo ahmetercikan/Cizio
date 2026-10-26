@@ -11,7 +11,7 @@ import type { Pose } from './avatar3d';
 import { boatModel, jetskiModel, tractorModel } from './vehicles';
 import { heightAt, isWater, LAKE, SNOW_PEAK, VOLCANO, zone } from './layout';
 import { fountain, waterSurface } from './water';
-import type { BlockGrid } from './terrain';
+import { rectBlocker, type BlockGrid } from './terrain';
 import type { RealmId } from './homestead';
 import { roll, type CollectGroup } from './collection';
 
@@ -182,6 +182,12 @@ export class WorldBuilder {
   block(x: number, z: number, r: number) {
     this.grid.add({ x, z, r });
     this.blocks.push({ x, z, r });
+  }
+  /** Dikdörtgen engel (w × d, `rot` = rotation.y): binalar, duvarlar. */
+  blockRect(x: number, z: number, w: number, d: number, rot = 0) {
+    this.grid.add(rectBlocker(x, z, w, d, rot));
+    // mekân gövdesi bulmak için kabaca: kısa kenar kadar bir daire
+    this.blocks.push({ x, z, r: Math.min(w, d) / 2 });
   }
   /** Bütün engeller (mekânların gövdesini bulmak için). */
   blocks: { x: number; z: number; r: number }[] = [];
@@ -1210,6 +1216,8 @@ function buildFun(b: WorldBuilder) {
     g.add(deck);
     put(g, cx, cz);
     for (const sx of [-2.1, 2.1]) blk(cx + sx * 1.9, cz, 1.4);
+    // dönme dolabın ayakları yere açılarak iner: ayak uçları da engel
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) blk(cx + sx * 4.2, cz + sz * 1.1, 0.9);
     const [dx0, dz0] = L(cx, cz + 2.6);
     b.decks.push({ x: dx0, z: dz0, r: 2, y: hAt(cx, cz + 2.6) + 0.4 });
     let speed = 0.16;
@@ -1854,6 +1862,8 @@ function buildFun(b: WorldBuilder) {
     }
     put(slide, px - 3.5, pz - 1);
     blk(px - 3.5, pz - 1, 1.5);
+    // oluğun alt ucu (içinden geçilmesin; kayınca inilen yer onun önü)
+    for (const lz of [2.2, 3.8]) blk(px - 3.5, pz - 1 + lz, 0.8);
     const g0 = hAt(px - 3.5, pz - 1);
     const local = (lx: number, y: number, lz: number) => {
       const v = new THREE.Vector3(lx, y, lz).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
@@ -2147,9 +2157,10 @@ function buildLake(b: WorldBuilder, taken: string[]) {
 // ------------------------------------------------------------------------------------------------
 function buildBeach(b: WorldBuilder, taken: string[]) {
   const A = Math.PI / 2; // güney kıyısı (+z)
-  const sr = b.shore(A);
   // kumsal kıyıyı her açıda ayrı ayrı izler (kıyı çizgisi düz değil: şemsiyeler çimene taşmasın)
   const sand = (da: number, d: number): [number, number] => b.polar(A + da, b.shore(A + da) - d);
+  // denizdeki yerler de kendi açısındaki kıyıya göre (ada büyüyünce kıyı her açıda farklı uzaklıkta)
+  const sea = (da: number, d: number): [number, number] => b.polar(A + da, b.shore(A + da) + d);
   // şemsiyeler ve havlular
   const ucols = ['#ff6b4a', '#14a89a', '#ffc83d', '#e9487d', '#5b8def'];
   for (let i = 0; i < 10; i++) {
@@ -2229,7 +2240,7 @@ function buildBeach(b: WorldBuilder, taken: string[]) {
   }
   // jet ski (sürülür)
   {
-    const [x, z] = b.polar(A + 0.08, sr + 12);
+    const [x, z] = sea(0.08, 12);
     const { model: js, seat: jseat } = jetskiModel('#ffc83d');
     const v: Vehicle = { model: js, pos: new THREE.Vector3(x, 0, z), heading: A, speed: 24, water: true, seatY: 0.55, seat: jseat };
     b.scene.add(js);
@@ -2261,14 +2272,14 @@ function buildBeach(b: WorldBuilder, taken: string[]) {
         dur: 12, pose: (u) => (u < 0.1 ? 'walk' : 'cheer'), cam: [18, 7],
         step(t, u, a) {
           const along = (u - 0.5) * 0.5;
-          const [wx, wz] = b.polar(A + along, sr + 22 - Math.sin(u * Math.PI) * 8);
+          const [wx, wz] = sea(along, 22 - Math.sin(u * Math.PI) * 8);
           a.pos.set(wx, 0.35 + Math.abs(Math.sin(t * 2)) * 0.5, wz);
           a.heading = A + along + Math.PI / 2 + Math.sin(t * 1.5) * 0.3;
           board.position.set(wx, 0.25, wz);
           board.rotation.set(Math.PI / 2, 0, -a.heading);
           b.scene.add(board);
           wave.visible = true;
-          const [vx, vz] = b.polar(A + along, sr + 24);
+          const [vx, vz] = sea(along, 24);
           wave.position.set(vx, 0.2, vz);
           wave.rotation.set(0, -(A + along), Math.PI / 2);
           if (Math.floor(t * 4) !== Math.floor((t - 0.02) * 4)) b.sparkles.burst(new THREE.Vector3(wx, 0.4, wz), 4, '#ffffff');
@@ -2280,7 +2291,7 @@ function buildBeach(b: WorldBuilder, taken: string[]) {
   // şnorkel: su altı
   {
     const [x, z] = sand(-0.05, 2);
-    const reefAt = b.polar(A - 0.05, sr + 26);
+    const reefAt = sea(-0.05, 26);
     const reef = b.reef;
     const ccols = ['#ff8fb1', '#ffb36b', '#b98cff', '#ff6b6b', '#ffd43b'];
     for (let i = 0; i < 26; i++) {
@@ -2317,7 +2328,7 @@ function buildBeach(b: WorldBuilder, taken: string[]) {
   // tekne: kıyının hemen açığında, kullanıcı sürer (joystick); kıyıya yaklaşıp "İn" deyince karaya çıkar.
   // Araç olduğu için uzak bölge gizlemesine girmez (eskiden binince altından kayboluyordu).
   {
-    const [x, z] = b.polar(A - 0.12, sr + 6);
+    const [x, z] = sea(-0.12, 9);
     const { model: boat, seat } = boatModel();
     const v: Vehicle = { model: boat, pos: new THREE.Vector3(x, 0, z), heading: A + Math.PI / 2, speed: 16, water: true, seatY: 0.6, seat, cam: [20, 10] };
     boat.position.copy(v.pos);
@@ -2802,13 +2813,12 @@ function buildCastle(b: WorldBuilder) {
   g.add(gate);
   b.place(g, C.x, C.z);
   b.tick((_dt, t) => (flag.rotation.y = Math.sin(t * 3) * 0.3));
-  // duvarlar engel (kapı açık)
-  for (let i = -W / 2; i <= W / 2; i += 2) {
-    b.block(C.x + i, C.z - W / 2, 1.1);
-    b.block(C.x + i, C.z + W / 2, 1.1);
-    b.block(C.x - W / 2, C.z + i, 1.1);
-    if (Math.abs(i) > 2) b.block(C.x + W / 2, C.z + i, 1.1);
-  }
+  // duvarlar ve kuleler engel (kapı açık)
+  b.blockRect(C.x, C.z - W / 2, W, 1.2);
+  b.blockRect(C.x, C.z + W / 2, W, 1.2);
+  b.blockRect(C.x - W / 2, C.z, 1.2, W);
+  for (const s of [-1, 1]) b.blockRect(C.x + W / 2, C.z + s * (W / 4 + 0.75), 1.2, W / 2 - 1.5);
+  for (const t of towers) b.block(C.x + t.x, C.z + t.z, 2);
   b.block(C.x, C.z, 3.4);
   b.wander(b.card('prenses', 2.6), C.x + 4, C.z + 4, 4, 1);
   b.wander(b.card('sovalye', 2.6), C.x + 14, C.z - 3, 4, 1.2);

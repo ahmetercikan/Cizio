@@ -215,11 +215,6 @@
 .farm-inv span { padding: 6px 12px; border-radius: 99px; background: #f6f2ea; font-weight: 800; }
 
 /* İnşa */
-.build-bar {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 10px 12px calc(var(--safe-bottom) + 10px);
-  background: rgba(255, 255, 255, 0.94); box-shadow: 0 -6px 24px rgba(58, 43, 39, 0.15); border-radius: 22px 22px 0 0;
-}
-.build-bar__row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
 .build-tool {
   flex: none; display: grid; justify-items: center; gap: 2px; width: 70px; padding: 6px 4px; border-radius: 14px; background: #f6f2ea;
   border: 3px solid transparent; color: var(--ink);
@@ -231,8 +226,45 @@
 .build-swatch--light { box-shadow: 0 0 10px #ffd84d; }
 .build-swatch--emoji { border: 0; font-size: 26px; line-height: 30px; text-align: center; }
 .build-more { flex: none; align-self: center; display: inline-flex; gap: 4px; align-items: center; padding: 0 10px; font-weight: 800; font-size: 13px; color: var(--ink-soft, #7a6a64); white-space: nowrap; }
-.build-bar__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-.island--building .joystick { bottom: calc(var(--safe-bottom) + 170px); }
+/* İnşa: Minecraft'taki gibi altta tek sıra hızlı çubuk; bütün bloklar Çanta'da */
+.hotbar {
+  --slot: 54px;
+  position: absolute; z-index: 3; left: 50%; bottom: calc(var(--safe-bottom) + 12px); transform: translateX(-50%);
+  display: grid; justify-items: center; gap: 6px; pointer-events: none;
+}
+.hotbar__name { display: flex; align-items: baseline; gap: 8px; padding: 3px 12px; border-radius: 99px; background: rgba(42, 30, 27, 0.55); color: #fff; white-space: nowrap; }
+.hotbar__name b { font-family: var(--display); font-size: 16px; }
+.hotbar__name span { font-weight: 700; font-size: 12px; opacity: 0.85; }
+.hotbar__slots {
+  display: flex; gap: 4px; padding: 5px; border-radius: 14px; pointer-events: auto;
+  background: rgba(42, 30, 27, 0.55); box-shadow: 0 6px 18px rgba(42, 30, 27, 0.25);
+}
+.hotbar__slot {
+  flex: none; width: var(--slot); height: var(--slot); display: grid; place-items: center; padding: 0; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82); border: 3px solid rgba(255, 255, 255, 0.35); color: var(--ink);
+  transition: transform 0.08s;
+}
+.hotbar__slot.on { border-color: #fff; background: #fff1c7; transform: translateY(-4px) scale(1.08); box-shadow: 0 0 0 3px var(--ink); }
+.hotbar__slot.off { opacity: 0.45; }
+.hotbar__slot--erase { margin-right: 6px; }
+.hotbar__bag { margin-left: 6px; background: #ffd166; }
+.hotbar__slot .build-swatch { width: 30px; height: 28px; }
+.build-side { position: absolute; z-index: 3; right: calc(var(--safe-right) + 14px); bottom: calc(var(--safe-bottom) + 16px); display: grid; justify-items: center; gap: 10px; }
+.build-round {
+  width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; align-content: center; gap: 0; padding: 0;
+  background: #fff; color: var(--ink); box-shadow: 0 5px 0 rgba(58, 43, 39, 0.18), var(--shadow-card);
+}
+.build-round small { font-weight: 800; font-size: 11px; margin-top: -2px; }
+.build-round--sm { width: 50px; height: 50px; }
+.build-done { position: absolute; z-index: 3; right: calc(var(--safe-right) + 16px); top: calc(var(--safe-top) + 124px); }
+.build-bag { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 52vh; overflow-y: auto; padding: 4px 2px 8px; }
+.build-bag__hint { margin: 6px 0 0; font-size: 14px; }
+@media (max-width: 700px) and (orientation: portrait) {
+  /* dar dikey ekran: çubuk tam genişlikte, joystick ve düğmeler onun üstünde */
+  .hotbar { --slot: calc((100vw - 64px) / 10 - 4px); }
+  .island--building .joystick { bottom: calc(var(--safe-bottom) + 112px); }
+  .build-side { bottom: calc(var(--safe-bottom) + 112px); }
+}
 
 /* Macera kapıları */
 .realm-hud { flex: 1; display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap; }
@@ -354,10 +386,9 @@
   display: grid; place-items: center; align-content: center; background: #ffd84d; color: var(--ink); box-shadow: var(--shadow-card);
 }
 .island__build small { font-weight: 800; font-size: 11px; }
-.build-bar__tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.build-bar__tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
 .build-bar__tabs button { padding: 6px 12px; border-radius: 12px; background: #f6f2ea; font-weight: 800; font-size: 14px; color: var(--ink); }
 .build-bar__tabs button.on { background: var(--ink); color: #fff; }
-.build-bar__hint { font-weight: 800; font-size: 13px; color: var(--ink-soft, #7a6a64); }
 .build-tool--struct { width: 86px; }
 .build-tool:disabled { opacity: 0.5; }
 .build-tool__price { color: #b07a00; }

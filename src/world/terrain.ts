@@ -7,7 +7,52 @@ import { canvasTexture, flowers, toon } from '../play3d/kit';
 import { COAST_MAX, coastAt, groundKind, heightAt, isWater, roadDist, WORLD_R, ZONES } from './layout';
 import { SEASONS, seasonOf } from './weather';
 
-export interface Blocker { x: number; z: number; r: number }
+/**
+ * Engel: daire (x, z, r) ya da dikdörtgen. Dikdörtgende `hw`/`hd` yarı genişlik/derinlik, `rot` three.js'teki
+ * `rotation.y` gibi döner; `r` o zaman yalnızca kapsayan dairedir (ızgaraya yerleştirmek için).
+ * Binalar dikdörtgendir: sıra sıra dairelerle kaplanınca köşelerinden içeri girilebiliyordu.
+ */
+export interface Blocker { x: number; z: number; r: number; hw?: number; hd?: number; rot?: number }
+
+/** Dikdörtgen engel kurar. */
+export function rectBlocker(x: number, z: number, w: number, d: number, rot = 0): Blocker {
+  return { x, z, r: Math.hypot(w, d) / 2, hw: w / 2, hd: d / 2, rot };
+}
+
+/** Bir noktayı engelin dışına (en az `r` uzağa) iter; değiştiyse true. */
+export function pushOut(b: Blocker, p: { x: number; z: number }, r: number) {
+  const dx = p.x - b.x, dz = p.z - b.z;
+  if (b.hw === undefined) {
+    const d = Math.hypot(dx, dz), min = b.r + r;
+    if (d >= min) return false;
+    p.x = b.x + (dx / (d || 1)) * min;
+    p.z = b.z + (dz / (d || 1)) * min;
+    return true;
+  }
+  const c = Math.cos(b.rot ?? 0), s = Math.sin(b.rot ?? 0);
+  let lx = dx * c - dz * s, lz = dx * s + dz * c;
+  const hw = b.hw, hd = b.hd!;
+  const qx = Math.max(-hw, Math.min(hw, lx)), qz = Math.max(-hd, Math.min(hd, lz));
+  const ex = lx - qx, ez = lz - qz, d = Math.hypot(ex, ez);
+  if (d >= r) return false;
+  if (d > 1e-6) {
+    lx = qx + (ex / d) * r;
+    lz = qz + (ez / d) * r;
+  } else if (hw - Math.abs(lx) < hd - Math.abs(lz)) lx = (lx < 0 ? -1 : 1) * (hw + r);
+  else lz = (lz < 0 ? -1 : 1) * (hd + r);
+  p.x = b.x + lx * c + lz * s;
+  p.z = b.z - lx * s + lz * c;
+  return true;
+}
+
+/** Noktanın engelin kenarına uzaklığı (içindeyse 0). */
+export function blockerDist(b: Blocker, x: number, z: number) {
+  const dx = x - b.x, dz = z - b.z;
+  if (b.hw === undefined) return Math.max(0, Math.hypot(dx, dz) - b.r);
+  const c = Math.cos(b.rot ?? 0), s = Math.sin(b.rot ?? 0);
+  const lx = Math.abs(dx * c - dz * s) - b.hw, lz = Math.abs(dx * s + dz * c) - b.hd!;
+  return Math.hypot(Math.max(0, lx), Math.max(0, lz));
+}
 
 /** Engeller için kaba ızgara (16 birimlik hücreler): yakın engelleri hızlı bulmak için. */
 export class BlockGrid {
@@ -26,14 +71,13 @@ export class BlockGrid {
   near(x: number, z: number): Blocker[] {
     return this.cells.get(this.key(x, z)) ?? [];
   }
-  /** Daireleri iterek konumu düzeltir. */
+  /** Engelleri iterek konumu düzeltir. İki engelin arasına sıkışınca bir kez daha dener. */
   push(p: { x: number; z: number }, r = 0.6) {
-    for (const b of this.near(p.x, p.z)) {
-      const dx = p.x - b.x, dz = p.z - b.z, d = Math.hypot(dx, dz), min = b.r + r;
-      if (d < min) {
-        p.x = b.x + (dx / (d || 1)) * min;
-        p.z = b.z + (dz / (d || 1)) * min;
-      }
+    const list = this.near(p.x, p.z);
+    for (let pass = 0; pass < 2; pass++) {
+      let moved = false;
+      for (const b of list) moved = pushOut(b, p, r) || moved;
+      if (!moved) return;
     }
   }
   /** Bir engeli kaldırır (kaldırılan çiftlik yapısı). */
@@ -45,7 +89,7 @@ export class BlockGrid {
     }
   }
   free(x: number, z: number, r: number) {
-    return this.near(x, z).every((b) => Math.hypot(b.x - x, b.z - z) > b.r + r);
+    return this.near(x, z).every((b) => blockerDist(b, x, z) > r);
   }
 }
 

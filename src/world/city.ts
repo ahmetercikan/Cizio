@@ -413,7 +413,7 @@ export function buildDowntown(b: WorldBuilder) {
     put(stop, 9.6, 46, R_);
     blk(10, 46, 1.4);
     const bus = carModel('otobus');
-    put(bus, 4.6, 46, head(Math.PI));
+    put(bus, 4.6, 46, Math.PI);
     blkRect(4.6, 46, 3.4, 9);
   }
 

@@ -3,7 +3,7 @@
  * mutfak, çiftçi defteri, inşa çubuğu, hazır yapılar, seviye kutlaması ve macera ekranları.
  * Kurallar src/world/economy.ts'te; burada yalnızca gösterilir ve `apply` ile uygulanır.
  */
-import { BookOpen, Car, Check, ChefHat, ClipboardList, Eraser, Hammer, LogOut, RotateCcw, Store, Trophy, Undo2, X } from 'lucide-react';
+import { Backpack, BookOpen, Car, Check, ChefHat, ChevronsUp, ClipboardList, Hammer, LogOut, Pickaxe, RotateCcw, Store, Trophy, Undo2, X } from 'lucide-react';
 import { CARS } from './carsData';
 import { GameIcon } from './GameIcon';
 import { PREMIUM_HINT, usePremium } from './premium';
@@ -347,33 +347,138 @@ function Swatch({ b }: { b: BlockDef }) {
   return <span className={`build-swatch build-swatch--${b.kind}`} style={{ background: b.color, borderTopColor: b.top ?? b.color }} />;
 }
 
+/** Hızlı çubuktaki kutu sayısı (kazmadan başka). */
+const SLOTS = 8;
+const HOTBAR_KEY = 'cizio-hotbar';
+
+/** Çubuktaki bir araç geçerli mi: sahip olunan blok ya da bilinen yapı. */
+const validTool = (s: FarmState, t: string) =>
+  t.startsWith('struct:') ? STRUCTS.some((d) => `struct:${d.k}` === t) : BLOCKS.some((b) => b.id === t && s.packs.includes(b.pack));
+
+/** Hızlı çubuk: çocuğun en son dizdiği bloklar (yoksa ilk sekiz blok). */
+function loadBar(s: FarmState): string[] {
+  let saved: string[] = [];
+  try {
+    const j = JSON.parse(localStorage.getItem(HOTBAR_KEY) ?? '[]');
+    if (Array.isArray(j)) saved = j.filter((t): t is string => typeof t === 'string');
+  } catch {
+    /* yok say */
+  }
+  const bar = saved.filter((t, i) => validTool(s, t) && saved.indexOf(t) === i).slice(0, SLOTS);
+  for (const b of BLOCKS) {
+    if (bar.length >= SLOTS) break;
+    if (s.packs.includes(b.pack) && !bar.includes(b.id)) bar.push(b.id);
+  }
+  return bar;
+}
+
+function toolName(t: string) {
+  if (t === 'erase') return 'Kazma';
+  if (t.startsWith('struct:')) return STRUCTS.find((d) => `struct:${d.k}` === t)?.name ?? '';
+  return BLOCKS.find((b) => b.id === t)?.name ?? '';
+}
+
+function ToolIcon({ t, size = 30 }: { t: string; size?: number }) {
+  if (t === 'erase') return <Pickaxe size={size - 4} />;
+  if (t.startsWith('struct:')) return <GameIcon name={STRUCTS.find((d) => `struct:${d.k}` === t)?.icon ?? 'kutu'} size={size} />;
+  const b = BLOCKS.find((x) => x.id === t);
+  return b ? <Swatch b={b} /> : null;
+}
+
+/**
+ * İnşa: Minecraft'taki gibi altta tek sıra hızlı çubuk. Seçilen blok karakterin elinde durur, çubuk ekranı kapatmaz.
+ * Bütün bloklar ve yapılar Çanta'da; oradan seçilen şey çubuktaki seçili kutuya geçer.
+ */
 export function BuildBar({ s, tool, onTool, onUndo, onBlueprints, onDone, onJump }: {
   s: FarmState; tool: string; onTool: (t: string) => void; onUndo: () => void; onBlueprints: () => void; onDone: () => void; onJump: () => void;
+}) {
+  const [bar, setBar] = useState(() => loadBar(s));
+  const [slot, setSlot] = useState(() => Math.max(0, bar.indexOf(tool)));
+  const [bag, setBag] = useState(false);
+  const lv = levelOf(s.xp);
+  const structOff = (t: string) => {
+    const d = STRUCTS.find((x) => `struct:${x.k}` === t);
+    return !!d && (lv < d.level || (d.k !== 'tarla' && s.places.some((p) => p.k === d.k)));
+  };
+  const choose = (t: string, i: number) => {
+    setSlot(i);
+    onTool(t);
+  };
+  /** Çanta'dan seçilen: çubukta varsa o kutu, yoksa seçili kutunun yerine geçer. */
+  const fromBag = (t: string) => {
+    let i = bar.indexOf(t);
+    if (i < 0) {
+      i = slot;
+      const nb = bar.slice();
+      nb[i] = t;
+      setBar(nb);
+      try {
+        localStorage.setItem(HOTBAR_KEY, JSON.stringify(nb));
+      } catch {
+        /* yok say */
+      }
+    }
+    choose(t, i);
+    setBag(false);
+  };
+  return (
+    <>
+      <button className="build-done pill pill--sm rise" onClick={onDone}><Check size={18} /> Bitti</button>
+      <div className="build-side rise">
+        <button className="build-round build-round--sm" onClick={onUndo} aria-label="Geri al"><Undo2 size={22} /></button>
+        <button className="build-round" onClick={onJump} aria-label="Zıpla"><ChevronsUp size={30} /><small>Zıpla</small></button>
+      </div>
+      <div className="hotbar rise">
+        <div className="hotbar__name">
+          <b>{toolName(tool)}</b>
+          <span>{tool === 'erase' ? 'Kaldırmak istediğine dokun' : tool.startsWith('struct:') ? 'Düz bir yere dokun' : 'Yere ya da bir bloğa dokun'}</span>
+        </div>
+        <div className="hotbar__slots">
+          <button className={`hotbar__slot hotbar__slot--erase ${tool === 'erase' ? 'on' : ''}`} onClick={() => onTool('erase')} aria-label="Kazma: sil">
+            <ToolIcon t="erase" />
+          </button>
+          {bar.map((t, i) => (
+            <button key={i} className={`hotbar__slot ${tool === t ? 'on' : ''} ${structOff(t) ? 'off' : ''}`} onClick={() => choose(t, i)} aria-label={toolName(t)}>
+              <ToolIcon t={t} />
+            </button>
+          ))}
+          <button className="hotbar__slot hotbar__bag" onClick={() => setBag(true)} aria-label="Çanta: bütün bloklar">
+            <Backpack size={26} />
+          </button>
+        </div>
+      </div>
+      {bag && <BuildBag s={s} tool={tool} onPick={fromBag} onBlueprints={() => { setBag(false); onBlueprints(); }} onClose={() => setBag(false)} />}
+    </>
+  );
+}
+
+/** Çanta: bütün bloklar, çiftlik yapıları ve hazır yapılar. */
+function BuildBag({ s, tool, onPick, onBlueprints, onClose }: {
+  s: FarmState; tool: string; onPick: (t: string) => void; onBlueprints: () => void; onClose: () => void;
 }) {
   const [tab, setTab] = useState<'blocks' | 'structs'>(tool.startsWith('struct:') ? 'structs' : 'blocks');
   const blocks = BLOCKS.filter((b) => s.packs.includes(b.pack));
   const more = PACKS.some((p) => p.price > 0 && !s.packs.includes(p.id));
   const lv = levelOf(s.xp);
   return (
-    <div className="build-bar rise">
+    <Panel title="Çanta" icon={<Backpack size={24} style={{ verticalAlign: '-4px' }} />} onClose={onClose} wide>
       <div className="build-bar__tabs">
         <button className={tab === 'blocks' ? 'on' : ''} onClick={() => setTab('blocks')}><GameIcon name="tugla" size={20} /> Bloklar</button>
         <button className={tab === 'structs' ? 'on' : ''} onClick={() => setTab('structs')}><GameIcon name="tarla" size={20} /> Yapılar</button>
-        <span className="build-bar__hint">{tool === 'erase' ? 'Kaldırmak istediğin bloğa ya da yapıya dokun.' : tool.startsWith('struct:') ? 'Kurmak istediğin düz bir yere dokun.' : 'Blok koymak için yere ya da bir bloğa dokun.'}</span>
+        <button onClick={onBlueprints}><Hammer size={18} /> Hazır yapılar</button>
       </div>
-      <div className="build-bar__row">
-        <button className={`build-tool ${tool === 'erase' ? 'on' : ''}`} onClick={() => onTool('erase')} aria-label="Sil"><Eraser size={22} /><small>Sil</small></button>
+      <div className="build-bag">
         {tab === 'blocks' ? (
           <>
             {blocks.map((b) => (
-              <button key={b.id} className={`build-tool ${tool === b.id ? 'on' : ''}`} onClick={() => onTool(b.id)} aria-label={b.name}><Swatch b={b} /><small>{b.name}</small></button>
+              <button key={b.id} className={`build-tool ${tool === b.id ? 'on' : ''}`} onClick={() => onPick(b.id)} aria-label={b.name}><Swatch b={b} /><small>{b.name}</small></button>
             ))}
             {more && <span className="build-more"><Store size={16} /> Daha fazla blok Pazar'da</span>}
           </>
         ) : STRUCTS.map((d) => {
           const locked = lv < d.level, price = structPrice(s, d.k), has = d.k !== 'tarla' && s.places.some((p) => p.k === d.k);
           return (
-            <button key={d.k} className={`build-tool build-tool--struct ${tool === `struct:${d.k}` ? 'on' : ''}`} disabled={locked || has} onClick={() => onTool(`struct:${d.k}`)} aria-label={d.name}>
+            <button key={d.k} className={`build-tool build-tool--struct ${tool === `struct:${d.k}` ? 'on' : ''}`} disabled={locked || has} onClick={() => onPick(`struct:${d.k}`)} aria-label={d.name}>
               <GameIcon name={locked ? 'kilit' : d.icon} size={32} />
               <small>{d.name}</small>
               <small className="build-tool__price">{locked ? `${d.level}. seviye` : has ? 'Kurulu' : price ? `${price} altın` : 'Bedava'}</small>
@@ -381,13 +486,8 @@ export function BuildBar({ s, tool, onTool, onUndo, onBlueprints, onDone, onJump
           );
         })}
       </div>
-      <div className="build-bar__actions">
-        <button className="btn-outline btn-outline--sm" onClick={onUndo}><Undo2 size={18} /> Geri al</button>
-        <button className="btn-outline btn-outline--sm" onClick={onBlueprints}><Hammer size={18} /> Hazır yapılar</button>
-        <button className="btn-outline btn-outline--sm" onClick={onJump}>Zıpla</button>
-        <button className="pill pill--sm" onClick={onDone}><Check size={18} /> Bitti</button>
-      </div>
-    </div>
+      <p className="sub build-bag__hint">Seçtiğin şey alttaki çubuğa ve karakterinin eline geçer.</p>
+    </Panel>
   );
 }
 

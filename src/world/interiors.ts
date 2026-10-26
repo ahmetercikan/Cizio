@@ -2166,7 +2166,7 @@ export class InteriorRealm extends Realm {
         this.fx('yay');
       },
       step: (t, _u, a) => {
-        a.pos.set(0, 0.5, 1.9);
+        a.pos.set(0, 0.5, 1.3);
         a.heading = Math.PI;
         a.pos.y += Math.sin(t * 2) * 0.02;
         if (!scenes.length) return;
@@ -2402,8 +2402,8 @@ export class InteriorRealm extends Realm {
     this.spot('otel-dinlen', 6, 8.4, 2.2, 'Koltukta dinlen', {
       dur: 5, pose: 'sit', cam: [9, 5],
       step: (_t, _u, a) => {
-        a.pos.set(6, 0.45, 5.6);
-        a.heading = 0;
+        a.pos.set(6, 0.45, 5.2);
+        a.heading = Math.PI;
       },
       end: () => {
         this.fx('yay');
@@ -2587,7 +2587,7 @@ export class InteriorRealm extends Realm {
       sofa.add(this.box(4.4, 1.2, 0.45, '#5b8def', 0, 1.2, -0.75));
       for (const s of [-1, 1]) sofa.add(this.box(0.4, 0.9, 1.8, '#4a76cc', s * 2, 1, 0));
       for (const s of [-1, 1]) sofa.add(this.box(0.9, 0.28, 0.9, '#ffd43b', s * 1.1, 0.95, 0.2, false));
-      this.add(sofa, -5, -1.2, 0);
+      this.add(sofa, -5, -1.2, Math.PI); // televizyona (arka duvar) bakar
       this.solid(-5, -1.2, 4.8, 2.2, 1.2);
       const ct = this.table(2.2, 1.1, '#b9773f', 0.9);
       this.add(ct, -5, -3.4);
@@ -2708,7 +2708,7 @@ export class InteriorRealm extends Realm {
         this.fx('pop');
       },
       step: (_t, _u, a) => {
-        a.pos.set(-5, 0.5, -1.1);
+        a.pos.set(-5, 0.5, -1.4);
         a.heading = Math.PI;
       },
       end: () => {

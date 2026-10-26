@@ -34,16 +34,8 @@ export function frame(b: WorldBuilder, Z: Zone) {
   const G = (lx: number, lz: number, dy = 0) => V(lx, hAt(lx, lz) + dy, lz);
   const put = <T extends THREE.Object3D>(o: T, lx: number, lz: number, rot = 0, dy = 0): T => b.place(o, ...L(lx, lz), yaw + rot, dy);
   const blk = (lx: number, lz: number, r: number) => b.block(...L(lx, lz), r);
-  /** Dikdörtgen engel (yerel w × d), dairelerle. */
-  const blkRect = (lx: number, lz: number, w: number, d: number, rot = 0) => {
-    const along = w >= d, n = Math.max(1, Math.ceil((along ? w : d) / Math.min(w, d))), r = Math.min(w, d) / 2 + 0.2;
-    const c = Math.cos(rot), s = Math.sin(rot);
-    for (let i = 0; i < n; i++) {
-      const o = ((i + 0.5) / n - 0.5) * ((along ? w : d) - Math.min(w, d));
-      const [ox, oz] = along ? [o, 0] : [0, o];
-      blk(lx + ox * c + oz * s, lz - ox * s + oz * c, r);
-    }
-  };
+  /** Dikdörtgen engel (yerel w × d; `rot` yerel dönüş). */
+  const blkRect = (lx: number, lz: number, w: number, d: number, rot = 0) => b.blockRect(...L(lx, lz), w, d, yaw + rot);
   /** Yerel açı (0 = +lz, π/2 = +lx) → kahraman yönü. */
   const head = (a: number) => yaw + a;
   const spot = (id: string, lx: number, lz: number, r: number, label: string, act: Activity) => {
@@ -389,6 +381,7 @@ function buildCity(b: WorldBuilder) {
   market.scale.setScalar(1.35); // karaktere göre daha büyük
   put(market, 20.75, 20, R_);
   blkRect(20.75, 20, 13.5, 18.9);
+  blkRect(12.1, 25.9, 1.7, 4.7); // meyve tezgâhı binanın önüne taşar
 
   const bakery = building({ w: 10, d: 8, h: 5.4, wall: '#ffd6e5', trim: '#e9487d', name: 'PASTANE', signBg: '#e9487d', floors: 1 });
   const cake = new THREE.Group();
@@ -419,6 +412,17 @@ function buildCity(b: WorldBuilder) {
     tb.add(top, leg, um, up);
     put(tb, 12.5, tz);
     blk(12.5, tz, 0.9);
+    // masanın iki yanında tabure ("Pasta ye" deyince çocuk havada değil tabureye oturur)
+    for (const dz of [-1.2, 1.2]) {
+      const st = new THREE.Group();
+      const seat = outline(mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.12, 14), toon('#ff8fb1')), 1.06);
+      seat.position.y = 0.5;
+      const sl = mesh(new THREE.CylinderGeometry(0.06, 0.09, 0.5, 6), toon('#5b5f6b'), false);
+      sl.position.y = 0.25;
+      st.add(seat, sl);
+      put(st, 12.5, tz + dz);
+      blk(12.5, tz + dz, 0.35);
+    }
   }
 
   const fire = building({ w: 14, d: 10, h: 7.6, wall: '#ef4b4b', trim: '#ffffff', name: 'İTFAİYE', signBg: '#3a2b27', floors: 1, door: '#ffffff' });

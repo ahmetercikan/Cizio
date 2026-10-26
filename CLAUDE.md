@@ -31,7 +31,13 @@
   - `src/world/island.ts`: motor
   - `layout.ts`: haritanın verisi (kıyı, bölgeler, yollar). Ada kuzeydoğuda bir yarımadayla büyüdü
     (`CAPE`, `COAST_MAX`); plaj, deniz feneri gibi eski kıyı yerleri yerinde kaldı.
-  - `zones.ts` / `places.ts`: bölgeler
+  - `zones.ts` / `places.ts`: bölgeler. Plajda denize konan şeyler (tekne, jet ski, sörf) kendi açısındaki kıyıya
+    göre yerleşir (`sea(...)`); tek bir kıyı yarıçapı kullanılınca tekne karada kalıyordu.
+  - Engeller (`terrain.ts` → `BlockGrid`): daire ya da dikdörtgen. Binalar `blkRect` / `b.blockRect` ile
+    dikdörtgen engellenir (daire sırası köşelerden içeri sokuyordu). Duran araçlar da içinden geçilmez
+    (`island.ts` → `vehicleBlocker`, ölçü modelden çıkar).
+  - İnşa: Minecraft gibi hızlı çubuk + Çanta (`FarmPanels.tsx` → `BuildBar`); seçili blok elde durur
+    (`build.ts` → `handTool`).
   - `weather.ts`: mevsim (yaprak rengi, tarihten) ve günün havası (yağmur / kar; aynı gün hep aynı)
   - `water.ts`: dalgalanan havuz suyu ve kavis çizen fıskiye (kasaba çeşmesi, köy çeşmesi, AVM havuzu, ev havuzu)
   - `city.ts`: Şehir Merkezi (gökdelenler, dönel kavşak, AVM, sinema, otel, taksi) ve ortak `tower()` modeli
@@ -56,3 +62,7 @@
   `src/components/AvatarShapes.ts` (avatar çizimleri). **Ders eklenince, çıkarılınca ya da bir dersin adı/çizimi
   değişince `npm run art` çalıştırılır**; unutulursa `npm test` uyarır. Üretici: `scripts/bake-art.ts`.
 - **Yatay telefon düzeni:** `src/styles/landscape.css` (yalnızca yatay ve kısa ekranlarda devreye girer).
+  Ada açılınca ekran yan döner, çıkınca serbest kalır (`src/lib/orientation.ts`, `@capacitor/screen-orientation`;
+  iPad'de kilit için `Info.plist` → `UIRequiresFullScreen`).
+- **Seslendirme boyutu:** MP3'ler 24 kHz mono 32 kbps (`scripts/tts-gemini.ts` → `pcmToMp3`). Yalnızca betiklerin
+  okuduğu `voice/manifest.json` ve `state.json` telefon paketine girmez (`scripts/native-trim.ts`).
