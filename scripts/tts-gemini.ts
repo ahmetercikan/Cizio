@@ -74,8 +74,8 @@ export class RateLimitError extends Error {
   }
 }
 
-/** 16 bit mono PCM → MP3 (varsayılan 24 kHz, 64 kbps). */
-export function pcmToMp3(pcm: Buffer, sampleRate = 24000, kbps = 64): Buffer {
+/** 16 bit mono PCM → MP3 (varsayılan 24 kHz, 32 kbps: konuşma için yeterli, uygulamayı küçük tutar). */
+export function pcmToMp3(pcm: Buffer, sampleRate = 24000, kbps = 32): Buffer {
   const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
   const enc = new Mp3Encoder(1, sampleRate, kbps);
   const chunks: Uint8Array[] = [];

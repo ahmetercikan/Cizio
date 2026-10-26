@@ -2,7 +2,8 @@
  * `npx cap sync android` web dosyalarını `android/app/src/main/assets/public` içine kopyaladıktan sonra
  * seslendirme klasörünü (`public/voice`) `android/voicepack` ek paketine taşır.
  *
- * Neden: Play, bir telefonun indirdiği ana paketi en çok 200 MB kabul eder; seslendirme tek başına ~230 MB.
+ * Neden: Play, bir telefonun indirdiği ana paketi en çok 200 MB kabul eder. Seslendirme 32 kbps'e inince ~145 MB
+ * (önceden ~264 MB); yeni cümleler eklendikçe sınır yine aşılmasın diye sesler ek pakette kalır.
  * `voicepack` kurulumla birlikte gelen bir ek pakettir (install-time asset pack): telefon onu uygulamayla
  * aynı anda indirir ve dosyaları ana paketteki gibi aynı yoldan (`public/voice/...`) okunur.
  * Uygulamada hiçbir şey değişmez, ses kalitesi düşmez.
