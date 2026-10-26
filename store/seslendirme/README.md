@@ -1,5 +1,21 @@
 # Seslendirilecek yeni cümleler
 
+> **Şu an bekleyen iş (27 Ekim 2026):** `eksik-tr.tsv` içinde **28 Türkçe cümle** var: Yarış Kıyısı ve yarış
+> dünyaları (Kart Yarışı, Engelli Koşu, Volkan ve Buz Parkuru). İngilizce eksik yok.
+>
+> **Gemini anahtarı olan ortamda en kısa yol** (uygulamadaki sesle, Sulafat, otomatik):
+>
+> ```
+> git pull
+> npm install
+> npm run voice -- --provider gemini --allow-partial
+> git add public/voice && git commit -m "Ses: Yarış Kıyısı cümleleri seslendirildi" && git push
+> ```
+>
+> `.env.local` içinde `GEMINI_API_KEY` olmalı. Komut yalnızca sesi olmayan cümleleri üretir, MP3'leri 32 kbps
+> yazar ve `manifest.json` / `index.json`'u günceller. Sonra Claude'a "git pull yap" demen yeter.
+> Başka bir araçla üretilirse aşağıdaki "MP3'ler hazır olunca" adımları geçerli.
+
 Bu klasördeki iki dosya, uygulamada **henüz sesi olmayan** cümleleri içerir. Yeni eklenen bölümlerin
 (Harfler ve Sayılar, ABC, Şarkılar, Say It!, Draw in English, Şehir Merkezi görevleri) cümleleridir.
 
