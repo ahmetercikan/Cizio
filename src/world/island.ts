@@ -27,7 +27,9 @@ import { blueprint as blueprintParts, handTool } from './build';
 import type { Cell } from './build';
 import { car as carDef, carModel } from './cars';
 import { DayNight } from './daynight';
+import { planJump, type Surface } from './jumpAssist';
 import { buildSports } from './sports';
+import { buildRaceCoast } from './raceCoast';
 import type { Live } from '../online/rt';
 
 /** İnşa aracı: blok, silgi ya da çiftlik yapısı. */
@@ -193,6 +195,14 @@ export class Island {
   private lean = 0;
   private squash = 0;
   private coyote = 0;
+  /** Platform oyunu: yardımlı zıplama sürüyor (havadayken yön kendiliğinden hedefe gider). */
+  private assist = false;
+  /** Havada ikinci zıplama kullanıldı mı. */
+  private airJump = false;
+  /** Düşünce dönülecek son sağlam platform. */
+  private lastSafe: THREE.Vector3 | null = null;
+  /** Yardımlı zıplamada inilecek yeri gösteren halka. */
+  private landRing: THREE.Mesh | null = null;
   private jumpBuf = 0;
   private dustT = 0;
   // kamera: yukarı / aşağı bakış
@@ -271,6 +281,7 @@ export class Island {
     buildMarket(this.wb);
     buildShops(this.wb);
     buildPortals(this.wb, (id) => this.enterRealm(id));
+    buildRaceCoast(this.wb, (id) => this.enterRealm(id));
     this.chunkStatics();
     this.home = new Homestead(this.wb, o.farm, (x, z) => this.canBuildAt(x, z));
     // kapı açılırken tahta kapı sesi
@@ -292,6 +303,8 @@ export class Island {
     this.scene.add(this.avatar.root);
     this.actor = { pos: this.pos, heading: 0, hand: this.avatar.hand };
     this.hero = { pos: this.pos, vy: 0, grounded: true };
+    this.wb.hero = this.hero;
+    this.wb.say = (t) => this.ev.onMessage(t);
     const [sx, sz] = o.start ?? [0, 12];
     this.pos.set(sx, this.wb.ground(sx, sz), sz);
     this.heading = Math.PI;
@@ -369,12 +382,12 @@ export class Island {
   /** Kahramanın basabileceği zemin: adada arazi + iskele + bloklar; macerada dünyanın zemini. */
   private floorAt(x: number, z: number, y: number) {
     if (this.realm) return this.realm.floor(x, z, y);
-    const g = this.wb.ground(x, z);
+    const g = this.wb.ground(x, z, y);
     const b = this.home.build.standY(x, z, y);
     return b !== null ? Math.max(b, g) : g;
   }
   private blockedAt(x: number, z: number, y: number) {
-    return this.realm ? this.realm.blocked(x, z, y) : this.home.build.blocked(x, z, y);
+    return this.realm ? this.realm.blocked(x, z, y) : this.home.build.blocked(x, z, y) || this.wb.tallBlocked(x, z, y);
   }
 
   // ----------------------------------------------------------------------------------------------
@@ -479,18 +492,51 @@ export class Island {
   jump() {
     if (this.act || this.drive || this.swimming) return;
     if (!this.hero.grounded && this.coyote <= 0) {
-      this.jumpBuf = 0.15; // inmeden hemen önce basıldı: inince zıpla
+      // platform oyunlarında havada bir kez daha zıplanır: kısa kalan atlayışı kurtarır
+      if (this.platSurfaces() && !this.airJump) {
+        this.airJump = true;
+        return this.doJump(JUMP * 0.95);
+      }
+      this.jumpBuf = 0.2; // inmeden hemen önce basıldı: inince zıpla
       return;
     }
     this.doJump();
   }
-  private doJump() {
-    this.hero.vy = JUMP;
+  private doJump(vy = JUMP) {
+    this.hero.vy = vy;
     this.hero.grounded = false;
     this.coyote = 0;
     this.jumpBuf = 0;
     this.squash = -0.12;
     this.emoteKind = null;
+    this.aimJump(vy);
+  }
+  /**
+   * Platform oyunu: bakılan (ya da joystick'in gösterdiği) yöndeki platformu seçip karakteri tam üstüne indirecek
+   * hızla atar. Yön yoksa ya da ulaşılacak platform yoksa normal zıplama kalır.
+   */
+  private aimJump(vy: number) {
+    this.assist = false;
+    if (this.landRing) this.landRing.visible = false;
+    const surf = this.platSurfaces();
+    if (!surf) return;
+    const { dir, mag } = this.moveDir();
+    const moving = Math.hypot(this.vel.x, this.vel.z) > 1.5;
+    const d = mag > 0.2 ? dir : moving ? new THREE.Vector3(this.vel.x, 0, this.vel.z) : new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
+    const g = GRAVITY * (this.realm?.gravity ?? 1);
+    const plan = planJump(this.pos, d, surf, g, { vy, maxVy: vy * 1.35, maxH: RUN * 1.2, cone: mag > 0.2 || moving ? 0.68 : 0.8 });
+    if (!plan) return;
+    this.hero.vy = plan.vy;
+    this.vel.set(plan.vx, 0, plan.vz);
+    this.heading = Math.atan2(plan.vx, plan.vz);
+    this.assist = true;
+    if (!this.landRing) {
+      this.landRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.85, 28).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, depthWrite: false }));
+      this.landRing.renderOrder = 2;
+    }
+    (this.realm ? this.realm.scene : this.scene).add(this.landRing);
+    this.landRing.position.set(plan.tx, plan.ty + 0.06, plan.tz);
+    this.landRing.visible = true;
   }
   /** Sürükleme: yatay sağa sola, dikey yukarı aşağı bakış. */
   rotateCamera(dx: number, dy = 0) {
@@ -965,6 +1011,7 @@ export class Island {
   }
   enterRealm(id: RealmId, back?: { x: number; z: number; h: number }) {
     if (this.realm) return;
+    this.resetPlatform();
     this.realmBack.copy(this.pos);
     this.realmReturn = back ?? null;
     if (this.drive) this.dismount();
@@ -1012,6 +1059,7 @@ export class Island {
   leaveRealm() {
     const r = this.realm;
     if (!r) return;
+    this.resetPlatform();
     if (this.act) {
       this.act = null;
       this.ev.onBusy(false);
@@ -1037,6 +1085,36 @@ export class Island {
   }
   get realmId(): RealmId | null {
     return this.realm?.id ?? null;
+  }
+  /** Yakındaki platform yüzeyleri (dünyadaki parkur ya da adadaki engel parkuru); yoksa null. */
+  private platSurfaces(): Surface[] | null {
+    if (this.realm) return this.realm.surfaces?.() ?? null;
+    const near = this.wb.surfaces.filter((s) => Math.abs(s.x - this.pos.x) < 30 && Math.abs(s.z - this.pos.z) < 30);
+    return near.length ? near : null;
+  }
+  /** Dünya değişirken platform yardımını sıfırla (halka eski sahneyle birlikte silinmesin). */
+  private resetPlatform() {
+    this.assist = false;
+    this.airJump = false;
+    this.lastSafe = null;
+    this.landRing?.removeFromParent();
+  }
+  /** Platform oyunu: sağlam bir platformda durulan yeri hatırla; düşünce oraya dön (baştan başlamasın). */
+  private platformSafety() {
+    const r = this.realm!;
+    if (this.hero.grounded && this.hero.vy <= 0) {
+      const s = r.surfaces!().find((p) => !p.at && Math.abs(p.y - this.pos.y) < 0.3 &&
+        (p.round ? Math.hypot(this.pos.x - p.x, this.pos.z - p.z) < p.w / 2 - 0.4 : Math.abs(this.pos.x - p.x) < p.w / 2 - 0.4 && Math.abs(this.pos.z - p.z) < p.d / 2 - 0.4));
+      if (s) (this.lastSafe ??= new THREE.Vector3()).copy(this.pos);
+    } else if (this.pos.y < r.killY && this.lastSafe) {
+      this.pos.copy(this.lastSafe);
+      this.hero.vy = 0;
+      this.vel.set(0, 0, 0);
+      this.assist = false;
+      if (this.landRing) this.landRing.visible = false;
+      this.ev.onMessage('Hoppala! Son bastığın yere döndün.');
+      this.ev.sound.pop();
+    }
   }
   private moveActors(to: THREE.Scene) {
     to.add(this.avatar.root, this.shadow);
@@ -1107,10 +1185,23 @@ export class Island {
       this.ev.sound.engine?.(-1, '');
     }
     if (this.realm) {
+      if (this.realm.surfaces) this.platformSafety();
       const out = this.realm.update(dt, this.clock, this.hero);
+      // mantar, trambolin: dünya fırlattı, bakılan platforma yardımlı uçuş
+      if (this.hero.launch) {
+        const v = this.hero.launch;
+        this.hero.launch = 0;
+        this.doJump(v);
+      }
       if (out) this.leaveRealm();
     } else {
       this.stepWorld(dt);
+      // trambolin: adada da bakılan yöne yardımlı uçuş
+      if (this.hero.launch) {
+        const v = this.hero.launch;
+        this.hero.launch = 0;
+        if (!this.act && !this.drive) this.doJump(v);
+      }
       // bloklardan yapılan kapılar: yaklaşınca açılır
       this.home.build.stepDoors(this.pos.x, this.pos.z, dt);
     }
@@ -1153,9 +1244,18 @@ export class Island {
     const sp = mag <= 0 ? 0 : (run ? RUN : WALK * mag) * (this.swimming ? 0.55 : 1) * Math.sqrt(this.realm?.heroScale ?? 1);
     // hız yumuşakça hızlanır / yavaşlar (havadayken daha az kontrol)
     const want = dir.clone().multiplyScalar(sp);
-    const k = 1 - Math.exp(-dt * (mag > 0 ? (this.hero.grounded ? 10 : 4) : this.hero.grounded ? 14 : 2));
-    this.vel.x += (want.x - this.vel.x) * k;
-    this.vel.z += (want.z - this.vel.z) * k;
+    // yardımlı zıplamada yön kendiliğinden hedefe gider; joystick tersine çekilirse yardım bırakılır
+    if (this.assist && (this.hero.grounded || (mag > 0.3 && dir.x * this.vel.x + dir.z * this.vel.z < -0.3 * Math.hypot(this.vel.x, this.vel.z)))) {
+      this.assist = false;
+      if (this.landRing) this.landRing.visible = false;
+    }
+    if (!this.assist) {
+      // platform oyunlarında havada da yön değiştirmek kolay
+      const plat = !this.hero.grounded && !!this.platSurfaces();
+      const k = 1 - Math.exp(-dt * (mag > 0 ? (this.hero.grounded ? 10 : plat ? 7 : 4) : this.hero.grounded ? 14 : plat ? 5 : 2));
+      this.vel.x += (want.x - this.vel.x) * k;
+      this.vel.z += (want.z - this.vel.z) * k;
+    }
     const v = Math.hypot(this.vel.x, this.vel.z);
     this.speed = v < WALK ? v / WALK : 1 + ((v - WALK) / (RUN - WALK)) * 0.3;
     if (v > 0.05) {
@@ -1203,9 +1303,16 @@ export class Island {
         this.pos.y = f;
         this.hero.vy = 0;
         this.hero.grounded = true;
+        this.airJump = false;
+        if (this.assist) {
+          // hedefe indi: kaymasın
+          this.assist = false;
+          this.vel.multiplyScalar(0.25);
+          if (this.landRing) this.landRing.visible = false;
+        }
         if (this.jumpBuf > 0) this.doJump();
       } else {
-        if (this.hero.grounded) this.coyote = 0.12; // kenardan düştü: kısa süre hâlâ zıplayabilir
+        if (this.hero.grounded) this.coyote = this.platSurfaces() ? 0.2 : 0.12; // kenardan düştü: kısa süre hâlâ zıplayabilir
         this.hero.grounded = false;
         // kafa bloğa çarpınca geri düş
         if (this.hero.vy > 0 && this.blockedAt(this.pos.x, this.pos.z, this.pos.y - 0.2)) this.hero.vy = 0;

@@ -129,6 +129,7 @@ export function bench() {
     l.position.set(x, 0.3, 0);
     g.add(l);
   }
+  g.userData.foot = { w: 2.4, d: 0.8 };
   return g;
 }
 
@@ -224,6 +225,7 @@ function buildRoads(b: WorldBuilder) {
   const bulb = new THREE.InstancedMesh(new THREE.SphereGeometry(0.38, 10, 8).translate(0, 3.8, 0), toon('#fff3b0', { emissive: '#6a5f20' }), lampAt.length);
   lampAt.forEach((p, i) => {
     b.lamps.push(new THREE.Vector3(p.x, p.y + 3.8, p.z));
+    b.block(p.x, p.z, 0.25);
     m4.makeTranslation(p.x, p.y, p.z);
     pole.setMatrixAt(i, m4);
     bulb.setMatrixAt(i, m4);
@@ -327,6 +329,7 @@ function buildCity(b: WorldBuilder) {
   for (const x of [-3.6, -1.8, 1.8, 3.6]) {
     const c = mesh(new THREE.CylinderGeometry(0.3, 0.3, 5.6, 10), toon('#ffffff'));
     c.position.set(x, 2.8, 4.4);
+    c.userData.foot = { r: 0.35 };
     library.add(c);
   }
   library.scale.setScalar(1.35); // karaktere göre daha büyük
@@ -473,6 +476,7 @@ function buildCity(b: WorldBuilder) {
       const tl = new THREE.Group();
       const pole = mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.4, 6), toon('#4a4f5c'));
       pole.position.y = 1.7;
+      pole.userData.foot = { r: 0.25 };
       const bx = outline(mesh(new THREE.BoxGeometry(0.5, 1.4, 0.4), toon('#3a3f4a')), 1.05);
       bx.position.y = 3.6;
       tl.add(pole, bx);
@@ -527,6 +531,7 @@ function buildCity(b: WorldBuilder) {
     const hoop = new THREE.Group();
     const hp = mesh(new THREE.CylinderGeometry(0.1, 0.12, 3.6, 8), toon('#5b5f6b'));
     hp.position.y = 1.8;
+    hp.userData.foot = { r: 0.25 };
     const bb = outline(mesh(new THREE.BoxGeometry(1.8, 1.2, 0.1), toon('#ffffff')), 1.04);
     bb.position.set(0, 3.7, 0.2);
     const rim = mesh(new THREE.TorusGeometry(0.4, 0.05, 6, 16), toon('#ff6b4a'));

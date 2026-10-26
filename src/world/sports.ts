@@ -231,10 +231,16 @@ function buildFootball(b: WorldBuilder) {
   const BX = HL + 2.4, BZ = HW + 1.4;
   const pcols = ['#ff6b6b', '#ffd43b', '#4dabf7', '#69db7c', '#ff8fb1', '#9775fa'];
   let pi = 0;
-  for (let x = -BX + 2; x <= BX - 2; x += 4) for (const s of [-1, 1]) b.place(outline(mesh(new THREE.BoxGeometry(3.9, 0.7, 0.18), toon(pcols[pi++ % pcols.length])), 1.03), FX + x, FZ + s * BZ, 0, 0.35);
+  // panoların içinden geçilmez; sahaya kalelerin yanındaki açıklıktan girilir
+  const pano = (w: number, d: number) => {
+    const m = outline(mesh(new THREE.BoxGeometry(w, 0.7, d), toon(pcols[pi++ % pcols.length])), 1.03);
+    m.userData.foot = { w: Math.max(w, 0.4), d: Math.max(d, 0.4) };
+    return m;
+  };
+  for (let x = -BX + 2; x <= BX - 2; x += 4) for (const s of [-1, 1]) b.place(pano(3.9, 0.18), FX + x, FZ + s * BZ, 0, 0.35);
   for (let z = -BZ + 2; z <= BZ - 2; z += 4) for (const s of [-1, 1]) {
     if (Math.abs(z) < GW + 1) continue;
-    b.place(outline(mesh(new THREE.BoxGeometry(0.18, 0.7, 3.9), toon(pcols[pi++ % pcols.length])), 1.03), FX + s * BX, FZ + z, 0, 0.35);
+    b.place(pano(0.18, 3.9), FX + s * BX, FZ + z, 0, 0.35);
   }
   // tribünler
   for (const s of [-1, 1]) {

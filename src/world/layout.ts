@@ -6,12 +6,16 @@
 /** Kara yarıçapı (kıyı çizgisi bu değer etrafında dalgalanır). Eski adanın ~30 katı alan. */
 export const LAND_R = 328;
 /**
- * Kuzeydoğudaki yeni kara: Şehir Merkezi'nin (gökdelenler) kurulduğu büyük yarımada.
- * Ada yalnızca bu yönde büyüdü; plaj, deniz feneri ve öbür kıyı yerleri yerinde kaldı.
+ * Adanın büyüdüğü yarımadalar. Kuzeydoğuda Şehir Merkezi'nin (gökdelenler) kurulduğu büyük kara; batı-güneybatıda
+ * Yarış Kıyısı (yarış kapıları, engel parkuru, trambolinler). İkisi de kıyısında başka yer olmayan yönlere açıldı:
+ * plaj, deniz feneri ve öbür kıyı yerleri yerinde kaldı.
  */
-const CAPE = { ang: 0.9, half: 0.85, size: 150 };
+const CAPES = [
+  { ang: 0.9, half: 0.85, size: 150 },
+  { ang: 2.62, half: 0.5, size: 140 },
+];
 /** Kıyının ulaşabildiği en uzak yarıçap (arazi ağı ve bitkiler bunu kullanır). */
-export const COAST_MAX = LAND_R + CAPE.size + 18;
+export const COAST_MAX = LAND_R + Math.max(...CAPES.map((c) => c.size)) + 18;
 /** Yürünebilir / yüzülebilir sınır. */
 export const WORLD_R = 505;
 
@@ -47,6 +51,7 @@ export const ZONES: Zone[] = [
   { id: 'airport', name: 'Havalimanı', x: 272, z: -30, color: '#8d99ae', spawn: [238, -26] },
   { id: 'picnic', name: 'Piknik Tepesi', x: -238, z: -80, color: '#ff8fb1', spawn: [-206, -69] },
   { id: 'downtown', name: 'Şehir Merkezi', x: 228, z: 288, color: '#6c7bff', spawn: [191, 241] },
+  { id: 'race', name: 'Yarış Kıyısı', x: -347, z: 199, color: '#ff6b4a', spawn: [-300, 190] },
 ];
 /** Çiftliğim: arsanın düzlüğü daha geniş (tarla, ahır ve inşa alanı). */
 export const HOME = zone_('home');
@@ -81,6 +86,7 @@ export const ROADS: [number, number][][] = [
   [[0, 0], [88, 44]],
   [[0, 0], [238, -26]],
   [[175, 115], [198, 180], [191, 241]],
+  [[-103, 176], [-200, 192], [-300, 190]],
 ];
 /** Kasaba meydanının içinde yol çizilmez. */
 export const ROAD_START = 26;
@@ -101,8 +107,11 @@ export function roadDist(x: number, z: number) {
 
 /** Kıyı çizgisinin yarıçapı (açıya göre girintili çıkıntılı). */
 export function coastAt(ang: number) {
-  let d = Math.abs(((ang - CAPE.ang + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI);
-  const cape = d < CAPE.half ? CAPE.size * (0.5 + 0.5 * Math.cos((Math.PI * d) / CAPE.half)) : 0;
+  let cape = 0;
+  for (const c of CAPES) {
+    const d = Math.abs(((ang - c.ang + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI);
+    if (d < c.half) cape = Math.max(cape, c.size * (0.5 + 0.5 * Math.cos((Math.PI * d) / c.half)));
+  }
   return LAND_R + cape + 9 * Math.sin(ang * 3 + 0.4) + 6 * Math.sin(ang * 7 + 1.3) + 3 * Math.sin(ang * 13);
 }
 
@@ -115,7 +124,7 @@ function flatMask(x: number, z: number) {
   for (const f of FLAT_SPOTS) m = Math.max(m, 1 - smooth(f.a, f.b, Math.hypot(x - f.x, z - f.z)));
   for (const zn of ZONES) {
     if (zn.id === 'snow' || zn.id === 'dino') continue;
-    const [a, b] = zn.id === 'home' ? [50, 72] : zn.id === 'downtown' ? [58, 84] : zn.id === 'airport' ? [44, 66] : [34, 58];
+    const [a, b] = zn.id === 'home' ? [50, 72] : zn.id === 'downtown' || zn.id === 'race' ? [58, 84] : zn.id === 'airport' ? [44, 66] : [34, 58];
     m = Math.max(m, 1 - smooth(a, b, Math.hypot(x - zn.x, z - zn.z)));
   }
   return m;

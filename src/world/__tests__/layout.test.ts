@@ -38,4 +38,13 @@ describe('Çizio Adası haritası', () => {
     for (let a = 0; a < Math.PI * 2; a += 0.4) expect(heightAt(d.x + Math.cos(a) * 60, d.z + Math.sin(a) * 60)).toBeGreaterThan(0.9);
     expect(coastAt(Math.atan2(d.z, d.x)) - r).toBeGreaterThan(70);
   });
+
+  it('Yarış Kıyısı yeni yarımadada, her yanı kara', () => {
+    const r = zone('race');
+    expect(heightAt(r.x, r.z)).toBeGreaterThan(0.9);
+    for (let a = 0; a < Math.PI * 2; a += 0.4) expect(heightAt(r.x + Math.cos(a) * 45, r.z + Math.sin(a) * 45)).toBeGreaterThan(0.9);
+    // kale ve plaj kıyısı yerinde (yarımada onlara uzanmaz)
+    expect(coastAt(Math.PI)).toBeLessThan(LAND_R + 20);
+    expect(coastAt(Math.PI / 2)).toBeLessThan(LAND_R + 20);
+  });
 });

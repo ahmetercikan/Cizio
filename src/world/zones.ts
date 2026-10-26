@@ -13,6 +13,8 @@ import { heightAt, isWater, LAKE, SNOW_PEAK, VOLCANO, zone } from './layout';
 import { fountain, waterSurface } from './water';
 import { rectBlocker, type BlockGrid } from './terrain';
 import type { RealmId } from './homestead';
+import type { Hero } from './realms';
+import type { Surface } from './jumpAssist';
 import { roll, type CollectGroup } from './collection';
 
 export interface Actor {
@@ -90,7 +92,11 @@ export interface SpotDef {
   use?: () => Activity | 'page' | { msg: string } | null;
 }
 
-export interface Deck { x: number; z: number; r?: number; w?: number; d?: number; y: number }
+/**
+ * Üstünde yürünen düzlük (iskele, platform). `tall`: yüksek basamak (engel parkuru direkleri): yalnızca üstündeyken
+ * zemin sayılır, yandan içinden geçilmez (`tallBlocked`).
+ */
+export interface Deck { x: number; z: number; r?: number; w?: number; d?: number; y: number; tall?: boolean }
 
 export interface Wanderer { obj: THREE.Object3D; pos: THREE.Vector3; target: THREE.Vector3; home: [number, number]; range: number; speed: number; wait: number; hop: number; card: boolean; facing: number; water?: boolean; y?: number }
 
@@ -163,20 +169,50 @@ export class WorldBuilder {
   ) {}
 
   /** Zemin yüksekliği (iskele / ada güvertesi dahil). */
-  ground(x: number, z: number) {
+  /** Zemin yüksekliği; `y` verilirse kahramanın altında kalan yüksek basamaklar sayılmaz. */
+  ground(x: number, z: number, y?: number) {
     for (const d of this.decks) {
-      const on = d.r ? Math.hypot(x - d.x, z - d.z) < d.r : Math.abs(x - d.x) < d.w! / 2 && Math.abs(z - d.z) < d.d! / 2;
+      if (d.tall && y !== undefined && d.y > y + 0.45) continue;
+      const pad = d.tall ? 0.3 : 0;
+      const on = d.r ? Math.hypot(x - d.x, z - d.z) < d.r + pad : Math.abs(x - d.x) < d.w! / 2 + pad && Math.abs(z - d.z) < d.d! / 2 + pad;
       if (on) return d.y;
     }
     return heightAt(x, z);
   }
+  /** Yüksek basamağa yandan çarpılıyor mu. */
+  tallBlocked(x: number, z: number, y: number) {
+    for (const d of this.decks) {
+      if (!d.tall || y + 0.45 >= d.y) continue;
+      const on = d.r ? Math.hypot(x - d.x, z - d.z) < d.r + 0.25 : Math.abs(x - d.x) < d.w! / 2 + 0.25 && Math.abs(z - d.z) < d.d! / 2 + 0.25;
+      if (on) return true;
+    }
+    return false;
+  }
   h(x: number, z: number) {
     return Math.max(0, this.ground(x, z));
   }
+  /**
+   * Nesneyi zemine koyar. Modelin `userData.foot` ölçüsü varsa ({ w, d } dikdörtgen ya da { r } daire: tabela,
+   * bank, fener direği) oraya engel de konur: tek tek `block` yazmayı unutunca içinden geçiliyordu.
+   */
   place<T extends THREE.Object3D>(o: T, x: number, z: number, rot = 0, dy = 0): T {
     o.position.set(x, this.h(x, z) + dy, z);
     o.rotation.y = rot;
     this.scene.add(o);
+    // modelin kendisi ya da içindeki parçalar (bina önündeki sütunlar, direkler) ölçü taşıyabilir
+    let tagged = false;
+    o.traverse((c) => void (tagged ||= !!c.userData.foot));
+    if (!tagged) return o;
+    o.updateMatrixWorld(true);
+    const p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), e = new THREE.Euler();
+    o.traverse((c) => {
+      const f = c.userData.foot as { w?: number; d?: number; r?: number } | undefined;
+      if (!f) return;
+      c.matrixWorld.decompose(p, q, sc);
+      const k = Math.abs(sc.x);
+      if (f.r) this.block(p.x, p.z, f.r * k);
+      else if (f.w && f.d) this.blockRect(p.x, p.z, f.w * k, f.d * k, e.setFromQuaternion(q, 'YXZ').y);
+    });
     return o;
   }
   block(x: number, z: number, r: number) {
@@ -189,6 +225,12 @@ export class WorldBuilder {
     // mekân gövdesi bulmak için kabaca: kısa kenar kadar bir daire
     this.blocks.push({ x, z, r: Math.min(w, d) / 2 });
   }
+  /** Ekranda kısa mesaj (ada motoru bağlar). */
+  say: (text: string) => void = () => {};
+  /** Kahraman (dokunmayla toplanan balonlar, trambolin): ada motoru kurulumdan sonra bağlar. */
+  hero: Hero = { pos: new THREE.Vector3(1e9, 0, 1e9), vy: 0, grounded: true };
+  /** Adadaki platform parkurlarının yüzeyleri: yakındayken zıplama yardımı devreye girer (jumpAssist.ts). */
+  surfaces: Surface[] = [];
   /** Bütün engeller (mekânların gövdesini bulmak için). */
   blocks: { x: number; z: number; r: number }[] = [];
   /**
@@ -534,6 +576,8 @@ export function sign(text: string, color = '#ffffff', direkli = true) {
   g.userData.canvas = c;
   g.userData.color = color;
   g.userData.tex = t;
+  // yere dikilen tabelanın içinden geçilmez (b.place engeli kendisi koyar)
+  if (direkli) g.userData.foot = { w: W + 0.8, d: 0.5 };
   return g;
 }
 
@@ -805,6 +849,7 @@ function buildTown(b: WorldBuilder) {
     const l = mesh(new THREE.SphereGeometry(0.3, 10, 8), toon('#fff6c9', { emissive: '#665500' }));
     b.place(p, Math.cos(a) * 10, Math.sin(a) * 10, 0, 1.7);
     b.place(l, Math.cos(a) * 10, Math.sin(a) * 10, 0, 3.5);
+    b.block(Math.cos(a) * 10, Math.sin(a) * 10, 0.3);
     b.lamps.push(l.position.clone());
   }
   // Eskiden kasabanın ortasında on dört yön tabelası vardı; başlangıç yerini kalabalık yapıyordu.
@@ -2084,6 +2129,7 @@ function buildLake(b: WorldBuilder, taken: string[]) {
     const post = mesh(new THREE.CylinderGeometry(0.15, 0.15, p.y - gh, 6), toon('#ffffff'));
     post.position.set(p.x, gh + (p.y - gh) / 2, p.z);
     b.scene.add(post);
+    if (gh > 0) b.block(p.x, p.z, 0.3);
   });
   b.spot({
     id: 'waterslide', x: tx, z: tz - 3.2, r: 2.6, label: 'Su kaydırağından kay',
@@ -2533,10 +2579,18 @@ function buildFarm(b: WorldBuilder) {
   }
   // çit ve hayvanlar
   const px = F.x - 4, pz = F.z + 22;
+  // direkler ve aralarında iki sıra tahta: kapalı ağıl (ne koyunlar çıkar ne içinden geçilir)
+  const fp = (i: number): [number, number] => [px + Math.cos((i / 24) * Math.PI * 2) * 9, pz + Math.sin((i / 24) * Math.PI * 2) * 7];
   for (let i = 0; i < 24; i++) {
-    const a = (i / 24) * Math.PI * 2;
+    const [x, z] = fp(i), [x2, z2] = fp(i + 1);
     const post = mesh(new THREE.BoxGeometry(0.2, 1.2, 0.2), toon('#ffffff'));
-    b.place(post, px + Math.cos(a) * 9, pz + Math.sin(a) * 7, 0, 0.6);
+    b.place(post, x, z, 0, 0.6);
+    const len = Math.hypot(x2 - x, z2 - z), rot = Math.atan2(-(z2 - z), x2 - x);
+    for (const y of [0.45, 0.95]) {
+      const rail = mesh(new THREE.BoxGeometry(len, 0.12, 0.08), toon('#ffffff'), false);
+      b.place(rail, (x + x2) / 2, (z + z2) / 2, rot, y);
+    }
+    b.blockRect((x + x2) / 2, (z + z2) / 2, len + 0.2, 0.4, rot);
   }
   const sheep = () => {
     const g = new THREE.Group();

@@ -29,11 +29,19 @@
 - **Commit:** Türkçe mesaj, `main`'e gönderilir; GitHub Pages'e (https://ahmetercikan.github.io/Cizio/) otomatik yayınlanır.
 - **Ada ve dünyalar:**
   - `src/world/island.ts`: motor
-  - `layout.ts`: haritanın verisi (kıyı, bölgeler, yollar). Ada kuzeydoğuda bir yarımadayla büyüdü
-    (`CAPE`, `COAST_MAX`); plaj, deniz feneri gibi eski kıyı yerleri yerinde kaldı.
+  - `layout.ts`: haritanın verisi (kıyı, bölgeler, yollar). Ada iki yarımadayla büyüdü (`CAPES`, `COAST_MAX`):
+    kuzeydoğuda Şehir Merkezi, batı-güneybatıda Yarış Kıyısı; plaj, deniz feneri gibi eski kıyı yerleri yerinde kaldı.
+  - `raceCoast.ts`: Yarış Kıyısı (4 yarış kapısı, süreli Engel Parkuru, Trambolin Parkı, Balon Alanı).
+    `races.ts`: kapıların ardı: Kart Yarışı, Engelli Koşu, Volkan ve Buz Parkuru (rakipli; rakipler çocuğa göre
+    hızlanıp yavaşlar).
+  - Zıplama motoru (`jumpAssist.ts` + `island.ts` → `aimJump`): dünya `surfaces()` verirse (ya da adada
+    `b.surfaces`) çocuk platforma doğru zıplayınca üstüne iner, havada bir kez daha zıplar, düşünce son bastığı
+    yere döner; trambolin/mantar `hero.launch` ile fırlatır. **Yeni platform oyunları bunu kullanmalı.**
   - `zones.ts` / `places.ts`: bölgeler. Plajda denize konan şeyler (tekne, jet ski, sörf) kendi açısındaki kıyıya
     göre yerleşir (`sea(...)`); tek bir kıyı yarıçapı kullanılınca tekne karada kalıyordu.
-  - Engeller (`terrain.ts` → `BlockGrid`): daire ya da dikdörtgen. Binalar `blkRect` / `b.blockRect` ile
+  - Engeller (`terrain.ts` → `BlockGrid`): daire ya da dikdörtgen. Modelde (ya da içindeki parçada)
+    `userData.foot = { w, d }` / `{ r }` varsa `b.place` engeli kendisi koyar (tabela, bank, sütun, direk).
+    Yüksek basamaklar `Deck.tall`: üstünde durulur, yandan geçilmez. Binalar `blkRect` / `b.blockRect` ile
     dikdörtgen engellenir (daire sırası köşelerden içeri sokuyordu). Duran araçlar da içinden geçilmez
     (`island.ts` → `vehicleBlocker`, ölçü modelden çıkar).
   - İnşa: Minecraft gibi hızlı çubuk + Çanta (`FarmPanels.tsx` → `BuildBar`); seçili blok elde durur

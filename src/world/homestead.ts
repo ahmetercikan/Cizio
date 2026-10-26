@@ -618,15 +618,24 @@ export const REALMS = [
   { id: 'sky', name: 'Gökyüzü Parkuru', color: '#4dabf7', glow: '#bfe9ff', enter: 'Gökyüzü Parkuruna gir' },
   { id: 'candy', name: 'Şeker Diyarı', color: '#f783ac', glow: '#ffd1e8', enter: "Şeker Diyarı'na gir" },
 ] as const;
+/** Yarış Kıyısı'ndaki kapılar: yarışlar ve rakipli parkurlar (races.ts). */
+export const RACE_REALMS = [
+  { id: 'kart', name: 'Kart Yarışı', color: '#ff6b4a', glow: '#ffd1c2', enter: 'Kart Yarışına gir' },
+  { id: 'kosu', name: 'Engelli Koşu', color: '#f59f00', glow: '#fff1c7', enter: 'Engelli Koşuya gir' },
+  { id: 'volkan', name: 'Volkan Parkuru', color: '#e8590c', glow: '#ffc9a8', enter: 'Volkan Parkuruna gir' },
+  { id: 'buz', name: 'Buz Parkuru', color: '#4dabf7', glow: '#d0ecff', enter: 'Buz Parkuruna gir' },
+] as const;
+type Gate = { id: string; name: string; color: string; glow: string; enter: string };
 /** Binaların içi (adadaki ve Şehir Merkezi'ndeki kapılardan girilir). */
 export const INTERIORS = {
   okul: 'Okul', hastane: 'Hastane', market: 'Market', kutuphane: 'Kütüphane', pastane: 'Pastane', itfaiye: 'İtfaiye',
   avm: 'AVM', sinema: 'Sinema', otel: 'Otel', ofis: 'Ofis', apartman: 'Apartman', muze: 'Müze',
 } as const;
 export type InteriorId = keyof typeof INTERIORS;
-export type RealmId = (typeof REALMS)[number]['id'] | 'mars' | InteriorId;
-/** Dünyanın adı (macera kapıları, Mars, binalar). */
-export const realmName = (id: RealmId): string => REALMS.find((r) => r.id === id)?.name ?? (id === 'mars' ? 'Mars' : INTERIORS[id as InteriorId] ?? id);
+export type RealmId = (typeof REALMS)[number]['id'] | (typeof RACE_REALMS)[number]['id'] | 'mars' | InteriorId;
+/** Dünyanın adı (macera kapıları, yarışlar, Mars, binalar). */
+export const realmName = (id: RealmId): string =>
+  ([...REALMS, ...RACE_REALMS] as readonly Gate[]).find((r) => r.id === id)?.name ?? (id === 'mars' ? 'Mars' : INTERIORS[id as InteriorId] ?? id);
 
 export function buildPortals(b: WorldBuilder, enter: (id: RealmId) => void) {
   const P = zone('portal');
@@ -637,44 +646,48 @@ export function buildPortals(b: WorldBuilder, enter: (id: RealmId) => void) {
   REALMS.forEach((r, i) => {
     const a = Math.PI + (i - 1) * 0.75;
     const x = P.x + Math.cos(a) * 12, z = P.z + Math.sin(a) * 12;
-    const face = b.facing(x, z, P.x, P.z);
-    const g = new THREE.Group();
-    const ring = outline(mesh(new THREE.TorusGeometry(2.6, 0.45, 12, 32), toon(r.color)), 1.04);
-    ring.position.y = 3.2;
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(2.3, 32), new THREE.MeshBasicMaterial({ color: r.glow, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
-    disc.position.y = 3.2;
-    const swirl = new THREE.Mesh(new THREE.RingGeometry(0.4, 2.1, 32, 1, 0, Math.PI * 1.3), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
-    swirl.position.set(0, 3.2, 0.02);
-    for (const sx of [-2.6, 2.6]) {
-      const pil = outline(mesh(new THREE.BoxGeometry(0.9, 1.2, 0.9), toon('#d8d0c0')), 1.04);
-      pil.position.set(sx, 0.6, 0);
-      g.add(pil);
-    }
-    g.add(ring, disc, swirl);
-    b.place(g, x, z, face);
-    const sg = sign(r.name, r.glow, false);
-    b.place(sg, x - Math.sin(face) * 0.2, z - Math.cos(face) * 0.2, face, 4.4);
-    b.block(x + Math.cos(face) * 2.6, z - Math.sin(face) * 2.6, 0.7);
-    b.block(x - Math.cos(face) * 2.6, z + Math.sin(face) * 2.6, 0.7);
-    b.tick((_dt, t) => {
-      swirl.rotation.z = -t * 2;
-      (disc.material as THREE.MeshBasicMaterial).opacity = 0.7 + Math.sin(t * 3 + i) * 0.15;
-      if (Math.floor(t * 3) !== Math.floor((t - 0.016) * 3)) b.sparkles.burst(new THREE.Vector3(x, b.h(x, z) + 3.2, z), 2, r.glow);
-    });
-    const sx = x + Math.sin(face) * 2.4, sz = z + Math.cos(face) * 2.4;
-    b.spot({
-      id: `portal:${r.id}`, x: sx, z: sz, r: 3, label: r.enter,
-      act: {
-        dur: 1.1, pose: 'walk', quest: `portal`,
-        step: (_t, u, a) => {
-          a.pos.set(sx + (x - sx) * u, b.h(x, z), sz + (z - sz) * u);
-          a.heading = b.facing(sx, sz, x, z);
-        },
-        end: () => {
-          enter(r.id);
-        },
+    portalGate(b, r, x, z, b.facing(x, z, P.x, P.z), i, enter);
+  });
+}
+
+/** Işıl ışıl dönen bir kapı: önüne gelince "… gir" düğmesi çıkar, girince o dünyaya geçilir. */
+export function portalGate(b: WorldBuilder, r: Gate, x: number, z: number, face: number, i: number, enter: (id: RealmId) => void) {
+  const g = new THREE.Group();
+  const ring = outline(mesh(new THREE.TorusGeometry(2.6, 0.45, 12, 32), toon(r.color)), 1.04);
+  ring.position.y = 3.2;
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(2.3, 32), new THREE.MeshBasicMaterial({ color: r.glow, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+  disc.position.y = 3.2;
+  const swirl = new THREE.Mesh(new THREE.RingGeometry(0.4, 2.1, 32, 1, 0, Math.PI * 1.3), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+  swirl.position.set(0, 3.2, 0.02);
+  for (const sx of [-2.6, 2.6]) {
+    const pil = outline(mesh(new THREE.BoxGeometry(0.9, 1.2, 0.9), toon('#d8d0c0')), 1.04);
+    pil.position.set(sx, 0.6, 0);
+    g.add(pil);
+  }
+  g.add(ring, disc, swirl);
+  b.place(g, x, z, face);
+  const sg = sign(r.name, r.glow, false);
+  b.place(sg, x - Math.sin(face) * 0.2, z - Math.cos(face) * 0.2, face, 4.4);
+  b.block(x + Math.cos(face) * 2.6, z - Math.sin(face) * 2.6, 0.7);
+  b.block(x - Math.cos(face) * 2.6, z + Math.sin(face) * 2.6, 0.7);
+  b.tick((_dt, t) => {
+    swirl.rotation.z = -t * 2;
+    (disc.material as THREE.MeshBasicMaterial).opacity = 0.7 + Math.sin(t * 3 + i) * 0.15;
+    if (Math.floor(t * 3) !== Math.floor((t - 0.016) * 3)) b.sparkles.burst(new THREE.Vector3(x, b.h(x, z) + 3.2, z), 2, r.glow);
+  });
+  const sx = x + Math.sin(face) * 2.4, sz = z + Math.cos(face) * 2.4;
+  b.spot({
+    id: `portal:${r.id}`, x: sx, z: sz, r: 3, label: r.enter,
+    act: {
+      dur: 1.1, pose: 'walk', quest: `portal`,
+      step: (_t, u, a) => {
+        a.pos.set(sx + (x - sx) * u, b.h(x, z), sz + (z - sz) * u);
+        a.heading = b.facing(sx, sz, x, z);
       },
-    });
+      end: () => {
+        enter(r.id as RealmId);
+      },
+    },
   });
 }
 

@@ -9,11 +9,14 @@ import * as THREE from 'three';
 import { cloud, mesh, outline, Sparkles, star, toon, tree, shadowSize } from '../play3d/kit';
 import type { RealmId } from './homestead';
 import type { SpotDef } from './zones';
+import type { Surface } from './jumpAssist';
 
 export interface Hero {
   pos: THREE.Vector3;
   vy: number;
   grounded: boolean;
+  /** Dünya kahramanı fırlattı (mantar, trambolin): ada motoru bu hızla, yardımlı bir zıplama yapar. */
+  launch?: number;
 }
 
 export interface RealmEvents {
@@ -56,6 +59,11 @@ export abstract class Realm {
   heroScale = 1;
   /** Kahraman uzay kaskı takar. */
   helmet = false;
+  /**
+   * Platform oyunu: üstüne basılabilen yüzeyler. Verilirse ada motoru zıplamaya yardım eder (bakılan platforma
+   * indirir), havada bir kez daha zıplatır ve düşünce son basılan platforma geri koyar.
+   */
+  surfaces?(): Surface[];
   /** Çizimden önce (kameraya göre duvarları gizlemek gibi). */
   beforeRender?(camera: THREE.Camera, hero: THREE.Vector3): void;
   /** Ekranda görünen hedef. */
@@ -405,11 +413,24 @@ export class SkyRealm extends Realm {
     this.cam = [12, 8];
   }
 
+  private clockT = 0;
+  surfaces(): Surface[] {
+    return this.plats.map((p) => ({
+      x: p.x, y: p.y, z: p.z, w: p.w, d: p.d, round: p.bounce,
+      at: p.move
+        ? (dt: number) => {
+          const m = p.move!, v = m.base + Math.sin((this.clockT + dt) * m.sp + m.ph) * m.amp;
+          return { x: m.ax === 'x' ? v : p.x, y: m.ax === 'y' ? v : p.y, z: m.ax === 'z' ? v : p.z };
+        }
+        : undefined,
+    }));
+  }
   floor(x: number, z: number, y: number) {
     let best = -Infinity;
     for (const p of this.plats) {
       const r = p.bounce ? p.w / 2 : 0;
-      const inside = r ? Math.hypot(x - p.x, z - p.z) < r : Math.abs(x - p.x) <= p.w / 2 + 0.3 && Math.abs(z - p.z) <= p.d / 2 + 0.3;
+      // kenar payı: ayağın yarısı platformdaysa düşmez
+      const inside = r ? Math.hypot(x - p.x, z - p.z) < r + 0.3 : Math.abs(x - p.x) <= p.w / 2 + 0.45 && Math.abs(z - p.z) <= p.d / 2 + 0.45;
       if (inside && p.y <= y + 0.45 && p.y > best) best = p.y;
     }
     return best;
@@ -423,6 +444,7 @@ export class SkyRealm extends Realm {
   }
   update(dt: number, t: number, hero: Hero) {
     this.tick(dt);
+    this.clockT = t;
     for (const p of this.plats) {
       if (!p.move) continue;
       const v = p.move.base + Math.sin(t * p.move.sp + p.move.ph) * p.move.amp;
@@ -439,13 +461,14 @@ export class SkyRealm extends Realm {
     if (hero.grounded) {
       for (const p of this.plats) {
         const r = p.bounce ? p.w / 2 : 0;
-        const inside = r ? Math.hypot(hero.pos.x - p.x, hero.pos.z - p.z) < r : Math.abs(hero.pos.x - p.x) <= p.w / 2 + 0.3 && Math.abs(hero.pos.z - p.z) <= p.d / 2 + 0.3;
+        const inside = r ? Math.hypot(hero.pos.x - p.x, hero.pos.z - p.z) < r + 0.3 : Math.abs(hero.pos.x - p.x) <= p.w / 2 + 0.45 && Math.abs(hero.pos.z - p.z) <= p.d / 2 + 0.45;
         if (!inside || Math.abs(hero.pos.y - p.y) > 0.5) continue;
         hero.pos.x += p.dx;
         hero.pos.z += p.dz;
         hero.pos.y += Math.max(0, p.dy);
         if (p.bounce) {
-          hero.vy = 24;
+          // ada motoru bu hızla, bakılan platforma doğru fırlatır
+          hero.launch = 24;
           hero.grounded = false;
           this.ev.sound.pop();
           this.sparkles.burst(new THREE.Vector3(p.x, p.y + 0.5, p.z), 10, '#ffffff');
