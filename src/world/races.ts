@@ -12,6 +12,7 @@ import { carModel } from './cars';
 import { Realm, type Hero, type RealmEvents } from './realms';
 import type { Surface } from './jumpAssist';
 import type { Vehicle } from './zones';
+import { RACE_LINES as L } from './raceLines';
 
 /** Rakip: hazır bebeklerden biri, kendi kıyafetiyle. */
 function rivalAvatar(scene: THREE.Scene, i: number) {
@@ -22,7 +23,7 @@ function rivalAvatar(scene: THREE.Scene, i: number) {
 
 /** Yarış sırası (1 birinci). */
 const RANK_BONUS = [20, 12, 8, 5];
-const rankText = (r: number) => (r === 1 ? 'Birinci oldun, şampiyonsun!' : r === 2 ? 'İkinci oldun, çok iyi!' : `${r}. oldun, bir dahakine daha hızlı!`);
+const rankText = (r: number) => L.rank[Math.min(r, 4) - 1];
 
 /** Damalı bitiş bayrağı dokusu. */
 function checker(n = 8) {
@@ -70,11 +71,11 @@ interface PPlat {
 const THEMES = {
   volkan: {
     sky: '#ffb38a', fog: [70, 230] as [number, number], below: '#ff6a00', belowGlow: '#ff3d00', plats: ['#6b4f4f', '#7d5a50', '#5e4b56'], top: '#ff9f43',
-    goal: 'Lavın üstündeki taşlardan zıpla, bayrağa rakibinden önce ulaş!', rival: 'Pıtırcık',
+    goal: L.goalVolkan, start: L.rivalVolkan, rivalDone: L.rivalDoneVolkan, first: L.firstVolkan,
   },
   buz: {
     sky: '#d8f1ff', fog: [70, 230] as [number, number], below: '#7cc8f0', belowGlow: '#2a8ac4', plats: ['#e9f6ff', '#cfeaff', '#b9e1ff'], top: '#ffffff',
-    goal: 'Buz kütlelerinden zıpla, bayrağa rakibinden önce ulaş!', rival: 'Zıpzıp',
+    goal: L.goalBuz, start: L.rivalBuz, rivalDone: L.rivalDoneBuz, first: L.firstBuz,
   },
 };
 
@@ -87,7 +88,7 @@ export class ParkourRealm extends Realm {
   private found = 0;
   private flag = new THREE.Vector3();
   private rival: Avatar3D;
-  private rivalName: string;
+  private th: (typeof THEMES)['volkan'];
   /** Rakibin bulunduğu platform, atlayışın ilerlemesi ve bekleme. */
   private ri = 0;
   private rHop = -1;
@@ -106,7 +107,7 @@ export class ParkourRealm extends Realm {
     super(ev, th.sky, th.fog);
     this.id = id;
     this.goal = th.goal;
-    this.rivalName = th.rival;
+    this.th = th;
     this.killY = 4;
     this.cam = [12, 8];
     // aşağıda lav ya da buzlu su
@@ -220,7 +221,7 @@ export class ParkourRealm extends Realm {
     this.rPos.set(-1.5, 10, 2);
     this.rival.root.position.copy(this.rPos);
     this.rival.root.rotation.y = Math.PI;
-    this.ev.msg(`${this.rivalName} seninle yarışıyor! Hazır... başla!`);
+    this.ev.msg(th.start);
   }
 
   private platAt(p: PPlat, t: number) {
@@ -278,7 +279,7 @@ export class ParkourRealm extends Realm {
       this.rWait = 1.1 + ((this.ri * 37) % 10) / 12;
       if (this.ri >= last) {
         this.rivalDone = true;
-        if (!this.done) this.ev.msg(`${this.rivalName} bayrağa ulaştı! Sen de bitir, yıldızlar seni bekliyor.`);
+        if (!this.done) this.ev.msg(this.th.rivalDone);
       }
     }
   }
@@ -308,7 +309,7 @@ export class ParkourRealm extends Realm {
         }
         if (p.kind === 'check' && this.checkpoint.distanceTo(new THREE.Vector3(p.x, p.y, p.z)) > 1) {
           this.checkpoint.set(p.x, p.y, p.z);
-          this.ev.msg('Kontrol noktası!');
+          this.ev.msg(L.check);
           this.sparkles.burst(new THREE.Vector3(p.x, p.y + 1, p.z), 16, '#7cc760');
         }
         break;
@@ -340,7 +341,7 @@ export class ParkourRealm extends Realm {
       this.rivalDone = true;
       this.sparkles.burst(this.flag.clone().setY(this.flag.y + 3), 30);
       this.ev.sound.fx?.('cheer');
-      this.ev.finish(this.found * 2 + (first ? 12 : 4), first ? `${this.rivalName}'dan önce bitirdin, birincisin!` : 'Parkuru bitirdin, harikasın!');
+      this.ev.finish(this.found * 2 + (first ? 12 : 4), first ? this.th.first : L.parkourDone);
     }
     return super.update(dt, t, hero);
   }
@@ -360,7 +361,7 @@ const HURDLES = [-24, -38, -50, -92, -104, -156, -168, -216];
 
 export class RunRealm extends Realm {
   readonly id = 'kosu' as const;
-  goal = 'Engellerin üstünden zıpla, çukurları geç, bitiş çizgisine ilk sen ulaş!';
+  goal = L.goalKosu;
   icon = 'kupa';
   private stones: { x: number; y: number; z: number; w: number; d: number; move?: number; mesh: THREE.Object3D; dx: number }[] = [];
   private pads: { x: number; z: number; r: number }[] = [];
@@ -470,7 +471,7 @@ export class RunRealm extends Realm {
       av.root.rotation.y = Math.PI;
       this.rivals.push({ av, x, z: 2, sp, done: 0 });
     });
-    this.ev.msg('Hazır ol... 3, 2, 1!');
+    this.ev.msg(L.ready);
   }
 
   private inPit(z: number) {
@@ -534,9 +535,9 @@ export class RunRealm extends Realm {
       const before = Math.ceil(this.start);
       this.start -= dt;
       const now = Math.ceil(this.start);
-      if (now !== before && now > 0) this.ev.msg(`${now}`);
+      if (now !== before && now > 0) this.ev.msg(L.count[now - 1]);
       if (this.start <= 0) {
-        this.ev.msg('Koş!');
+        this.ev.msg(L.run);
         this.ev.sound.fx?.('whistle');
       }
     }
@@ -603,7 +604,7 @@ const HALF_W = 7;
 
 export class KartRealm extends Realm {
   readonly id = 'kart' as const;
-  goal = 'Karta bin, iki turu rakiplerinden önce bitir!';
+  goal = L.goalKart;
   icon = 'kupa';
   private pts: THREE.Vector3[] = [];
   private tans: THREE.Vector3[] = [];
@@ -764,16 +765,16 @@ export class KartRealm extends Realm {
     if (driving && !this.started) {
       this.started = true;
       this.count = 3.2;
-      this.ev.msg('Hazır ol... 3');
+      this.ev.msg(L.ready);
     }
     if (this.started && !this.go) {
       const before = Math.ceil(this.count);
       this.count -= dt;
       const now = Math.ceil(this.count);
-      if (now !== before && now > 0) this.ev.msg(`${now}`);
+      if (now !== before && now > 0) this.ev.msg(L.count[now - 1]);
       if (this.count <= 0) {
         this.go = true;
-        this.ev.msg('Başla!');
+        this.ev.msg(L.go);
         this.ev.sound.fx?.('whistle');
       }
     }
@@ -786,7 +787,7 @@ export class KartRealm extends Realm {
         this.lap++;
         this.half = false;
         if (this.lap < LAPS) {
-          this.ev.msg('Son tur!');
+          this.ev.msg(L.lastLap);
           this.ev.sound.fx?.('bell');
         }
       }

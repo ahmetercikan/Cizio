@@ -46,6 +46,10 @@ import { ISLAND_ONLINE } from '../online/config';
 import { useOnlineView } from '../online/OnlineHost';
 import type { Presence, RoomHandle } from '../online/rt';
 import { lockLandscape, unlockOrientation } from '../lib/orientation';
+import { RACE_VOICE_LINES } from '../world/raceLines';
+
+/** Yarışların sesli okunan cümleleri (öbür ada yazıları yalnızca ekranda). */
+const VOICED = new Set(RACE_VOICE_LINES);
 
 export default function World() {
   const owned = usePlus((s) => s.owned);
@@ -357,14 +361,20 @@ function IslandPlay() {
           onCollect: (id) => collectRef.current(id),
           onBusy: setBusy,
           onDrive: setDriving,
-          onMessage: flash,
+          onMessage: (t) => {
+            flash(t);
+            if (VOICED.has(t)) say(t);
+          },
           onPos: (x, z, h) => usePos.setState({ x, z, h }),
           onPage: (id) => pageRef.current(id),
           onRealm: (r) => {
             setRealm(r);
             setRealmProg('');
             setPanel(null);
-            if (r) flash(r.goal);
+            if (r) {
+              flash(r.goal);
+              if (VOICED.has(r.goal)) say(r.goal);
+            }
           },
           onRealmProgress: setRealmProg,
           onRealmFinish: (id, bonus, text) => finishRef.current(id, bonus, text),
@@ -621,7 +631,10 @@ function IslandPlay() {
     });
     sfx.fanfare();
     const name = realmName(id);
-    setTimeout(() => setRealmDone({ id, name, text, coins: r.s.coins - before }), 900);
+    setTimeout(() => {
+      setRealmDone({ id, name, text, coins: r.s.coins - before });
+      if (VOICED.has(text)) say(text);
+    }, 900);
   };
   const finishRef = useRef(finish);
   finishRef.current = finish;

@@ -30,6 +30,7 @@ import { DayNight } from './daynight';
 import { planJump, type Surface } from './jumpAssist';
 import { buildSports } from './sports';
 import { buildRaceCoast } from './raceCoast';
+import { RACE_LINES } from './raceLines';
 import type { Live } from '../online/rt';
 
 /** İnşa aracı: blok, silgi ya da çiftlik yapısı. */
@@ -1112,7 +1113,7 @@ export class Island {
       this.vel.set(0, 0, 0);
       this.assist = false;
       if (this.landRing) this.landRing.visible = false;
-      this.ev.onMessage('Hoppala! Son bastığın yere döndün.');
+      this.ev.onMessage(RACE_LINES.back);
       this.ev.sound.pop();
     }
   }

@@ -12,6 +12,7 @@ import { CHALLENGE_LINES, CHALLENGES } from '../lib/daily';
 import { ALIVE_LINE, GAME_END_LINES, GAME_LINES, GAME_LIVES_LINE } from '../art/lines';
 import { STORY_VOICE_LINES } from '../story/data';
 import { ISLAND_VOICE_LINES } from '../world/quests';
+import { RACE_VOICE_LINES } from '../world/raceLines';
 import { TRACE_VOICE_LINES } from '../trace/lines';
 import { MUZIK_MATEMATIK_ACIK } from '../lib/flags';
 import { PREF_ROUNDS } from './prefRounds';
@@ -59,6 +60,7 @@ export const STATIC_LINES: string[] = [
   GAME_LIVES_LINE,
   ...STORY_VOICE_LINES,
   ...ISLAND_VOICE_LINES,
+  ...RACE_VOICE_LINES,
   // Harf ve rakam yazma (src/trace)
   ...TRACE_VOICE_LINES,
   // Müzik Odası ve Matematik Parkı (şimdilik kapalı: src/lib/flags.ts)

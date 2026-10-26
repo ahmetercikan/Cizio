@@ -11,6 +11,7 @@ import { mesh, outline, toon } from '../play3d/kit';
 import { zone } from './layout';
 import { portalGate, RACE_REALMS, type RealmId } from './homestead';
 import { sign, type WorldBuilder } from './zones';
+import { RACE_LINES as L } from './raceLines';
 
 export function buildRaceCoast(b: WorldBuilder, enter: (id: RealmId) => void) {
   const R = zone('race');
@@ -106,7 +107,7 @@ export function buildRaceCoast(b: WorldBuilder, enter: (id: RealmId) => void) {
           t0 = now;
           last = 0;
           sound.fx?.('whistle');
-          return 'Süre başladı! Direklerden zıpla, bayrağa ulaş!';
+          return L.courseStart;
         },
       },
     });
@@ -141,7 +142,7 @@ export function buildRaceCoast(b: WorldBuilder, enter: (id: RealmId) => void) {
           p.set(q.x, q.y, q.z);
           h.vy = 0;
           sound.pop();
-          b.say('Hoppala, çamura düştün! Son direğe döndün.');
+          b.say(L.mud);
         }
       }
     });
@@ -198,7 +199,7 @@ export function buildRaceCoast(b: WorldBuilder, enter: (id: RealmId) => void) {
           b.sparkles.burst(r.obj.position.clone(), 14, '#ffd43b');
           if (got === rings.length) {
             sound.fx?.('cheer');
-            b.say('Bütün halkalardan geçtin, uçan bir şampiyonsun!');
+            b.say(L.rings);
             resetAt = t + 8;
           } else b.say(`Halka ${got}/${rings.length}`);
         }
@@ -261,7 +262,7 @@ export function buildRaceCoast(b: WorldBuilder, enter: (id: RealmId) => void) {
           b.sparkles.burst(o.clone(), 12, bcols[bl.ph % bcols.length]);
           if (popped === balloons.length) {
             sound.fx?.('cheer');
-            b.say('Bütün balonları patlattın! Yenileri geliyor.');
+            b.say(L.balloons);
             respawn = t + 6;
           }
         }
