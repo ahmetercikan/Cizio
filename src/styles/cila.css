@@ -1,0 +1,111 @@
+/*
+ * İsim Şehir'in cilası (kullanıcının istediği kalite referansı, ~/isimo): canlı renk geçişli kartlar, beyaz başlık,
+ * yarı saydam çipler, büyük beyaz "Gir" düğmesi, 3B alt kenar; maskotlu konuşma balonu.
+ * Yerleşim (telefon / tablet / yatay) english.css ve landscape.css'te; burası yalnızca görünüm.
+ */
+
+/* ---------- Karşılama: konuşma balonu + maskot ---------- */
+.worlds__hello-row { flex: none; position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 120px; }
+.worlds__hello-row .hello {
+  position: relative;
+  max-width: 68%;
+  padding: 14px 18px 15px;
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--line-2), 0 10px 22px rgba(122, 72, 40, 0.12);
+  transform: rotate(-2deg);
+}
+.worlds__hello-row .hello::after {
+  content: '';
+  position: absolute;
+  right: -14px;
+  bottom: 22px;
+  border: 12px solid transparent;
+  border-left: 16px solid #fff;
+  border-right: 0;
+}
+.worlds__hello-row .hello b { display: block; font-family: var(--display); font-weight: 700; font-size: 22px; line-height: 1.15; overflow-wrap: anywhere; }
+.worlds__hello-row .hello h1 { margin: 3px 0 0; font-family: var(--font); font-weight: 700; font-size: 15px; color: var(--muted); }
+.worlds__mascot { flex: none; margin-right: 6px; filter: drop-shadow(0 10px 12px rgba(40, 110, 90, 0.18)); }
+
+/* ---------- Dünya kartları ---------- */
+.world-card {
+  border: 0;
+  color: #fff;
+  background: var(--world-grad);
+  box-shadow: 0 6px 0 var(--world-dark), 0 16px 30px rgba(122, 72, 40, 0.2);
+}
+/* resmin arkasında yumuşak ışık */
+.world-card::before {
+  content: '';
+  position: absolute;
+  left: -40px;
+  top: 50%;
+  width: 240px;
+  height: 240px;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.26), transparent);
+  pointer-events: none;
+}
+.world-card--atolye { --world-grad: linear-gradient(120deg, #ff7f5c, #fb5a72 60%, #f5527c); --world-dark: #c93a4f; --world-accent: #e5343d; }
+.world-card--studyo { --world-grad: linear-gradient(120deg, #b58aff, #8a5cf0); --world-dark: #5b3bb8; --world-accent: #6a43d8; }
+.world-card--english { --world-grad: linear-gradient(120deg, #4fb1ff, #3f78e6); --world-dark: #2a55b0; --world-accent: #2f63cc; }
+.world-card--ada { --world-grad: linear-gradient(120deg, #34c8c6, #1fa88f); --world-dark: #0f7d6c; --world-accent: #0d8074; }
+.world-card--muzik { --world-grad: linear-gradient(120deg, #a87cff, #7d58ee); --world-dark: #4b33a8; --world-accent: #5a3fd6; }
+.world-card--matematik { --world-grad: linear-gradient(120deg, #4fd38a, #22a96a); --world-dark: #17804f; --world-accent: #17804f; }
+
+.world-card__text { position: relative; }
+.world-card__text b { color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.12); }
+.world-card__text small { color: #fff; opacity: 0.96; }
+
+/* durum: yarı saydam çip; tamamlandıysa beyaz */
+.world-card__status { background: rgba(255, 255, 255, 0.24); color: #fff; font-size: 13px; }
+.world-card__status.done { background: #fff; color: var(--green); }
+.world-card__status--plus { background: linear-gradient(180deg, #ffe07a, #ffb526); color: #6b3f00; box-shadow: 0 2px 0 #d98e00; }
+
+/* resim kutusu: renkli zeminde açık bir pencere */
+.world-art { background: rgba(255, 255, 255, 0.9); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.06); }
+.world-art--ada { background: linear-gradient(#d6f3ff, #f2fbff); }
+
+/* Gir düğmesi + küçük ok (eski yuvarlak ok yerine) */
+.world-card__row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.world-card__cta {
+  flex: 1;
+  min-width: 0;
+  max-width: 260px;
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--world-accent);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 22px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.16), 0 8px 16px rgba(0, 0, 0, 0.12);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.world-card:active .world-card__cta { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.16); }
+.world-card__more {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+/* Yatay telefon / kısa ekran: balon ve maskot küçük, kartlara yer kalsın */
+@media (max-height: 520px) {
+  .worlds__hello-row { min-height: 0; margin: 0 0 10px; }
+  .worlds__hello-row .hello { padding: 8px 14px 9px; border-radius: 18px; }
+  .worlds__hello-row .hello b { font-size: 17px; }
+  .worlds__hello-row .hello h1 { font-size: 13px; }
+  .worlds__mascot { width: 58px !important; height: 58px !important; }
+  .world-card__cta { min-height: 42px; font-size: 18px; }
+}

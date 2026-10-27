@@ -12,6 +12,7 @@ import './styles/online.css';
 import './styles/magic.css';
 import './styles/plus.css';
 import './styles/premium.css';
+import './styles/cila.css';
 import './styles/landscape.css';
 
 // Çevrimdışı çalışma ve "Ana ekrana ekle" için servis çalışanı; yeni sürüm gelince kendini günceller.

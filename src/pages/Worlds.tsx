@@ -2,7 +2,7 @@
  * Açılış: üç dünyadan birini seç — Çizim Atölyesi, Giydirme Stüdyosu, English Club.
  * Seçilen dünyanın kendi sekmeleri gelir; üst çubuktaki dünya adına dokununca buraya dönülür.
  */
-import { Check, ChevronRight, Crown, Music, Calculator } from 'lucide-react';
+import { Check, ChevronRight, Crown, Music, Calculator, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppBar, WORLDS, type WorldId } from '../components/AppShell';
 import { Doodles } from '../components/Doodles';
@@ -104,9 +104,12 @@ export default function Worlds() {
       <Doodles variant={0} />
       <AppBar />
       <main className="worlds__main">
-        <header className="worlds__head rise">
-          <p className="sub">{greeting()}, {profile.name}!</p>
-          <h1 className="title-xl">Bugün nereye gidelim?</h1>
+        <header className="worlds__head worlds__hello-row rise">
+          <div className="hello">
+            <b>{greeting()}, {profile.name}!</b>
+            <h1>Bugün nereye gidelim?</h1>
+          </div>
+          <Mascot size={120} mood="cheer" className="worlds__mascot float" />
         </header>
         <div className={`worlds__grid worlds__grid--${MUZIK_MATEMATIK_ACIK ? 6 : 4}`}>
           {CARDS.map(({ id, sub, Art }, i) => (
@@ -118,8 +121,11 @@ export default function Worlds() {
                 <span className={`world-card__status ${status[id].done ? 'done' : ''}`}>
                   {status[id].done && <Check size={16} strokeWidth={3.4} />} {status[id].text}
                 </span>
+              <span className="world-card__row" aria-hidden="true">
+                <span className="world-card__cta"><Play size={20} fill="currentColor" strokeWidth={2} /> {id === 'english' ? "Let's go" : 'Gir'}</span>
+                <span className="world-card__more"><ChevronRight size={22} strokeWidth={3} /></span>
               </span>
-              <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
+            </span>
             </Link>
           ))}
           <Link to="/ada" className="world-card world-card--ada rise" style={{ animationDelay: '0.24s' }}
@@ -131,8 +137,11 @@ export default function Worlds() {
               <span className={`world-card__status ${plus ? '' : 'world-card__status--plus'}`}>
                 {plus ? 'Adada bugünkü görevler hazır' : <><Crown size={15} /> Çizio Premium</>}
               </span>
+              <span className="world-card__row" aria-hidden="true">
+                <span className="world-card__cta"><Play size={20} fill="currentColor" strokeWidth={2} /> Oyna</span>
+                <span className="world-card__more"><ChevronRight size={22} strokeWidth={3} /></span>
+              </span>
             </span>
-            <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>
           </Link>
           {MUZIK_MATEMATIK_ACIK && (
             <>
