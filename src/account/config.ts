@@ -3,7 +3,7 @@
  * Project settings → API keys → "Public app-specific API keys". Boşken satın alma kapalı kalır.
  */
 export const RC_KEYS = {
-  android: '',
+  android: 'goog_VmKPXoHGdxroCXSdKZDObndtXyN',
   ios: '',
 };
 

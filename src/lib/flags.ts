@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 /**
  * Şimdilik kapalı bölümler.
  *
@@ -20,8 +21,11 @@ const devFlag = (key: string) => {
     return false;
   }
 };
-/** Yayında açmak için `true` yapılır. */
-const PREMIUM_YAYINDA = false;
+/**
+ * Yayında açık mı: telefon/tablet uygulamasında açık (satın alma Google Play'den). Web'de satın alma olmadığı için
+ * web şimdilik ücretsiz kalır; web'i de kilitlemek için `true` yapılır.
+ */
+const PREMIUM_YAYINDA: boolean = Capacitor.isNativePlatform();
 export const PREMIUM_ACIK: boolean = PREMIUM_YAYINDA || devFlag('cizio-premium-ac');
 
 /**
