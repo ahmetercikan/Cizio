@@ -28,7 +28,10 @@ hiçbir yerde görünmez. Aşağıdaki adımlar bitince Claude anahtarları ekle
 
 Play Console → **Ayarlar → Ödeme profili**. Yoksa oluşturun: ülke Türkiye, ad/adres, IBAN, vergi bilgileri. Onay birkaç gün sürebilir.
 
-### 2) Firebase: giriş yöntemlerini açın
+### 2) Firebase: giriş yöntemlerini açın — YAPILDI (27 Ekim 2026)
+
+E-posta/Şifre ve Apple açıldı, `firestore.rules` yayınlandı, `HESAP_YAYINDA = true` (web'de açık; telefonda 1.8.0 ile).
+
 
 Firebase konsolu → proje **cizio-5a08c** → **Authentication → Sign-in method**:
 - **E-posta/Şifre** → Etkinleştir → Kaydet (yalnızca ilk anahtar; "E-posta bağlantısı" kapalı kalsın).

@@ -29,5 +29,5 @@ export const PREMIUM_ACIK: boolean = PREMIUM_YAYINDA || devFlag('cizio-premium-a
  * Açmadan önce Firebase'de E-posta/Şifre girişi açık ve firestore.rules yayında olmalı.
  * Geliştirmede localStorage 'cizio-hesap-ac' = '1'.
  */
-const HESAP_YAYINDA = false;
+const HESAP_YAYINDA = true;
 export const HESAP_ACIK: boolean = HESAP_YAYINDA || PREMIUM_ACIK || devFlag('cizio-hesap-ac');
