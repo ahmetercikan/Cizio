@@ -5,14 +5,17 @@
  *   ağırlıklı olarak çocuklara yönelik uygulamalarda "Google ile giriş"e izin vermiyor.
  * - Ayrı bir Firebase uygulaması ('hesap'): çevrimiçi arkadaş özellikleri cihazın anonim oturumuyla sürer
  *   (online/client.ts), hesaba girip çıkmak onları bozmaz.
- * - Hesap yalnızca e-posta ve kimlik tutar; çocuğun adı, çizimleri ya da ilerlemesi hesaba gönderilmez.
+ * - Hesap e-posta ve kimlik tutar; girişliyken profillerin ilerlemesi hesaba yedeklenir (sync.ts). Çizimler cihazda kalır.
  * - Firebase ilk kez ebeveyn bölümü açılınca (ya da daha önce giriş yapılmışsa açılışta) yüklenir.
  */
 import { Capacitor } from '@capacitor/core';
 import type { Auth, User } from 'firebase/auth';
 import { create } from 'zustand';
-import { FIREBASE_CONFIG, USE_EMULATOR } from '../online/config';
+import { EMU, FIREBASE_CONFIG, USE_EMULATOR } from '../online/config';
+import { HESAP_ACIK } from '../lib/flags';
 import { identify } from './membership';
+import { deleteCloud, startSync, stopSync } from './sync';
+import type { FirebaseApp } from 'firebase/app';
 
 export interface AccountUser {
   uid: string;
@@ -38,11 +41,12 @@ const signedBefore = () => {
 export const useAccount = create<AccountState>(() => ({ ready: false, user: null }));
 
 export const appleAvailable = () => Capacitor.getPlatform() === 'ios';
-export const accountAvailable = () => USE_EMULATOR || FIREBASE_CONFIG !== null;
+export const accountAvailable = () => HESAP_ACIK && (USE_EMULATOR || FIREBASE_CONFIG !== null);
 
 type FA = typeof import('firebase/auth');
 let fa: FA;
 let auth: Auth | null = null;
+let app: FirebaseApp;
 let starting: Promise<Auth> | null = null;
 
 const toUser = (u: User | null): AccountUser | null =>
@@ -56,13 +60,13 @@ export function startAccount(): Promise<Auth> {
   starting = (async () => {
     const [{ initializeApp, getApps }, f] = await Promise.all([import('firebase/app'), import('firebase/auth')]);
     fa = f;
-    const app =
+    app =
       getApps().find((a) => a.name === 'hesap') ??
       initializeApp(USE_EMULATOR ? { projectId: 'demo-cizio', apiKey: 'demo-key', authDomain: 'localhost' } : FIREBASE_CONFIG!, 'hesap');
     // Açılır pencere çözücüsü yok (Android WebView'de sorun çıkarır); Apple girişi yerel eklentiyle yapılır.
     auth = f.initializeAuth(app, { persistence: [f.indexedDBLocalPersistence, f.browserLocalPersistence] });
     auth.languageCode = 'tr';
-    if (USE_EMULATOR) f.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    if (USE_EMULATOR) f.connectAuthEmulator(auth, `http://127.0.0.1:${EMU.auth}`, { disableWarnings: true });
     f.onAuthStateChanged(auth, (u) => {
       const user = toUser(u);
       useAccount.setState({ ready: true, user });
@@ -72,6 +76,9 @@ export function startAccount(): Promise<Auth> {
         /* yok say */
       }
       void identify(user?.uid ?? null);
+      // ilerleme eşitlemesi: girişte hesaptakiyle birleşir, sonra değişiklikler hesaba yazılır
+      if (user) void startSync(app, user.uid).catch((e) => import.meta.env.DEV && console.warn('eşitleme başlamadı', e));
+      else stopSync();
     });
     return auth;
   })();
@@ -99,6 +106,7 @@ export function authMessage(e: unknown): string {
     'auth/network-request-failed': 'İnternet bağlantısı yok. Bağlantıyı kontrol edip tekrar deneyin.',
     'auth/requires-recent-login': 'Güvenlik için şifrenizi yeniden girmeniz gerekiyor.',
     'auth/user-disabled': 'Bu hesap kapatılmış.',
+    'auth/operation-not-allowed': 'Hesap açma şu an kapalı. Biraz sonra tekrar deneyin.',
   };
   if ((e as { message?: string })?.message?.includes('canceled') || code === '1001') return '';
   return map[code] ?? 'Bir sorun oldu. Biraz sonra tekrar deneyin.';
@@ -171,5 +179,6 @@ export async function deleteAccount(password?: string) {
   } else {
     await fa.reauthenticateWithCredential(u, fa.EmailAuthProvider.credential(u.email ?? '', password ?? ''));
   }
+  await deleteCloud(app, u.uid);
   await fa.deleteUser(u);
 }

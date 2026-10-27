@@ -166,7 +166,7 @@ export interface CompleteInput {
   minutes: number;
 }
 
-interface AppState {
+export interface AppState {
   profiles: Profile[];
   activeId?: string;
   data: Record<string, ProfileData>;

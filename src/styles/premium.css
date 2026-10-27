@@ -170,9 +170,13 @@
 .parent-premium__icon {
   display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: var(--teal-soft); color: var(--teal-dark);
 }
-.parent-premium__icon.is-on, .parent-premium__row:first-child .parent-premium__icon {
+.parent-premium__icon.is-gold {
   background: linear-gradient(180deg, #ffe07a, #ffb526); color: #6b3f00; box-shadow: 0 3px 0 #d98e00;
 }
+.parent-premium__row.is-nudge { background: var(--coral-soft); }
+.parent-premium__row.is-nudge b { color: var(--coral-dark); }
+.account__sync { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--teal-soft); color: var(--teal-dark); font-weight: 700; text-align: left; }
+.account__sync span { flex: 1; }
 .rate-card { display: grid; gap: 8px; }
 .rate-card__stars { display: flex; gap: 4px; color: var(--sun); }
 .rate-card .muted { margin: 0; font-weight: 600; }

@@ -135,5 +135,26 @@ service cloud.firestore {
         && (request.resource.data.moves.size() == resource.data.moves.size() || resource.data.turnOf in myPids(resource.data));
       allow delete: if isMember(resource.data);
     }
+
+    // ---------------------------------------------------------------- ebeveyn hesabı: ilerleme yedeği
+    // Yalnızca hesabın kendisi (e-posta/Apple ile girilmiş, anonim değil) okur ve yazar. Profil ilerlemesi
+    // profil başına ayrı belgede, sıkıştırılmış metin olarak durur (src/account/sync.ts).
+    function accountOwner(acc) {
+      return signedIn() && uid() == acc && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    match /hesaplar/{acc} {
+      allow read, delete: if accountOwner(acc);
+      allow create, update: if accountOwner(acc)
+        && request.resource.data.keys().hasOnly(['v', 'profiles', 'settings', 'activeId', 'deleted', 'updatedAt', 'device'])
+        && request.resource.data.profiles is list && request.resource.data.profiles.size() <= 12
+        && request.resource.data.deleted is list && request.resource.data.deleted.size() <= 200;
+      match /profiller/{pid} {
+        allow read, delete: if accountOwner(acc);
+        allow create, update: if accountOwner(acc)
+          && request.resource.data.keys().hasOnly(['z', 'j', 'updatedAt', 'device'])
+          && (!('z' in request.resource.data) || request.resource.data.z is string)
+          && (!('j' in request.resource.data) || request.resource.data.j is string);
+      }
+    }
   }
 }

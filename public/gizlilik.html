@@ -76,12 +76,14 @@
         rastgele bir uygulama kimliği (hesap açtıysanız hesabınızın kimliği), satın alınan ürün, satın alma ve yenilenme tarihleri ile mağazanın
         satın alma makbuzu iletilir. Bu bilgiler yalnızca aboneliği tanımak için kullanılır; reklam ya da izleme için kullanılmaz.
         (<a href="https://www.revenuecat.com/privacy">RevenueCat gizlilik politikası</a>)</li>
-      <li><strong>Ebeveyn hesabı (isteğe bağlı):</strong> Premium'un yeni telefonda da açık olması için ebeveyn e-posta ve şifreyle
-        (iPhone/iPad'de "Apple ile giriş"le) hesap açabilir. Hesapta yalnızca e-posta adresi ve hesap kimliği tutulur (Google Firebase Authentication).
-        Çocuğun adı, çizimleri ve ilerlemesi hesaba gönderilmez; cihazda kalır.</li>
+      <li><strong>Ebeveyn hesabı (isteğe bağlı):</strong> Premium'un ve çocuğun ilerlemesinin yeni telefonda da açık olması için ebeveyn
+        e-posta ve şifreyle (iPhone/iPad'de "Apple ile giriş"le) hesap açabilir (Google Firebase Authentication). Hesap açıkken şu bilgiler
+        hesaba yedeklenir (Google Cloud Firestore, aktarımda şifreli): e-posta adresi, hesap kimliği, çocuk profillerinin takma adı ve avatarı,
+        ilerleme (tamamlanan dersler, yıldızlar, çıkartmalar, giydirme seçimleri, ada ve English Club ilerlemesi) ve uygulama ayarları.
+        Bu yedeği yalnızca o hesap okuyabilir. <strong>Çizimler ve fotoğraflar hesaba gönderilmez</strong>; cihazda kalır.</li>
       <li><strong>Hesabı silme:</strong> Ebeveyn bölümü → Hesabınız → <em>Hesabı sil</em>. Uygulama yüklü değilse aynı işlemi
-        <a href="https://ahmetercikan.github.io/Cizio/#/hesap?sil=1">bu sayfadan</a> giriş yaparak yapabilirsiniz. Hesap ve e-posta hemen ve
-        kalıcı olarak silinir. Abonelik mağazada sürer; iptal için Google Play ya da App Store abonelik ayarlarını kullanın.</li>
+        <a href="https://ahmetercikan.github.io/Cizio/#/hesap?sil=1">bu sayfadan</a> giriş yaparak yapabilirsiniz. Hesap, e-posta ve hesaptaki ilerleme
+        yedeği hemen ve kalıcı olarak silinir (cihazdaki ilerleme yerinde kalır). Abonelik mağazada sürer; iptal için Google Play ya da App Store abonelik ayarlarını kullanın.</li>
     </ul>
   </div>
 
@@ -127,7 +129,9 @@
     on both sides; there is no chat, search or matchmaking. No email, phone number, real name, location, photos or advertising ID are collected. Live duel records are deleted after 1 day, other game records after 30 days, and turning the feature off deletes the child's online data.
     Çizio Premium is an optional monthly or yearly subscription sold only from the locked parent area; payment is handled by Google Play or the App Store,
     and RevenueCat verifies the subscription (random app user ID or account ID, product and purchase dates, store receipt). Parents may create an optional
-    account (email and password, or Sign in with Apple) so Premium carries over to a new device; only the email address and account ID are stored.
+    account (email and password, or Sign in with Apple) so Premium and the child's progress carry over to a new device; the account stores the email
+    address, account ID, child profile nicknames and avatars, progress and settings in Google Cloud Firestore, readable only by that account.
+    Drawings and photos are never uploaded.
     The account can be deleted in the app (Parent area → Account → Delete account) or at https://ahmetercikan.github.io/Cizio/#/hesap?sil=1.</p>
 </main>
 </body>

@@ -2,7 +2,7 @@
  * Ebeveyn bölümü: hesap ve Premium özeti, bir de mağazada puan isteği.
  * Puan isteği çocuğa değil, ebeveyn bölümünde gösterilir (çocuk uygulamalarında oyun ortasında istek kurallara aykırı).
  */
-import { ChevronRight, Crown, Star, UserRound } from 'lucide-react';
+import { ChevronRight, CloudCheck, Crown, Star, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
@@ -11,35 +11,56 @@ import { PREMIUM_ACIK } from '../lib/flags';
 import { STORE_LINKS } from './config';
 import { startAccount, useAccount, accountAvailable } from './auth';
 import { useMembership } from './membership';
+import { useSync } from './sync';
 
 export function ParentAccount() {
   const nav = useNavigate();
   const user = useAccount((s) => s.user);
   const premium = useMembership((s) => s.premium);
+  const sync = useSync();
+  const lessonsDone = useApp((s) => Object.values(s.data).reduce((n, d) => n + Object.keys(d?.lessons ?? {}).length, 0));
   useEffect(() => {
-    if (PREMIUM_ACIK && accountAvailable()) void startAccount().catch(() => {});
+    if (accountAvailable()) void startAccount().catch(() => {});
   }, []);
-  if (!PREMIUM_ACIK) return null;
+  if (!accountAvailable() && !PREMIUM_ACIK) return null;
+  // Hesap yoksa ve çocuk ilerlemeye başladıysa nazik hatırlatma (PK XD'deki "kaydol, ilerlemen kaybolmasın" gibi)
+  const nudge = !user && lessonsDone >= 3;
   return (
     <section className="paper-card settings-card parent-premium">
-      <button className="parent-premium__row" onClick={() => nav('/premium', { state: { gated: true } })}>
-        <span className={`parent-premium__icon ${premium ? 'is-on' : ''}`}><Crown size={24} /></span>
-        <span>
-          <b>{premium ? 'Çizio Premium açık' : "Çizio Premium'a geçin"}</b>
-          <small>{premium ? 'Bütün dersler, English Club ve Çizio Adası açık' : 'Bütün dersler, English Club ve Çizio Adası · 7 gün ücretsiz'}</small>
-        </span>
-        <ChevronRight size={22} />
-      </button>
-      <button className="parent-premium__row" onClick={() => nav('/hesap', { state: { gated: true } })}>
-        <span className="parent-premium__icon"><UserRound size={24} /></span>
-        <span>
-          <b>{user ? 'Hesabınız' : 'Hesap açın ya da giriş yapın'}</b>
-          <small>{user ? user.email ?? 'Apple ile giriş' : 'Premium yeni telefonda da açık kalsın'}</small>
-        </span>
-        <ChevronRight size={22} />
-      </button>
+      {PREMIUM_ACIK && (
+        <button className="parent-premium__row" onClick={() => nav('/premium', { state: { gated: true } })}>
+          <span className={`parent-premium__icon is-gold ${premium ? 'is-on' : ''}`}><Crown size={24} /></span>
+          <span>
+            <b>{premium ? 'Çizio Premium açık' : "Çizio Premium'a geçin"}</b>
+            <small>{premium ? 'Bütün dersler, English Club ve Çizio Adası açık' : 'Bütün dersler, English Club ve Çizio Adası · 7 gün ücretsiz'}</small>
+          </span>
+          <ChevronRight size={22} />
+        </button>
+      )}
+      {accountAvailable() && (
+        <button className={`parent-premium__row ${nudge ? 'is-nudge' : ''}`} onClick={() => nav('/hesap', { state: { gated: true } })}>
+          <span className="parent-premium__icon">{user ? <CloudCheck size={24} /> : <UserRound size={24} />}</span>
+          <span>
+            <b>{user ? 'Hesabınız' : nudge ? 'İlerleme kaybolmasın: hesap açın' : 'Hesap açın ya da giriş yapın'}</b>
+            <small>
+              {user
+                ? `${user.email ?? 'Apple ile giriş'} · ${syncText(sync.status, sync.last)}`
+                : 'Yıldızlar, dersler ve ada yeni telefonda da sizinle olsun'}
+            </small>
+          </span>
+          <ChevronRight size={22} />
+        </button>
+      )}
     </section>
   );
+}
+
+/** Eşitleme durumunun kısa yazısı. */
+export function syncText(status: string, last?: number) {
+  if (status === 'syncing') return 'yedekleniyor…';
+  if (status === 'error') return 'yedeklenemedi, internet gelince tekrar denenecek';
+  if (last) return `ilerleme yedeklendi (${new Date(last).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`;
+  return 'ilerleme yedekleniyor';
 }
 
 const RATE_KEY = 'cizio-puan';

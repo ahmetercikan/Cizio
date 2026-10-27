@@ -3,7 +3,7 @@
  * girişliyken Premium durumu, çıkış ve hesabı silme. Web'de de çalışır: Google Play'in istediği
  * "hesap silme bağlantısı" https://ahmetercikan.github.io/Cizio/#/hesap?sil=1
  */
-import { ArrowLeft, Crown, Eye, EyeOff, Loader2, LogOut, Mail, Trash2 } from 'lucide-react';
+import { ArrowLeft, CloudCheck, Crown, Eye, EyeOff, Loader2, LogOut, Mail, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Doodles } from '../components/Doodles';
@@ -14,6 +14,8 @@ import {
   useAccount,
 } from '../account/auth';
 import { useMembership } from '../account/membership';
+import { flush, useSync } from '../account/sync';
+import { syncText } from '../account/ParentAccount';
 import { PREMIUM_ACIK } from '../lib/flags';
 
 export default function AccountPage() {
@@ -92,7 +94,7 @@ function SignForm() {
       <p className="sub">
         {mode === 'reset'
           ? 'E-posta adresinizi yazın; şifrenizi yenilemeniz için bir bağlantı gönderelim.'
-          : 'Premium başka bir telefonda ya da tablette de açık olsun. Hesap yalnızca e-postanızı tutar; çocuğunuzun bilgileri hesaba gönderilmez.'}
+          : 'Çocuğunuzun yıldızları, dersleri, giydirdiği karakteri ve adası yeni telefonda ya da tablette de sizinle olsun. Hesap e-postanızı ve ilerlemeyi saklar; çizimler cihazda kalır.'}
       </p>
       {mode !== 'reset' && (
         <div className="seg-light account__seg" role="tablist">
@@ -167,12 +169,26 @@ function SignedIn({ wantDelete }: { wantDelete: boolean }) {
           <button className="pill pill--sm" onClick={() => nav('/premium', { state: { gated: true } })}>{m.premium ? 'Ayrıntılar' : "Premium'a geç"}</button>
         </div>
       )}
+      <SyncRow />
       <div className="account__actions">
         <button className="btn-outline btn-outline--sm" onClick={() => void logout()}><LogOut size={18} /> Çıkış yap</button>
         <button className="btn-outline btn-outline--sm account__danger" onClick={() => setDel(true)}><Trash2 size={18} /> Hesabı sil</button>
       </div>
       {del && <DeleteModal apple={user.apple} onClose={() => setDel(false)} />}
     </section>
+  );
+}
+
+function SyncRow() {
+  const { status, last } = useSync();
+  return (
+    <div className="account__sync">
+      <CloudCheck size={22} />
+      <span>{(([c, ...r]) => c.toLocaleUpperCase('tr-TR') + r.join(''))(syncText(status, last))}</span>
+      <button className="btn-outline btn-outline--sm" disabled={status === 'syncing'} onClick={() => void flush()} aria-label="Şimdi yedekle">
+        <RefreshCw size={16} className={status === 'syncing' ? 'spin' : ''} /> Şimdi
+      </button>
+    </div>
   );
 }
 
@@ -197,7 +213,7 @@ function DeleteModal({ apple, onClose }: { apple: boolean; onClose: () => void }
         <Trash2 size={36} color="var(--red)" />
         <h2 className="title-lg">Hesap silinsin mi?</h2>
         <p className="sub">
-          Hesabınız ve e-postanız kalıcı olarak silinir. Çocuğunuzun çizimleri ve ilerlemesi bu cihazda kalır. Aboneliğiniz varsa
+          Hesabınız, e-postanız ve hesaptaki ilerleme yedeği kalıcı olarak silinir. Çocuğunuzun çizimleri ve ilerlemesi bu cihazda kalır. Aboneliğiniz varsa
           mağazada sürer: iptal etmek için Google Play ya da App Store abonelik ayarlarını kullanın.
         </p>
         {!apple && (

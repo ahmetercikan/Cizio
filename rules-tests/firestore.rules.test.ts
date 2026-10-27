@@ -129,3 +129,30 @@ describe('canlı düello ve birlikte boyama', () => {
     await assertFails(as('uidX').doc('coops/k1').get());
   });
 });
+
+describe('ebeveyn hesabı: ilerleme yedeği', () => {
+  const acc = (u: string, provider = 'password') => env.authenticatedContext(u, { firebase: { sign_in_provider: provider } }).firestore();
+  const main = { v: 1, profiles: [], settings: {}, activeId: null, deleted: [], updatedAt: 1, device: 'test' };
+
+  it('hesap kendi yedeğini yazar ve okur', async () => {
+    await assertSucceeds(acc('hA').doc('hesaplar/hA').set(main));
+    await assertSucceeds(acc('hA').doc('hesaplar/hA/profiller/p1').set({ z: 'abc', updatedAt: 1, device: 'test' }));
+    await assertSucceeds(acc('hA').doc('hesaplar/hA').get());
+    await assertSucceeds(acc('hA').collection('hesaplar/hA/profiller').get());
+    await assertSucceeds(acc('hA').doc('hesaplar/hA/profiller/p1').delete());
+  });
+
+  it('başka hesap da anonim cihaz da okuyamaz, yazamaz', async () => {
+    await env.withSecurityRulesDisabled((ctx) => ctx.firestore().doc('hesaplar/hA').set(main));
+    await assertFails(acc('hB').doc('hesaplar/hA').get());
+    await assertFails(acc('hB').doc('hesaplar/hA/profiller/p1').set({ j: '{}', updatedAt: 1, device: 'x' }));
+    await assertFails(acc('hA', 'anonymous').doc('hesaplar/hA').get());
+    await assertFails(env.unauthenticatedContext().firestore().doc('hesaplar/hA').get());
+  });
+
+  it('beklenmeyen alan ya da çok profil yazılamaz', async () => {
+    await assertFails(acc('hA').doc('hesaplar/hA').set({ ...main, premium: true }));
+    await assertFails(acc('hA').doc('hesaplar/hA').set({ ...main, profiles: Array.from({ length: 13 }, (_, i) => ({ id: String(i) })) }));
+    await assertFails(acc('hA').doc('hesaplar/hA/profiller/p1').set({ z: 5, updatedAt: 1, device: 'x' }));
+  });
+});

@@ -23,3 +23,11 @@ const devFlag = (key: string) => {
 /** Yayında açmak için `true` yapılır. */
 const PREMIUM_YAYINDA = false;
 export const PREMIUM_ACIK: boolean = PREMIUM_YAYINDA || devFlag('cizio-premium-ac');
+
+/**
+ * Ebeveyn hesabı ve ilerleme eşitlemesi (src/account/auth.ts, sync.ts): Premium'dan bağımsız açılabilir.
+ * Açmadan önce Firebase'de E-posta/Şifre girişi açık ve firestore.rules yayında olmalı.
+ * Geliştirmede localStorage 'cizio-hesap-ac' = '1'.
+ */
+const HESAP_YAYINDA = false;
+export const HESAP_ACIK: boolean = HESAP_YAYINDA || PREMIUM_ACIK || devFlag('cizio-hesap-ac');

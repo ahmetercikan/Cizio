@@ -16,6 +16,8 @@ export const FIREBASE_CONFIG: FirebaseOptions | null = {
 };
 
 export const USE_EMULATOR = import.meta.env.VITE_FIREBASE_EMULATOR === '1';
+/** Emulator portları (başka bir projenin emulatorü açıksa VITE_EMU_AUTH / VITE_EMU_FS ile değiştirilebilir). */
+export const EMU = { auth: Number(import.meta.env.VITE_EMU_AUTH ?? 9099), firestore: Number(import.meta.env.VITE_EMU_FS ?? 8085) };
 
 /** Çevrimiçi özellikler bu sürümde kullanılabilir mi? */
 export const ONLINE_AVAILABLE = USE_EMULATOR || FIREBASE_CONFIG !== null;
