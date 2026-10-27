@@ -10,7 +10,9 @@
   - test: `npm test`
   - tip kontrolü ve derleme: `npm run build`
   - ders eklenince/çizimi değişince: `npm run art` (aşağıya bak)
-  - Android: `npm run android:aab` (Gradle Java 21 ister: `JAVA_HOME` → `~/.jdks/ms-21.0.9`; Android Studio'nunki 17).
+  - Android: `npm run android:aab` (Windows betiği; Gradle Java 21 ister: `JAVA_HOME` → `~/.jdks/ms-21.0.9`). Mac'te:
+    `npm run android:sync`, sonra `android/` içinde `JAVA_HOME=$(/usr/libexec/java_home -v 21) sh gradlew bundleRelease`.
+    Paket ~150 MB: Play Console'a kullanıcı sürükleyip yükler (tarayıcı aracı 10 MB sınırlı), gerisini Claude yapar.
     Seslendirme Play'in 200 MB ana paket sınırını aştığı için `android/voicepack` ek paketine taşınır
     (`scripts/android-voicepack.ts`, `android:sync` içinde kendiliğinden).
   - iOS: `npm run ios:sync`
