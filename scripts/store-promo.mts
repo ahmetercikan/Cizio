@@ -117,11 +117,15 @@ function serit(W: number, H: number) {
   }).join('');
   const kartlar = SLIDES.map((s, i) => {
     const x = i * W;
-    const dw = dar ? 0.74 * W : 0.86 * W;
+    // Cihazlar hep aynı yöne yatık (paralel durur, birbirine çarpmaz) ve büyüktür: sol üst köşe soldaki görüntüye,
+    // sağ alt köşe sağdakine taşar. Mağazada yan yana bakınca telefonlar bir görüntüden ötekine geçer (panorama).
+    const dw = dar ? 0.8 * W : 1.1 * W;
     const dh = dar ? dw * (1500 / 780) : dw * (690 / 1060);
-    const kay = dar ? (i % 2 ? 0.05 : -0.05) * W : 0; // telefonlar sırayla sağa/sola kayar
+    const aci = dar ? (i % 2 ? -12 : -15) : (i % 2 ? -8 : -10);
+    // ilk cihaz solda kesilmesin (önünde görüntü yok)
+    const kay = i === 0 ? 0.04 * W : (i % 2 ? 0.03 : -0.03) * W;
     const dx = x + (W - dw) / 2 + kay;
-    const dy = dar ? 0.285 * H : 0.42 * H;
+    const dy = dar ? (i % 2 ? 0.33 : 0.31) * H : (i % 2 ? 0.5 : 0.46) * H;
     const yazi = dar
       ? `left:${x + 70 * u}px;width:${W - 130 * u}px;top:${0.055 * H}px;gap:${20 * u}px`
       : `left:${x + 120 * u}px;width:${W - 240 * u}px;top:${0.085 * H}px;gap:${26 * u}px;align-items:center;text-align:center`;
@@ -130,7 +134,7 @@ function serit(W: number, H: number) {
       <p style="font-size:${(dar ? 38 : 54) * u}px">${s.sub}</p>
       ${s.badge ? `<div class="badge" style="font-size:${(dar ? 38 : 50) * u}px;padding:${14 * u}px ${32 * u}px;--ink:${s.ink}">${s.badge}</div>` : ''}
     </div>
-    <div class="dev" style="left:${dx}px;top:${dy}px;width:${dw}px;height:${dh}px;border-radius:${(dar ? 46 : 54) * u}px;padding:${(dar ? 14 : 18) * u}px;transform:rotate(${i % 2 ? 2.5 : -2.5}deg)"><img src="${img(dar ? s.shot : s.tablet)}" style="border-radius:${(dar ? 34 : 38) * u}px"></div>`;
+    <div class="dev" style="left:${dx}px;top:${dy}px;width:${dw}px;height:${dh}px;border-radius:${(dar ? 46 : 54) * u}px;padding:${(dar ? 14 : 18) * u}px;transform:rotate(${aci}deg)"><img src="${img(dar ? s.shot : s.tablet)}" style="border-radius:${(dar ? 34 : 38) * u}px"></div>`;
   }).join('');
   return `<div class="serit" style="width:${TW}px;height:${H}px;background:linear-gradient(100deg, ${duraklar})">
     <div class="dots"></div>${lekeler}
