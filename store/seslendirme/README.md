@@ -1,7 +1,6 @@
 # Seslendirilecek yeni cümleler
 
-> **Şu an bekleyen iş (27 Ekim 2026):** `eksik-tr.tsv` içinde **28 Türkçe cümle** var: Yarış Kıyısı ve yarış
-> dünyaları (Kart Yarışı, Engelli Koşu, Volkan ve Buz Parkuru). İngilizce eksik yok.
+> **Durum (27 Ekim 2026):** bekleyen cümle yok. Yarış Kıyısı ve yarış dünyalarının 28 cümlesi seslendirildi.
 >
 > **Gemini anahtarı olan ortamda en kısa yol** (uygulamadaki sesle, Sulafat, otomatik):
 >
@@ -12,7 +11,7 @@
 > git add public/voice && git commit -m "Ses: Yarış Kıyısı cümleleri seslendirildi" && git push
 > ```
 >
-> `.env.local` içinde `GEMINI_API_KEY` olmalı. Komut yalnızca sesi olmayan cümleleri üretir, MP3'leri 32 kbps
+> `.env.local` içinde `GEMINI_API_KEY` olmalı. Komut yalnızca sesi olmayan cümleleri üretir, MP3'leri 40 kbps
 > yazar ve `manifest.json` / `index.json`'u günceller. Sonra Claude'a "git pull yap" demen yeter.
 > Başka bir araçla üretilirse aşağıdaki "MP3'ler hazır olunca" adımları geçerli.
 

@@ -74,8 +74,11 @@ export class RateLimitError extends Error {
   }
 }
 
-/** 16 bit mono PCM → MP3 (varsayılan 24 kHz, 32 kbps: konuşma için yeterli, uygulamayı küçük tutar). */
-export function pcmToMp3(pcm: Buffer, sampleRate = 24000, kbps = 32): Buffer {
+/**
+ * 16 bit mono PCM → MP3 (varsayılan 24 kHz, 40 kbps: konuşma için yeterli, uygulamayı küçük tutar).
+ * Dikkat: lamejs 24 kHz'de 40 kbps'in altında (24, 32) hata vermeden tamamen sessiz dosya yazar.
+ */
+export function pcmToMp3(pcm: Buffer, sampleRate = 24000, kbps = 40): Buffer {
   const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
   const enc = new Mp3Encoder(1, sampleRate, kbps);
   const chunks: Uint8Array[] = [];

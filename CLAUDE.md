@@ -72,5 +72,6 @@
 - **Yatay telefon düzeni:** `src/styles/landscape.css` (yalnızca yatay ve kısa ekranlarda devreye girer).
   Ada açılınca ekran yan döner, çıkınca serbest kalır (`src/lib/orientation.ts`, `@capacitor/screen-orientation`;
   iPad'de kilit için `Info.plist` → `UIRequiresFullScreen`).
-- **Seslendirme boyutu:** MP3'ler 24 kHz mono 32 kbps (`scripts/tts-gemini.ts` → `pcmToMp3`). Yalnızca betiklerin
+- **Seslendirme boyutu:** MP3'ler 24 kHz mono; eskiler 32 kbps, yeni üretilenler 40 kbps (`scripts/tts-gemini.ts` →
+  `pcmToMp3`). lamejs 24 kHz'de 40 kbps'in altında hata vermeden **sessiz** dosya yazar; düşürme. Yalnızca betiklerin
   okuduğu `voice/manifest.json` ve `state.json` telefon paketine girmez (`scripts/native-trim.ts`).
