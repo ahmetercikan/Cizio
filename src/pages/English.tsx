@@ -24,6 +24,9 @@ import { say } from '../english/voice';
 import { sfx } from '../lib/sfx';
 import { addDays, dayKey, TR_DAYS, weekStart } from '../lib/util';
 import { useApp, useProfile } from '../store/useApp';
+import { englishTimeFree, storyFree, topicFree } from '../account/limits';
+import { useUnlocked } from '../account/membership';
+import { LockBadge, LockedModal, LockedPage } from '../account/Locked';
 
 // ------------------------------------------------------------------------------------------------
 // Yaş seçimi
@@ -67,6 +70,8 @@ export default function EnglishHome() {
   const nav = useNavigate();
   const setAge = useApp((s) => s.setEnglishAge);
   const [ageOpen, setAgeOpen] = useState(false);
+  const [lock, setLock] = useState(false);
+  const timeOpen = useUnlocked() || englishTimeFree(e.sessions, dayKey());
   const plan = useMemo(() => sessionPlan(e), [e.words, e.stories]); // eslint-disable-line react-hooks/exhaustive-deps
   const today = dayKey();
   const doneToday = e.sessions.includes(today);
@@ -104,9 +109,10 @@ export default function EnglishHome() {
           <span className="en-today__topic" style={{ background: plan.topic.color }}>{plan.topic.en}</span>
           {plan.fresh.map((w) => <span key={w.id} className="en-today__word"><WordArt art={w.art} /></span>)}
         </div>
-        <button className="pill pill--big en-today__go" onClick={() => { sfx.pop(); nav('/english/zaman'); }}>
-          {doneToday ? 'Bir kez daha' : "Let's go!"} <ChevronRight size={26} strokeWidth={3} />
+        <button className="pill pill--big en-today__go" onClick={() => { sfx.pop(); if (timeOpen) nav('/english/zaman'); else setLock(true); }}>
+          {doneToday ? 'Bir kez daha' : "Let's go!"} {timeOpen ? <ChevronRight size={26} strokeWidth={3} /> : <LockBadge />}
         </button>
+        {lock && <LockedModal kind="english" onClose={() => setLock(false)} />}
       </section>
 
       <div className="en-two rise">
@@ -163,6 +169,8 @@ export default function EnglishHome() {
 export function EnglishTime() {
   const e = useEnglish();
   const nav = useNavigate();
+  const open = useUnlocked() || englishTimeFree(e.sessions, dayKey());
+  if (!open) return <LockedPage kind="english" back={() => nav('/english')} />;
   return <EnglishSession e={e} onClose={() => nav('/english')} />;
 }
 
@@ -266,6 +274,8 @@ export function EnglishPlay() {
 // ------------------------------------------------------------------------------------------------
 export function EnglishWords() {
   const e = useEnglish();
+  const unlocked = useUnlocked();
+  const [lock, setLock] = useState(false);
   return (
     <AppShell>
       <header className="page-head rise">
@@ -275,10 +285,13 @@ export function EnglishWords() {
         </div>
       </header>
       <div className="en-topics">
-        {TOPICS.map((t) => {
+        {TOPICS.map((t, ti) => {
           const k = t.words.filter((w) => known(e, w.id)).length;
+          const open = unlocked || topicFree(ti);
           return (
-            <Link key={t.id} to={`/english/kelimeler/${t.id}`} className="en-topic" style={{ ['--tone' as string]: t.color }} onClick={() => sfx.tap()}>
+            <Link key={t.id} to={`/english/kelimeler/${t.id}`} className={`en-topic ${open ? '' : 'is-locked'}`} style={{ ['--tone' as string]: t.color }}
+              onClick={(ev) => { sfx.tap(); if (!open) { ev.preventDefault(); setLock(true); } }}>
+              {!open && <LockBadge />}
               <span className="en-topic__art"><WordArt art={t.words[0].art} /></span>
               <b>{t.en}</b>
               <small>{t.tr}</small>
@@ -288,6 +301,7 @@ export function EnglishWords() {
           );
         })}
       </div>
+      {lock && <LockedModal kind="english" onClose={() => setLock(false)} />}
     </AppShell>
   );
 }
@@ -321,7 +335,10 @@ export function EnglishTopic() {
   const t = getTopic(id);
   const e = useEnglish();
   const [open, setOpen] = useState<number | null>(null);
+  const nav = useNavigate();
+  const unlocked = useUnlocked();
   if (!t) return <AppShell><Link to="/english/kelimeler">Kelimeler</Link></AppShell>;
+  if (!unlocked && !topicFree(TOPICS.indexOf(t))) return <LockedPage kind="english" back={() => nav('/english/kelimeler')} />;
   return (
     <AppShell>
       <header className="page-head rise">
@@ -350,6 +367,8 @@ export function EnglishTopic() {
 // ------------------------------------------------------------------------------------------------
 export function EnglishStories() {
   const e = useEnglish();
+  const unlocked = useUnlocked();
+  const [lock, setLock] = useState(false);
   return (
     <AppShell>
       <header className="page-head rise">
@@ -359,8 +378,12 @@ export function EnglishStories() {
         </div>
       </header>
       <div className="en-stories">
-        {STORIES.map((s) => (
-          <Link key={s.id} to={`/english/hikaye/${s.id}`} className="en-storycard" onClick={() => sfx.tap()}>
+        {STORIES.map((s, si) => {
+          const open = unlocked || storyFree(si, e.stories.includes(s.id));
+          return (
+          <Link key={s.id} to={`/english/hikaye/${s.id}`} className={`en-storycard ${open ? '' : 'is-locked'}`}
+            onClick={(ev) => { sfx.tap(); if (!open) { ev.preventDefault(); setLock(true); } }}>
+            {!open && <LockBadge />}
             <span className="en-storycard__cover"><Scene bg={s.bg} items={s.cover} /></span>
             <span className="en-storycard__text">
               <b>{show(s.title)}</b>
@@ -368,8 +391,10 @@ export function EnglishStories() {
             </span>
             {e.stories.includes(s.id) && <span className="en-storycard__read"><BookOpen size={16} /> Okundu</span>}
           </Link>
-        ))}
+          );
+        })}
       </div>
+      {lock && <LockedModal kind="story" onClose={() => setLock(false)} />}
     </AppShell>
   );
 }
@@ -383,7 +408,9 @@ export function EnglishStoryPage() {
   const [stars, setStars] = useState<number | null>(null);
   const [sub, setSub] = useState<[number, number]>([0, 0]);
   const [round, setRound] = useState(0);
+  const unlocked = useUnlocked();
   if (!story) return null;
+  if (!unlocked && !storyFree(STORIES.indexOf(story), e.stories.includes(story.id))) return <LockedPage kind="story" back={() => nav('/english/hikayeler')} />;
   return (
     <PlayFrame title={show(story.title)} step={stars === null ? sub[0] : undefined} total={stars === null ? sub[1] : undefined}
       onClose={() => nav('/english/hikayeler')} tone={story.bg === 'night' ? 'night' : 'sky'}>

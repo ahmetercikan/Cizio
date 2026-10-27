@@ -7,6 +7,9 @@ import { BackButton, Stars } from '../components/ui';
 import { getPath, lessonsByPath, paths } from '../lessons';
 import { sfx } from '../lib/sfx';
 import { useProfileData } from '../store/useApp';
+import { lessonFree } from '../account/limits';
+import { useUnlocked } from '../account/membership';
+import { LockBadge } from '../account/Locked';
 
 export default function Learn() {
   const data = useProfileData();
@@ -56,6 +59,7 @@ export default function Learn() {
 }
 
 export function CoursePage() {
+  const unlocked = useUnlocked();
   const { id } = useParams();
   const nav = useNavigate();
   const path = id ? getPath(id) : undefined;
@@ -88,6 +92,7 @@ export function CoursePage() {
                 <b>{l.title}</b>
                 {p ? <Stars value={p.bestStars} size={18} dim="rgba(29,23,64,0.12)" /> : <span className="trail__lvl">{['', 'Kolay', 'Orta', 'Zor'][l.level]}</span>}
                 {isNext && <span className="badge-new">SIRADAKİ</span>}
+                {!unlocked && !lessonFree(l.id, !!p) && <LockBadge />}
               </Link>
             </li>
           );

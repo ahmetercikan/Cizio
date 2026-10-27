@@ -11,6 +11,9 @@ import { SketchImg } from './Sketch';
 import { sfx } from '../lib/sfx';
 import { THEME_GOAL, themeClaimed, themeDone, themeNext, themeWon, weekTheme } from '../lib/theme';
 import { useApp, useProfileData } from '../store/useApp';
+import { lessonFree } from '../account/limits';
+import { useUnlocked } from '../account/membership';
+import { LockBadge } from '../account/Locked';
 
 export function ThemeCard() {
   const data = useProfileData();
@@ -19,6 +22,7 @@ export function ThemeCard() {
   const done = themeDone(data, t);
   const won = themeWon(data, t);
   const alindi = themeClaimed(data, t);
+  const unlocked = useUnlocked();
 
   // hedefe ulaşıldıysa ödül bir kez verilir
   useEffect(() => {
@@ -28,7 +32,9 @@ export function ThemeCard() {
     }
   }, [won, alindi, claim, t.week]);
 
-  const oneri = themeNext(data, t);
+  // Premium yoksa önce açık dersler önerilir
+  const free = (id: string) => unlocked || lessonFree(id, !!data.lessons[id]);
+  const oneri = [...themeNext(data, t)].sort((a, b) => Number(free(b.id)) - Number(free(a.id)));
   if (!oneri.length) return null;
 
   return (
@@ -50,6 +56,7 @@ export function ThemeCard() {
           <Link key={l.id} to={`/ders/${l.id}`} className={`themecard__item ${data.lessons[l.id] ? 'done' : ''}`} onClick={() => sfx.pop()}>
             <SketchImg lesson={l} pad={16} className="themecard__img" />
             <small>{l.title}</small>
+            {!free(l.id) && <LockBadge />}
           </Link>
         ))}
       </div>

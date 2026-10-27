@@ -1,3 +1,5 @@
+> **ESKİ — geçersiz.** Çizio Plus kaldırıldı; yerine Çizio Premium geldi: `store/premium-kurulum.md`.
+
 # Çizio Plus (ileride): abonelik açma adımları
 
 > Şimdilik kullanılmıyor: Çizio Adası ücretsiz (src/world/plus.ts PLUS_ENABLED = false). Ücretli yapmak istendiğinde: PLUS_ENABLED = true, `npm i cordova-plugin-purchase`, `npx cap sync android`, sonra aşağıdaki adımlar.

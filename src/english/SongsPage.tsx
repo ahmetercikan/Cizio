@@ -14,10 +14,15 @@ import { sfx } from '../lib/sfx';
 import { useApp } from '../store/useApp';
 import { playSong, type Playing } from './songPlay';
 import { lineText, SONG_UI, SONGS, type Song } from './songs';
+import { songFree } from '../account/limits';
+import { useUnlocked } from '../account/membership';
+import { LockBadge, LockedModal } from '../account/Locked';
 import { say } from './voice';
 
 export default function EnglishSongs() {
   const [sec, setSec] = useState<Song | null>(null);
+  const [lock, setLock] = useState(false);
+  const unlocked = useUnlocked();
 
   useEffect(() => {
     if (!sec) say(SONG_UI.pick);
@@ -38,16 +43,17 @@ export default function EnglishSongs() {
       <div className="song-grid">
         {SONGS.map((s, i) => (
           <button key={s.id} className="song-card rise" style={{ animationDelay: `${i * 0.03}s`, ['--sc' as string]: s.color }}
-            onClick={() => { sfx.pop(); setSec(s); }}>
+            onClick={() => { sfx.pop(); if (unlocked || songFree(i)) setSec(s); else setLock(true); }}>
             <span className="song-card__note" aria-hidden="true"><Music size={26} strokeWidth={2.6} /></span>
             <span className="song-card__text">
               <b>{s.title}</b>
               <small>{s.titleTr}</small>
             </span>
-            <span className="song-card__play" aria-hidden="true"><Play size={20} strokeWidth={3} /></span>
+            {unlocked || songFree(i) ? <span className="song-card__play" aria-hidden="true"><Play size={20} strokeWidth={3} /></span> : <LockBadge />}
           </button>
         ))}
       </div>
+      {lock && <LockedModal kind="song" onClose={() => setLock(false)} />}
     </AppShell>
   );
 }

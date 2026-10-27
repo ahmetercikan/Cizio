@@ -19,7 +19,7 @@
 <body>
 <main>
   <h1>Çizio — Gizlilik Politikası</h1>
-  <p class="muted">Son güncelleme: 14 Ekim 2026</p>
+  <p class="muted">Son güncelleme: 27 Ekim 2026</p>
 
   <div class="card">
     <strong>Kısaca:</strong> Çizio reklam ve analiz araçları içermez. Çocuğunuzun adı, çizimleri, fotoğrafları ve ilerlemesi
@@ -65,9 +65,29 @@
       oyun kayıtlarını, paylaşılan resimlerini ve ada kayıtlarını sunucudan siler. Bir arkadaşlıktan çıkarmak, o arkadaşla oynanan oyunları da siler.</li>
   </ul>
 
+  <h2 id="hesap">Ebeveyn hesabı ve Çizio Premium (isteğe bağlı)</h2>
+  <div class="card">
+    <p style="margin-top:0">Çizio'nun bir bölümü ücretsizdir; bütün dersler, English Club'ın tamamı ve Çizio Adası <strong>Çizio Premium</strong>
+      aboneliğiyle (aylık ya da yıllık) açılır. Satın alma ve hesap ekranları yalnızca işlem sorusuyla korunan Ebeveyn bölümündedir;
+      çocuğa fiyat ya da satın alma düğmesi gösterilmez.</p>
+    <ul>
+      <li><strong>Ödeme:</strong> Ödemeyi Google Play ya da Apple App Store alır. Çizio kart veya ödeme bilgilerinizi görmez ve saklamaz.</li>
+      <li><strong>Abonelik doğrulama:</strong> Satın almanın geçerli olduğu RevenueCat (RevenueCat, Inc.) aracılığıyla doğrulanır. RevenueCat'e
+        rastgele bir uygulama kimliği (hesap açtıysanız hesabınızın kimliği), satın alınan ürün, satın alma ve yenilenme tarihleri ile mağazanın
+        satın alma makbuzu iletilir. Bu bilgiler yalnızca aboneliği tanımak için kullanılır; reklam ya da izleme için kullanılmaz.
+        (<a href="https://www.revenuecat.com/privacy">RevenueCat gizlilik politikası</a>)</li>
+      <li><strong>Ebeveyn hesabı (isteğe bağlı):</strong> Premium'un yeni telefonda da açık olması için ebeveyn e-posta ve şifreyle
+        (iPhone/iPad'de "Apple ile giriş"le) hesap açabilir. Hesapta yalnızca e-posta adresi ve hesap kimliği tutulur (Google Firebase Authentication).
+        Çocuğun adı, çizimleri ve ilerlemesi hesaba gönderilmez; cihazda kalır.</li>
+      <li><strong>Hesabı silme:</strong> Ebeveyn bölümü → Hesabınız → <em>Hesabı sil</em>. Uygulama yüklü değilse aynı işlemi
+        <a href="https://ahmetercikan.github.io/Cizio/#/hesap?sil=1">bu sayfadan</a> giriş yaparak yapabilirsiniz. Hesap ve e-posta hemen ve
+        kalıcı olarak silinir. Abonelik mağazada sürer; iptal için Google Play ya da App Store abonelik ayarlarını kullanın.</li>
+    </ul>
+  </div>
+
   <h2 id="veri-silme">Çizio verilerinin silinmesi</h2>
   <div class="card">
-    <p style="margin-top:0">Çizio uygulamasında hesap ya da şifre yoktur. Çevrimiçi arkadaşlar özelliği hiç açılmadıysa sunucuda çocuğunuza ait hiçbir veri yoktur;
+    <p style="margin-top:0">Çocuk profilleri için hesap ya da şifre yoktur (isteğe bağlı ebeveyn hesabının silinmesi için yukarıya bakın). Çevrimiçi arkadaşlar özelliği hiç açılmadıysa sunucuda çocuğunuza ait hiçbir veri yoktur;
       cihazdaki bütün veriler uygulama kaldırılınca silinir.</p>
     <p><strong>Sunucudaki verileri silmek için (uygulama içinden):</strong></p>
     <ol>
@@ -87,8 +107,9 @@
   <p>Kamera yalnızca, çocuk kâğıda yaptığı çizimin fotoğrafını çekmek istediğinde kullanılır. İzin vermek zorunlu değildir; fotoğraf galeriden de seçilebilir ya da bu adım atlanabilir.</p>
 
   <h2>Reklam, analiz ve üçüncü taraf hizmetler</h2>
-  <p>Çizio reklam göstermez, uygulama içi satın alma yoktur, analiz ya da izleme (tracking) araçları kullanılmaz. Tek üçüncü taraf hizmet,
-    yalnızca çevrimiçi arkadaşlar açıldığında kullanılan Google Firebase'dir (yukarıya bakın); bu veriler reklam ya da analiz için kullanılmaz.</p>
+  <p>Çizio reklam göstermez, analiz ya da izleme (tracking) araçları kullanılmaz. Üçüncü taraf hizmetler yalnızca şunlardır: çevrimiçi
+    arkadaşlar açıldığında ve ebeveyn hesap açtığında Google Firebase; Premium aboneliğinde ödeme için Google Play / Apple App Store ve aboneliği
+    doğrulamak için RevenueCat (yukarıya bakın). Bu veriler reklam ya da analiz için kullanılmaz.</p>
 
   <h2>Ebeveyn denetimi</h2>
   <p>Ayarlar, profiller ve yedekleme "Ebeveyn bölümü"ndedir ve basit bir işlem sorusuyla korunur. Veriler, ebeveynin isteğiyle yedek dosyası olarak dışa aktarılabilir ya da profil silinerek tamamen kaldırılabilir. Uygulamayı kaldırmak da tüm verileri siler.</p>
@@ -103,7 +124,11 @@
   <p lang="en">Çizio has no ads and no analytics. Names, drawings, photos and progress are stored only on the device, and the camera is used only to photograph the child's paper drawing, processed on-device.
     The optional "online friends" feature is off by default and can be enabled per child only from the locked parent area. When enabled, the app stores in Google Firebase (encrypted in transit) the child's nickname,
     avatar, friend code, last-active time, parent-approved friendships, game results, small images drawn in those games, preset reactions and shared coloring moves. Friends are added only by exchanging a code between parents and require approval
-    on both sides; there is no chat, search or matchmaking. No email, phone number, real name, location, photos or advertising ID are collected. Live duel records are deleted after 1 day, other game records after 30 days, and turning the feature off deletes the child's online data.</p>
+    on both sides; there is no chat, search or matchmaking. No email, phone number, real name, location, photos or advertising ID are collected. Live duel records are deleted after 1 day, other game records after 30 days, and turning the feature off deletes the child's online data.
+    Çizio Premium is an optional monthly or yearly subscription sold only from the locked parent area; payment is handled by Google Play or the App Store,
+    and RevenueCat verifies the subscription (random app user ID or account ID, product and purchase dates, store receipt). Parents may create an optional
+    account (email and password, or Sign in with Apple) so Premium carries over to a new device; only the email address and account ID are stored.
+    The account can be deleted in the app (Parent area → Account → Delete account) or at https://ahmetercikan.github.io/Cizio/#/hesap?sil=1.</p>
 </main>
 </body>
 </html>

@@ -1,4 +1,6 @@
-import { BookA, BookOpen, Brush, Gamepad2, Images, LayoutGrid, LibraryBig, Settings, Shirt, Store, Sun, Type } from 'lucide-react';
+import { BookA, BookOpen, Brush, Crown, Gamepad2, Images, LayoutGrid, LibraryBig, Settings, Shirt, Store, Sun, Type } from 'lucide-react';
+import { useMembership } from '../account/membership';
+import { PREMIUM_ACIK } from '../lib/flags';
 import type { ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { FriendsButton } from '../online/OnlineHost';
@@ -53,6 +55,7 @@ export function worldOf(path: string): WorldId {
 export function AppBar({ world }: { world?: WorldId }) {
   const profile = useProfile();
   const frame = useApp((s) => (s.activeId ? s.data[s.activeId]?.frame : undefined));
+  const premium = useMembership((s) => s.premium) && PREMIUM_ACIK;
   return (
     <header className="appbar">
       {world ? (
@@ -66,6 +69,7 @@ export function AppBar({ world }: { world?: WorldId }) {
           <span>Çizio</span>
         </span>
       )}
+      {premium && <span className="appbar__premium" title="Çizio Premium"><Crown size={16} strokeWidth={2.6} /> Premium</span>}
       <span className="appbar__spacer" />
       <FriendsButton />
       <ChestButton />

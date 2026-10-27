@@ -17,7 +17,7 @@ import { preloadWorld } from '../lib/preload';
 import { sfx } from '../lib/sfx';
 import { dayKey } from '../lib/util';
 import { useProfile, useProfileData } from '../store/useApp';
-import { usePlus } from '../world/plus';
+import { useUnlocked } from '../account/membership';
 
 function greeting() {
   const h = new Date().getHours();
@@ -98,7 +98,7 @@ export default function Worlds() {
     studyo: data.styled?.includes(today) ? { text: 'Bugünün stili tamam!', done: true } : { text: 'Günün stil görevi seni bekliyor' },
     english: data.english?.sessions.includes(today) ? { text: 'English Time tamam!', done: true } : { text: 'Bugünün English Time’ı hazır' },
   };
-  const plus = usePlus((s) => s.owned);
+  const plus = useUnlocked();
   return (
     <div className="bg app worlds">
       <Doodles variant={0} />
@@ -129,7 +129,7 @@ export default function Worlds() {
               <b>Çizio Adası</b>
               <small>Karakterinle 3B adada gez ve oyna</small>
               <span className={`world-card__status ${plus ? '' : 'world-card__status--plus'}`}>
-                {plus ? 'Adada bugünkü görevler hazır' : <><Crown size={15} /> Çizio Plus</>}
+                {plus ? 'Adada bugünkü görevler hazır' : <><Crown size={15} /> Çizio Premium</>}
               </span>
             </span>
             <span className="world-card__go" aria-hidden="true"><ChevronRight size={28} strokeWidth={3} /></span>

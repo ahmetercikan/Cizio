@@ -27,6 +27,9 @@ import { DrawingDoc } from '../engine/drawingDoc';
 import { feedbackText, scoreFreehand, scoreStep, type ScoreResult } from '../engine/scoring';
 import type { DrawAction } from '../engine/types';
 import { getLesson, lessonsByPath, paths } from '../lessons';
+import { lessonFree } from '../account/limits';
+import { useUnlocked } from '../account/membership';
+import { LockedPage } from '../account/Locked';
 import type { Lesson } from '../lessons/types';
 import { listArtworks, saveArtwork } from '../lib/gallery';
 import { sfx } from '../lib/sfx';
@@ -64,7 +67,11 @@ function nextLesson(l: Lesson): Lesson | undefined {
 
 export default function LessonPage() {
   const { id } = useParams();
+  const nav = useNavigate();
   const lesson = id ? getLesson(id) : undefined;
+  const done = !!useProfileData().lessons[id ?? ''];
+  const unlocked = useUnlocked();
+  const [params] = useSearchParams();
   if (!lesson)
     return (
       <div className="bg onb__center">
@@ -72,6 +79,8 @@ export default function LessonPage() {
         <Link to="/atolye" className="pill">Ana sayfa</Link>
       </div>
     );
+  // Draw in English (?dil=en) ücretsiz; öbür kilitli dersler Premium (günün görevi, tema, "sonraki ders" de buraya gelir)
+  if (!unlocked && !done && params.get('dil') !== 'en' && !lessonFree(lesson.id)) return <LockedPage kind="lesson" back={() => nav(-1)} />;
   return <Player key={lesson.id} lesson={lesson} />;
 }
 

@@ -56,8 +56,11 @@ const Shop = lazy(() => import('./pages/Shop'));
 const StoryShelf = lazy(() => import('./pages/StoryBook'));
 const StoryReader = named(() => import('./pages/StoryBook'), 'StoryReader');
 const World = lazy(loadWorld);
+const PremiumPage = lazy(() => import('./pages/Premium'));
+const AccountPage = lazy(() => import('./pages/Account'));
 
-import { initPlus } from './world/plus';
+import { initMembership } from './account/membership';
+import { restoreAccount } from './account/auth';
 import { initPremium } from './world/premium';
 import { OnlineSync } from './online/OnlineHost';
 import { HomeReturn } from './components/HomeReturn';
@@ -87,8 +90,11 @@ export default function App() {
     else delete r.dataset.contrast;
   }, [zoom, contrast]);
   useEffect(() => setNaturalVoice(natural !== false), [natural]);
-  // Çizio Plus (Google Play aboneliği) yalnızca Android uygulamasında başlatılır
-  useEffect(() => void initPlus().catch(() => {}), []);
+  // Çizio Premium: mağaza (yalnızca telefonda) ve daha önce giriş yapılmışsa ebeveyn hesabı
+  useEffect(() => {
+    void initMembership().catch(() => {});
+    restoreAccount();
+  }, []);
   useEffect(() => void initPremium().catch(() => {}), []);
   // sık açılan sayfaları uygulama boştayken hazırla (ilk dokunuşta bekletmesin).
   // Ada burada yok: paketi ağır, kartına dokununca hazırlanıyor (src/lib/preload.ts).
@@ -149,6 +155,8 @@ export default function App() {
         <Route path="/canli/:id" element={<NeedsProfile><LiveDuel /></NeedsProfile>} />
         <Route path="/birlikte/:id" element={<NeedsProfile><Coop /></NeedsProfile>} />
         <Route path="/ebeveyn" element={<Parent />} />
+        <Route path="/premium" element={<PremiumPage />} />
+        <Route path="/hesap" element={<AccountPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>

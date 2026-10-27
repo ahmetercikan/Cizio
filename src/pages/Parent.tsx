@@ -19,8 +19,7 @@ import { useApp } from '../store/useApp';
 import { AvatarArt, AVATARS } from '../components/Avatars';
 import { Doodles } from '../components/Doodles';
 import { ParentOnline } from '../online/ParentOnline';
-import { ParentPlus } from '../world/ParentPlus';
-import { PLUS_ENABLED } from '../world/plus';
+import { ParentAccount, RateCard } from '../account/ParentAccount';
 import { AGES, ALL_WORDS, HOME_PHRASES, known, STORIES } from '../english/data';
 import { say as sayEn } from '../english/voice';
 
@@ -161,6 +160,8 @@ export default function Parent() {
       <div className="settings-page__inner">
       <TopBar title="Ebeveyn bölümü" onBack={() => nav('/')} />
 
+      <ParentAccount />
+      <RateCard />
       <section className="paper-card settings-card">
         <h2 className="card-title">Profiller</h2>
         {s.profiles.map((p) => (
@@ -335,7 +336,6 @@ export default function Parent() {
         </label>
       </section>
 
-      {PLUS_ENABLED && <ParentPlus />}
         <ParentPremium />
       {active && <ParentOnline profile={active} toast={showToast} />}
 

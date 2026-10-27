@@ -61,6 +61,11 @@
   - `MiniGames.tsx` / `ArcadeGames.tsx`: Oyun Çadırı'nın 14 mini oyunu (lobi: `Shops.tsx` GamesPanel)
   - `Rewards.tsx`: hazine sandıkları, günlük hediye serisi, koleksiyon rozetleri (hesap: `economy.ts`)
   - `carsData.ts` / `vehicles.ts`: araçlar (seviyeyle açılır, altınla alınır)
+- **Çizio Premium** (`src/account/`, adımlar `store/premium-kurulum.md`): aylık/yıllık abonelik, RevenueCat
+  (`membership.ts`), ebeveyn hesabı e-posta+şifre / Apple ile (`auth.ts`, ayrı Firebase uygulaması 'hesap'; Google ile giriş
+  çocuk uygulamasında yasak). Ücretsiz sınırlar tek yerde: `limits.ts`. Çocuğa fiyat gösterilmez: kilit → "Büyüğüme göster" →
+  ebeveyn kapısı → `/premium`. Bayrak `flags.ts` → `PREMIUM_YAYINDA` (kapalıyken her şey açık). Geliştirmede localStorage
+  `cizio-premium-ac=1` bayrağı, `cizio-premium-dev=1` Premium'u açar. Hesap silme web'de: `#/hesap?sil=1`.
 - **Şimdilik kapalı** (`src/lib/flags.ts` → `MUZIK_MATEMATIK_ACIK = false`): Müzik Odası (`/muzik`,
   `src/lib/instruments.ts`) ve Matematik Parkı (`/matematik`, `src/lib/mathpark.ts`). Kod duruyor; ana sayfada
   kart yok, adresleri ana sayfaya döner, cümleleri seslendirme listesine girmez. Açmak için bayrağı `true` yap.

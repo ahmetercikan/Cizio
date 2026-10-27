@@ -6,6 +6,9 @@ import { sfx } from '../lib/sfx';
 import { useApp, useProfileData } from '../store/useApp';
 import { SketchImg } from './Sketch';
 import { Stars } from './ui';
+import { lessonFree } from '../account/limits';
+import { useUnlocked } from '../account/membership';
+import { LockBadge, LockedModal } from '../account/Locked';
 
 export function LessonCard({ lesson, size = 'md', isNew = false }: { lesson: Lesson; size?: 'md' | 'lg' | 'xl'; isNew?: boolean }) {
   const nav = useNavigate();
@@ -13,14 +16,17 @@ export function LessonCard({ lesson, size = 'md', isNew = false }: { lesson: Les
   const toggle = useApp((s) => s.toggleFavorite);
   const fav = data.favorites.includes(lesson.id);
   const p = data.lessons[lesson.id];
+  const open = useUnlocked() || lessonFree(lesson.id, !!p);
+  const [lock, setLock] = useState(false);
   return (
-    <div className={`lesson-card lesson-card--${size}`}>
+    <div className={`lesson-card lesson-card--${size} ${open ? '' : 'is-locked'}`}>
       <button
         className="lesson-card__hit"
-        aria-label={`${lesson.title} dersini aç`}
+        aria-label={`${lesson.title} dersini aç${open ? '' : ' (Çizio Premium)'}`}
         onClick={() => {
           sfx.tap();
-          nav(`/ders/${lesson.id}`);
+          if (open) nav(`/ders/${lesson.id}`);
+          else setLock(true);
         }}
       >
         <SketchImg lesson={lesson} pad={30} className="lesson-card__img" />
@@ -34,10 +40,13 @@ export function LessonCard({ lesson, size = 'md', isNew = false }: { lesson: Les
           <span className="lesson-card__stars">
             <Stars value={p.bestStars} size={size === 'md' ? 16 : 20} dim="rgba(47,47,54,0.15)" />
           </span>
-        ) : (
+        ) : open ? (
           isNew && <span className="badge-new">YENİ</span>
+        ) : (
+          <LockBadge />
         )}
       </button>
+      {lock && <LockedModal kind="lesson" onClose={() => setLock(false)} />}
       <button
         className={`lesson-card__fav ${fav ? 'on' : ''}`}
         aria-label={fav ? 'Favorilerden çıkar' : 'Favorilere ekle'}

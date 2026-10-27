@@ -2,7 +2,7 @@
  * Çizio Adası (/ada): 3B oyun dünyası (src/world/island.ts). Şimdilik herkese açık (PLUS_ENABLED = false);
  * ücretli olursa abonelik yoksa tanıtım ve satın alma (ebeveyn kilidi arkasında) gösterilir.
  */
-import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Loader2, MessageCircle, Music, VolumeX, RotateCcw, Shirt, Sprout, Star, Store, X, Map as MapIcon, Camera } from 'lucide-react';
+import { ArrowLeft, BookOpen, PartyPopper, Check, ChefHat, ClipboardList, Crown, DoorOpen, Egg, Hammer, Home, Images, Lock, MessageCircle, Music, VolumeX, Shirt, Sprout, Star, Store, X, Map as MapIcon, Camera } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { create } from 'zustand';
@@ -23,9 +23,8 @@ import { addDays, dayKey, hashStr } from '../lib/util';
 import { ISLAND_REWARD, useApp, useProfile, useProfileData } from '../store/useApp';
 import type { Island, RealmInfo, Spot } from '../world/island';
 import { coastAt, LAKE, SNOW_PEAK, WORLD_R, ZONES, type Zone } from '../world/layout';
-import { buyPlus, canBuy, managePlus, PLUS_ENABLED, restorePlus, usePlus } from '../world/plus';
+import { useUnlocked } from '../account/membership';
 import { ISLAND_LINES, QUESTS, STARS_GOAL, todayQuests, type QuestId } from '../world/quests';
-import { Gate } from '../components/Gate';
 import {
   advanceJourney, CROPS, ANIMALS, STRUCTS, fillOrders, type PlaceKind, miniWin, type MiniGameId, type MiniPrize, newFarm, normalizeFarm,
   realmReward, unlocksAt, claimBadges, dailyGift, openChest, type ChestDef, type DailyGift, type FarmState, type Result,
@@ -52,8 +51,7 @@ import { RACE_VOICE_LINES } from '../world/raceLines';
 const VOICED = new Set(RACE_VOICE_LINES);
 
 export default function World() {
-  const owned = usePlus((s) => s.owned);
-  return owned ? <IslandPlay /> : <Paywall />;
+  return useUnlocked() ? <IslandPlay /> : <Paywall />;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -62,10 +60,7 @@ export default function World() {
 function Paywall() {
   const nav = useNavigate();
   const data = useProfileData();
-  const { price, busy, error, status } = usePlus();
-  const [gate, setGate] = useState(false);
   const doll = data.doll ?? PRESETS[0];
-  const android = canBuy();
   return (
     <div className="bg paywall">
       <Doodles variant={2} />
@@ -78,36 +73,22 @@ function Paywall() {
           <span className="paywall__doll"><Doll d={doll} bg={false} viewBox="20 -10 260 440" /></span>
         </div>
         <div className="paywall__text">
-          <span className="paywall__badge"><Crown size={18} /> Çizio Plus</span>
+          <span className="paywall__badge"><Crown size={18} /> Çizio Premium</span>
           <h1 className="title-xl">Çizio Adası</h1>
           <p className="sub">Giydirdiğin karakterle 3 boyutlu bir adada dolaş, oyna, keşfet!</p>
           <ul className="paywall__list">
             <li><Check size={20} /> Kendi karakterinle adada özgürce gez</li>
-            <li><Check size={20} /> Kaydırak, salıncak, dans pisti ve tekne turu</li>
-            <li><Check size={20} /> Sanat galerisinde kendi resimlerin sergileniyor</li>
-            <li><Check size={20} /> Her gün yeni görevler ve yıldız avı</li>
-            <li><Check size={20} /> Reklam yok, mesajlaşma yok, çocuklar için güvenli</li>
+            <li><Check size={20} /> Kart yarışı, parkurlar, trambolin ve balonlar</li>
+            <li><Check size={20} /> Portallarla gökyüzüne, Mars'a ve şeker diyarına git</li>
+            <li><Check size={20} /> Minecraft gibi inşa et, evini kur</li>
+            <li><Check size={20} /> Her gün yeni görevler ve sandıklar</li>
           </ul>
-          {android ? (
-            <>
-              <button className="pill paywall__buy" disabled={busy || status === 'loading'} onClick={() => setGate(true)}>
-                {busy ? <Loader2 className="spin" size={22} /> : <Crown size={22} />} Yıllık {price}
-              </button>
-              <p className="paywall__fine">
-                Satın alma için bir büyüğün onayı gerekir. Abonelik her yıl kendiliğinden yenilenir; Google Play &gt; Abonelikler'den istediğiniz zaman iptal edebilirsiniz.
-              </p>
-              <div className="paywall__links">
-                <button className="btn-outline btn-outline--sm" disabled={busy} onClick={() => void restorePlus()}><RotateCcw size={16} /> Satın alımı geri yükle</button>
-              </div>
-              {status === 'unavailable' && !error && <p className="online-send__err">Google Play'e şu an bağlanılamıyor. İnternet bağlantısını ve Play Store'u kontrol edip tekrar deneyin.</p>}
-              {error && <p className="online-send__err">{error}</p>}
-            </>
-          ) : (
-            <p className="paywall__fine">Çizio Adası, Çizio'nun Android uygulamasında açılır. Google Play'den Çizio'yu indirip Ebeveyn bölümünden Çizio Plus'a geçebilirsiniz.</p>
-          )}
+          <p className="locked__hint">Çizio Adası Çizio Premium ile açılıyor. Bir büyüğüne göster!</p>
+          <button className="pill pill--big pill--go paywall__buy" onClick={() => { sfx.pop(); nav('/premium?neden=island'); }}>
+            <Lock size={22} strokeWidth={2.6} /> Büyüğüme göster
+          </button>
         </div>
       </main>
-      {gate && <Gate onCancel={() => setGate(false)} onPass={() => { setGate(false); void buyPlus(); }} />}
     </div>
   );
 }
@@ -946,7 +927,6 @@ function IslandPlay() {
             ) : (
               <p className="sub">Hepsini bitirince {ISLAND_REWARD} yıldız kazanırsın. Haritadan istediğin yere hemen gidebilirsin.</p>
             )}
-            {PLUS_ENABLED && <button className="btn-outline btn-outline--sm" onClick={() => void managePlus()}><Crown size={16} /> Aboneliği yönet</button>}
           </div>
         </Modal>
       )}

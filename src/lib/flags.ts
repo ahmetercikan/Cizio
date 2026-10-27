@@ -5,3 +5,21 @@
  * İleride geri açmak için aşağıdaki değeri `true` yapmak yeterli.
  */
 export const MUZIK_MATEMATIK_ACIK: boolean = false;
+
+/**
+ * Çizio Premium (src/account/): aylık/yıllık abonelik; ücretsiz kullanıcıda derslerin, English Club'ın bir kısmı ve
+ * Çizio Adası kilitlenir. Kapalıyken her şey herkese açık ve satın alma hiçbir yerde görünmez.
+ * Açmadan önce: RevenueCat anahtarları (src/account/config.ts) ve mağaza ürünleri hazır olmalı
+ * (adımlar: store/premium-kurulum.md). Geliştirmede localStorage 'cizio-premium-ac' = '1' bayrağı açar,
+ * 'cizio-premium-dev' = '1' satın almadan Premium yapar.
+ */
+const devFlag = (key: string) => {
+  try {
+    return import.meta.env.DEV && localStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+};
+/** Yayında açmak için `true` yapılır. */
+const PREMIUM_YAYINDA = false;
+export const PREMIUM_ACIK: boolean = PREMIUM_YAYINDA || devFlag('cizio-premium-ac');
